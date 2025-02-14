@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import Image from "next/image"
 
 export const metadata: Metadata = {
   title: "Khóa học - Khoa Công nghệ Ô tô",
@@ -130,10 +131,11 @@ export default function CoursesPage() {
           >
             <div className="relative aspect-video overflow-hidden rounded-t-lg">
               <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:opacity-0" />
-              <img
+              <Image
                 src={course.image}
                 alt={course.title}
-                className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                fill
+                className="object-cover transition-transform group-hover:scale-105"
               />
             </div>
             <div className="p-6">

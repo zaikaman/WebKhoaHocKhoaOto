@@ -40,7 +40,7 @@ export default function RegisterPage() {
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg">
-              "Đào tạo kỹ sư công nghệ ô tô chất lượng cao, đáp ứng nhu cầu của ngành công nghiệp ô tô hiện đại."
+              &quot;Đào tạo kỹ sư công nghệ ô tô chất lượng cao, đáp ứng nhu cầu của ngành công nghiệp ô tô hiện đại.&quot;
             </p>
             <footer className="text-sm">Khoa Công nghệ Ô tô</footer>
           </blockquote>
