@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 215 90% 24%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 215 25% 94%;
+    --secondary-foreground: 215 90% 24%;
+    --muted: 215 25% 94%;
+    --muted-foreground: 215 35% 45%;
+    --accent: 215 25% 94%;
+    --accent-foreground: 215 90% 24%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 32% 88%;
+    --input: 215 32% 88%;
+    --ring: 215 90% 24%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 215 90% 24%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 215 25% 16%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 25% 16%;
+    --muted-foreground: 215 35% 65%;
+    --accent: 215 25% 16%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 25% 16%;
+    --input: 215 25% 16%;
+    --ring: 215 90% 24%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes slide-out-to-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.animate-in {
+  animation: enter 150ms ease-out;
+}
+
+.animate-out {
+  animation: exit 150ms ease-in;
+}
+
+.fade-in {
+  animation: fade-in 200ms ease-out;
+}
+
+.fade-out {
+  animation: fade-out 200ms ease-in;
+}
+
+.slide-in-from-top {
+  --tw-enter-translate-y: -100%;
+}
+
+.slide-in-from-bottom {
+  --tw-enter-translate-y: 100%;
+}
+
+.slide-out-to-right {
+  --tw-exit-translate-x: 100%;
+}
