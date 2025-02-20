@@ -1,13 +1,56 @@
-import { Metadata } from "next"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Đăng nhập - Khoa Công nghệ Ô tô",
-  description: "Đăng nhập vào hệ thống quản lý học tập Khoa Công nghệ Ô tô",
-}
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { supabase } from "@/lib/supabase"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsLoading(true)
+
+    const formData = new FormData(event.currentTarget)
+    const username = formData.get("username") as string
+    const password = formData.get("password") as string
+    const remember = formData.get("remember") === "on"
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: username + "@auto.edu.vn", // Tạo email từ mã số
+        password,
+      })
+
+      if (error) {
+        throw error
+      }
+
+      // Đăng nhập thành công
+      toast({
+        title: "Đăng nhập thành công",
+        description: "Chào mừng bạn quay trở lại!",
+      })
+
+      // Chuyển hướng đến trang dashboard
+      router.push("/dashboard")
+    } catch (error) {
+      // Xử lý lỗi đăng nhập
+      toast({
+        variant: "destructive",
+        title: "Đăng nhập thất bại",
+        description: "Mã số hoặc mật khẩu không chính xác. Vui lòng thử lại.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
@@ -57,16 +100,22 @@ export default function LoginPage() {
             </p>
           </div>
           <div className="grid gap-6">
-            <form>
+            <form onSubmit={onSubmit}>
               <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <label className="text-sm font-medium" htmlFor="studentId">
-                    Mã số sinh viên
+                  <label className="text-sm font-medium" htmlFor="username">
+                    Mã số sinh viên/giảng viên
                   </label>
                   <input
-                    id="studentId"
-                    placeholder="Nhập mã số sinh viên"
+                    id="username"
+                    name="username"
+                    placeholder="Nhập mã số sinh viên/giảng viên"
                     type="text"
+                    autoCapitalize="none"
+                    autoComplete="username"
+                    autoCorrect="off"
+                    disabled={isLoading}
+                    required
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
@@ -76,7 +125,11 @@ export default function LoginPage() {
                   </label>
                   <input
                     id="password"
+                    name="password"
                     type="password"
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    required
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
@@ -84,6 +137,8 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     id="remember"
+                    name="remember"
+                    disabled={isLoading}
                     className="h-4 w-4 rounded border border-input"
                   />
                   <label
@@ -93,29 +148,47 @@ export default function LoginPage() {
                     Ghi nhớ đăng nhập
                   </label>
                 </div>
-                <Button className="w-full">
-                  Đăng nhập
+                <Button type="submit" disabled={isLoading} className="w-full">
+                  {isLoading && (
+                    <svg
+                      className="mr-2 h-4 w-4 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  )}
+                  {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                 </Button>
               </div>
             </form>
           </div>
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            Chưa có tài khoản?{" "}
-            <Link
-              href="/register"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Đăng ký
-            </Link>
-          </p>
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            <Link
-              href="/forgot-password"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Quên mật khẩu?
-            </Link>
-          </p>
+          <div className="space-y-4">
+            <p className="px-8 text-center text-sm text-muted-foreground">
+              Liên hệ với quản trị viên khoa để được cấp tài khoản truy cập hệ thống.
+            </p>
+            <p className="px-8 text-center text-sm text-muted-foreground">
+              <Link
+                href="/forgot-password"
+                className="underline underline-offset-4 hover:text-primary"
+              >
+                Quên mật khẩu?
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
