@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase"
+import { signIn } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 
 export default function LoginPage() {
@@ -19,22 +19,14 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget)
     const username = formData.get("username") as string
     const password = formData.get("password") as string
-    const remember = formData.get("remember") === "on"
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: username + "@auto.edu.vn", // Tạo email từ mã số
-        password,
-      })
-
-      if (error) {
-        throw error
-      }
+      const { user, profile } = await signIn(username, password)
 
       // Đăng nhập thành công
       toast({
         title: "Đăng nhập thành công",
-        description: "Chào mừng bạn quay trở lại!",
+        description: `Chào mừng ${profile.full_name || profile.username} quay trở lại!`,
       })
 
       // Chuyển hướng đến trang dashboard
