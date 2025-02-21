@@ -1,16 +1,66 @@
-import { Metadata } from "next"
-import { Button } from "@/components/ui/button"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Trang tổng quan hệ thống quản lý học tập",
-}
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { getCurrentUser } from "@/lib/supabase"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [userName, setUserName] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  async function checkAuth() {
+    try {
+      const currentUser = await getCurrentUser()
+      
+      if (!currentUser) {
+        router.push('/login')
+        return
+      }
+
+      // Kiểm tra role và chuyển hướng
+      if (currentUser.profile.role === 'teacher') {
+        router.push('/dashboard/teacher')
+        return
+      } else if (currentUser.profile.role === 'admin') {
+        router.push('/admin/dashboard')
+        return
+      }
+
+      // Nếu là sinh viên thì hiển thị trang này
+      setUserName(currentUser.profile.full_name || currentUser.profile.student_id)
+      setIsLoading(false)
+
+    } catch (error) {
+      console.error('Lỗi khi kiểm tra xác thực:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể xác thực người dùng"
+      })
+      router.push('/login')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Xin chào, [Tên người dùng]</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Xin chào, {userName}</h2>
       </div>
 
       {/* Stats */}
