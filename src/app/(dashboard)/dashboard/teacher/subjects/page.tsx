@@ -225,7 +225,7 @@ export default function TeacherSubjectsPage() {
               <textarea
                 id="description"
                 name="description"
-                defaultValue={selectedSubject?.description}
+                defaultValue={selectedSubject?.description || ''}
                 className="w-full px-3 py-2 border rounded-md"
                 rows={3}
               />
