@@ -15,13 +15,13 @@ import {
 
 // Types
 type Stats = {
-  totalClasses: number
-  totalStudents: number
-  pendingAssignments: number
-  upcomingDeadlines: number
-  totalLectures: number
-  totalExams: number
-  averageScore: number
+  totalClasses: number | null
+  totalStudents: number | null
+  pendingAssignments: number | null
+  upcomingDeadlines: number | null
+  totalLectures: number | null
+  totalExams: number | null
+  averageScore: number | null
 }
 
 type UpcomingEvent = {
@@ -49,7 +49,7 @@ type Exam = {
   duration: number
   totalStudents: number
   submittedCount: number
-  averageScore: number
+  averageScore: number | null
   status: 'upcoming' | 'in-progress' | 'completed'
 }
 
@@ -59,13 +59,13 @@ export default function TeacherDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [teacherName, setTeacherName] = useState('')
   const [stats, setStats] = useState<Stats>({
-    totalClasses: 0,
-    totalStudents: 0,
-    pendingAssignments: 0,
-    upcomingDeadlines: 0,
-    totalLectures: 0,
-    totalExams: 0,
-    averageScore: 0
+    totalClasses: null,
+    totalStudents: null,
+    pendingAssignments: null,
+    upcomingDeadlines: null,
+    totalLectures: null,
+    totalExams: null,
+    averageScore: null
   })
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([])
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([])
@@ -326,7 +326,7 @@ export default function TeacherDashboardPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Điểm trung bình</p>
-                <h3 className="text-2xl font-bold">{stats.averageScore.toFixed(1)}</h3>
+                <h3 className="text-2xl font-bold">{stats.averageScore?.toFixed(1)}</h3>
               </div>
             </div>
           </div>
@@ -501,7 +501,7 @@ export default function TeacherDashboardPage() {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Điểm TB</p>
-                        <p className="font-medium">{exam.averageScore.toFixed(1)}</p>
+                        <p className="font-medium">{exam.averageScore?.toFixed(1)}</p>
                       </div>
                     </div>
                   </div>
