@@ -128,7 +128,7 @@ export type Student = {
   updated_at: string
 }
 
-export type ClassEnrollment = {
+export type Enrollment = {
   id: string
   class_id: string
   student_id: string
@@ -315,7 +315,7 @@ export async function getClassById(classId: string) {
 export async function getClassStudents(classId: string): Promise<Student[]> {
   try {
     const { data: enrollments, error: enrollmentError } = await supabase
-      .from('class_enrollments')
+      .from('enrollments')
       .select('student_id')
       .eq('class_id', classId)
       .eq('status', 'enrolled')

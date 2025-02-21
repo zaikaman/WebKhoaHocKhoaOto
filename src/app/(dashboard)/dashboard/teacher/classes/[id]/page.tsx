@@ -14,12 +14,14 @@ import {
   getClassExams
 } from "@/lib/supabase"
 import type { Class, Student, Lecture, Assignment, Exam } from "@/lib/supabase"
+import React from "react"
 
 export default function ClassDetailPage({ params }: { params: { id: string } }) {
-  const id = params.id
+  const id = React.use(params).id
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [classData, setClassData] = useState<Class | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [lectures, setLectures] = useState<Lecture[]>([])
@@ -33,6 +35,8 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
   async function loadClassData() {
     try {
       setIsLoading(true)
+      setError(null)
+      
       const currentUser = await getCurrentUser()
 
       if (!currentUser) {
@@ -40,31 +44,114 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
         return
       }
 
-      const [
-        classResponse,
-        studentsResponse,
-        lecturesResponse,
-        assignmentsResponse,
-        examsResponse
-      ] = await Promise.all([
-        getClassById(id),
-        getClassStudents(id),
-        getClassLectures(id),
-        getClassAssignments(id),
-        getClassExams(id)
-      ])
+      if (currentUser.profile.role !== 'teacher') {
+        setError('Bạn không có quyền truy cập trang này')
+        toast({
+          variant: "destructive",
+          title: "Lỗi phân quyền",
+          description: "Bạn không có quyền truy cập trang này"
+        })
+        return
+      }
 
-      setClassData(classResponse)
-      setStudents(studentsResponse)
-      setLectures(lecturesResponse)
-      setAssignments(assignmentsResponse)
-      setExams(examsResponse)
-    } catch (error) {
-      console.error('Lỗi khi tải dữ liệu lớp học:', error)
+      try {
+        const classResponse = await getClassById(id)
+        if (!classResponse) {
+          setError('Không tìm thấy thông tin lớp học')
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: "Không tìm thấy thông tin lớp học"
+          })
+          return
+        }
+
+        // Kiểm tra xem giáo viên có phải là người phụ trách lớp này không
+        if (classResponse.teacher_id !== currentUser.profile.id) {
+          setError('Bạn không phải là giáo viên phụ trách lớp học này')
+          toast({
+            variant: "destructive",
+            title: "Lỗi phân quyền",
+            description: "Bạn không phải là giáo viên phụ trách lớp học này"
+          })
+          return
+        }
+
+        setClassData(classResponse)
+
+        // Tải dữ liệu sinh viên
+        try {
+          const studentsResponse = await getClassStudents(id)
+          setStudents(studentsResponse)
+        } catch (error: any) {
+          console.error('Lỗi khi tải danh sách sinh viên:', error)
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: `Không thể tải danh sách sinh viên: ${error.message}`
+          })
+        }
+
+        // Tải dữ liệu bài giảng
+        try {
+          const lecturesResponse = await getClassLectures(id)
+          setLectures(lecturesResponse)
+        } catch (error: any) {
+          console.error('Lỗi khi tải danh sách bài giảng:', error)
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: `Không thể tải danh sách bài giảng: ${error.message}`
+          })
+        }
+
+        // Tải dữ liệu bài tập
+        try {
+          const assignmentsResponse = await getClassAssignments(id)
+          setAssignments(assignmentsResponse)
+        } catch (error: any) {
+          console.error('Lỗi khi tải danh sách bài tập:', error)
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: `Không thể tải danh sách bài tập: ${error.message}`
+          })
+        }
+
+        // Tải dữ liệu bài kiểm tra
+        try {
+          const examsResponse = await getClassExams(id)
+          setExams(examsResponse)
+        } catch (error: any) {
+          console.error('Lỗi khi tải danh sách bài kiểm tra:', error)
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: `Không thể tải danh sách bài kiểm tra: ${error.message}`
+          })
+        }
+
+      } catch (error: any) {
+        console.error('Chi tiết lỗi:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        setError(`Không thể tải dữ liệu lớp học: ${error.message}`)
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: `Không thể tải dữ liệu lớp học: ${error.message}`
+        })
+      }
+    } catch (error: any) {
+      console.error('Lỗi:', error)
+      setError('Có lỗi xảy ra, vui lòng thử lại sau')
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể tải dữ liệu lớp học"
+        description: "Có lỗi xảy ra, vui lòng thử lại sau"
       })
     } finally {
       setIsLoading(false)
@@ -75,6 +162,17 @@ export default function ClassDetailPage({ params }: { params: { id: string } }) 
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <h3 className="text-lg font-semibold mb-2 text-red-600">{error}</h3>
+        <Button variant="outline" onClick={() => router.back()}>
+          Quay lại
+        </Button>
       </div>
     )
   }
