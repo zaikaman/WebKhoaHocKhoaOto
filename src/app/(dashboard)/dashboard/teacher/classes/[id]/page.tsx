@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -14,14 +14,9 @@ import {
   getClassExams
 } from "@/lib/supabase"
 import type { Class, Student, Lecture, Assignment, Exam } from "@/lib/supabase"
-import React, { type Usable } from "react"
 
-type PageProps = {
-  params: Usable<{ id: string }>
-}
-
-export default function ClassDetailPage({ params }: PageProps) {
-  const { id } = React.use(params)
+export default function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
