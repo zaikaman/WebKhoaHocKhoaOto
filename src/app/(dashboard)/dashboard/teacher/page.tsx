@@ -170,9 +170,9 @@ export default function TeacherDashboardPage() {
           subject: classItem.subject.name,
           date: e.start_time,
           duration: e.duration,
-          totalStudents: e.submissions.count || 0,
-          submittedCount: e.submissions.filter(s => s.submitted_at).length,
-          averageScore: e.submissions.reduce((acc, s) => acc + (s.score || 0), 0) / (e.submissions.filter(s => s.score !== null).length || 1),
+          totalStudents: 0, // TODO: Implement later
+          submittedCount: 0, // TODO: Implement later
+          averageScore: null, // TODO: Implement later
           status: e.status
         })))
       }
