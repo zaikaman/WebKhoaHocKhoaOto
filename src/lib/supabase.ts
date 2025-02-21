@@ -9,11 +9,80 @@ export type Profile = {
   full_name: string | null
   role: 'student' | 'teacher' | 'admin'
   class_code: string | null
+  status: 'active' | 'inactive'
   created_at: string
   updated_at: string
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
+
+// Hàm lấy danh sách tài khoản
+export async function getAccounts() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+// Hàm thêm tài khoản mới
+export async function createAccount(account: Omit<Profile, 'id' | 'created_at' | 'updated_at'>) {
+  // Tạo auth user trước
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: `${account.student_id}@auto.edu.vn`,
+    password: 'password123', // Mật khẩu mặc định
+  })
+
+  if (authError) throw authError
+
+  // Sau đó tạo profile
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert([
+      {
+        id: authData.user?.id,
+        student_id: account.student_id,
+        full_name: account.full_name,
+        role: account.role,
+        class_code: account.class_code,
+        status: account.status,
+      }
+    ])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Hàm cập nhật tài khoản
+export async function updateAccount(id: string, account: Partial<Profile>) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      student_id: account.student_id,
+      full_name: account.full_name,
+      role: account.role,
+      class_code: account.class_code,
+      status: account.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Hàm xóa tài khoản
+export async function deleteAccount(id: string) {
+  // Xóa auth user (sẽ tự động xóa profile do có cascade)
+  const { error: authError } = await supabase.auth.admin.deleteUser(id)
+  if (authError) throw authError
+}
 
 export async function signIn(studentId: string, password: string) {
   try {
