@@ -14,15 +14,14 @@ import {
   getClassExams
 } from "@/lib/supabase"
 import type { Class, Student, Lecture, Assignment, Exam } from "@/lib/supabase"
+import React, { type Usable } from "react"
 
 type PageProps = {
-  params: {
-    id: string
-  }
+  params: Usable<{ id: string }>
 }
 
 export default function ClassDetailPage({ params }: PageProps) {
-  const id = params.id
+  const { id } = React.use(params)
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
