@@ -88,7 +88,7 @@ export async function signIn(studentId: string, password: string) {
   try {
     // Thử đăng nhập trước
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: `${studentId}@auto.edu.vn`,
+      email: `${studentId}@gmail.com`,
       password,
     })
 
