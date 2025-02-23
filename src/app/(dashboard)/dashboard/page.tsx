@@ -17,7 +17,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <h3 className="tracking-tight text-sm font-medium">Khóa học đang học</h3>
+            <h3 className="tracking-tight text-sm font-medium">Lớp đang học</h3>
           </div>
           <div className="text-2xl font-bold">5</div>
         </div>
@@ -44,7 +44,7 @@ export default function DashboardPage() {
       {/* Recent courses */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Khóa học gần đây</h3>
+          <h3 className="text-lg font-medium">Lớp học</h3>
           <Button variant="outline">Xem tất cả</Button>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

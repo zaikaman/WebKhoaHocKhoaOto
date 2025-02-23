@@ -30,7 +30,11 @@ export default function LoginPage() {
       })
 
       // Chuyển hướng đến trang dashboard
-      router.push("/dashboard")
+      if (profile.role === "teacher") {
+        router.push("/TeacherDashboard")
+      } else {
+        router.push("/dashboard") 
+      }
     } catch (error) {
       // Xử lý lỗi đăng nhập
       toast({

@@ -18,6 +18,15 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  if (request.nextUrl.pathname.startsWith('/TeacherDashboard')) {
+    const session = request.cookies.get('session')
+    const userRole = session?.value ? JSON.parse(session.value).role : null
+    
+    if (!session || userRole !== 'teacher') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   return NextResponse.next()
 }
 
