@@ -29,12 +29,9 @@ export default function LoginPage() {
         description: `Chào mừng ${profile.full_name || profile.username} quay trở lại!`,
       })
 
-      // Chuyển hướng đến trang dashboard
-      if (profile.role === "teacher") {
-        router.push("/TeacherDashboard")
-      } else {
-        router.push("/dashboard") 
-      }
+
+    router.push("/dashboard") 
+
     } catch (error) {
       // Xử lý lỗi đăng nhập
       toast({
