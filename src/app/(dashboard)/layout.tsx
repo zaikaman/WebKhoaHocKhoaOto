@@ -1,12 +1,59 @@
-import { ReactNode } from "react"
+"use client"
+
+import { ReactNode, useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { signOut, getCurrentUser } from "@/lib/supabase"
+import { useToast } from "@/components/ui/use-toast"
+import { cn } from "@/lib/utils"
 
 export default function DashboardLayout({
   children,
 }: {
   children: ReactNode
 }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { toast } = useToast()
+  const [role, setRole] = useState<'student' | 'teacher' | 'admin' | null>(null)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  async function checkAuth() {
+    try {
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        router.push('/login')
+        return
+      }
+      setRole(currentUser.profile.role)
+    } catch (error) {
+      console.error('Lỗi khi kiểm tra xác thực:', error)
+      router.push('/login')
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast({
+        title: "Đăng xuất thành công",
+        description: "Hẹn gặp lại bạn!"
+      })
+      router.push('/login')
+    } catch (error) {
+      console.error('Lỗi khi đăng xuất:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể đăng xuất. Vui lòng thử lại."
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
@@ -30,28 +77,183 @@ export default function DashboardLayout({
           <nav className="space-y-2">
             <Link
               href="/dashboard"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
+              className={cn(
+                "block px-4 py-2 rounded transition-colors",
+                pathname === "/dashboard" 
+                  ? "bg-gray-800 text-white" 
+                  : "hover:bg-gray-800"
+              )}
             >
-              Trang chủ
+              <div className="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4 mr-2"
+                >
+                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                Trang chủ
+              </div>
             </Link>
-            <Link
-              href="/dashboard/courses"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
-            >
-              Khóa học
-            </Link>
-            <Link
-              href="/dashboard/assignments"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
-            >
-              Bài tập
-            </Link>
-            <Link
-              href="/dashboard/grades"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
-            >
-              Điểm số
-            </Link>
+
+            {role === 'teacher' && (
+              <>
+                <Link
+                  href="/dashboard/teacher/classes"
+                  className={cn(
+                    "block px-4 py-2 rounded transition-colors",
+                    pathname === "/dashboard/teacher/classes" 
+                      ? "bg-gray-800 text-white" 
+                      : "hover:bg-gray-800"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 mr-2"
+                    >
+                      <path d="M18 6h-5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h5c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
+                      <path d="M9 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h5c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
+                    </svg>
+                    Lớp học của tôi
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/teacher/subjects"
+                  className={cn(
+                    "block px-4 py-2 rounded transition-colors",
+                    pathname === "/dashboard/teacher/subjects" 
+                      ? "bg-gray-800 text-white" 
+                      : "hover:bg-gray-800"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 mr-2"
+                    >
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                    </svg>
+                    Môn học
+                  </div>
+                </Link>
+              </>
+            )}
+
+            {role === 'student' && (
+              <>
+                <Link
+                  href="/dashboard/courses"
+                  className={cn(
+                    "block px-4 py-2 rounded transition-colors",
+                    pathname === "/dashboard/courses" 
+                      ? "bg-gray-800 text-white" 
+                      : "hover:bg-gray-800"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 mr-2"
+                    >
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                    </svg>
+                    Khóa học
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/assignments"
+                  className={cn(
+                    "block px-4 py-2 rounded transition-colors",
+                    pathname === "/dashboard/assignments" 
+                      ? "bg-gray-800 text-white" 
+                      : "hover:bg-gray-800"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 mr-2"
+                    >
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z" />
+                    </svg>
+                    Bài tập
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/grades"
+                  className={cn(
+                    "block px-4 py-2 rounded transition-colors",
+                    pathname === "/dashboard/grades" 
+                      ? "bg-gray-800 text-white" 
+                      : "hover:bg-gray-800"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 mr-2"
+                    >
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    Điểm số
+                  </div>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </aside>
@@ -79,7 +281,7 @@ export default function DashboardLayout({
                 </svg>
                 <span className="ml-2">Tài khoản</span>
               </Button>
-              <Button variant="outline">Đăng xuất</Button>
+              <Button variant="outline" onClick={handleSignOut}>Đăng xuất</Button>
             </div>
           </div>
         </header>
