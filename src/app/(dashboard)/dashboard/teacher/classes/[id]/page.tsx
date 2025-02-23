@@ -11,9 +11,19 @@ import {
   getClassStudents,
   getClassLectures,
   getClassAssignments,
-  getClassExams
+  getClassExams,
+  createEnrollment,
+  removeStudentFromClass,
 } from "@/lib/supabase"
 import type { Class, Student, Lecture, Assignment, Exam } from "@/lib/supabase"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -26,6 +36,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
   const [lectures, setLectures] = useState<Lecture[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [exams, setExams] = useState<Exam[]>([])
+  const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false)
 
   useEffect(() => {
     loadClassData()
@@ -157,6 +168,111 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const handleAddStudent = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const formData = new FormData(event.currentTarget)
+      const studentData = {
+        student_id: formData.get("student_id") as string,
+        full_name: formData.get("full_name") as string,
+        class_id: id
+      }
+
+      const response = await createEnrollment(studentData)
+      
+      if (response.success) {
+        await loadClassData() // Tải lại danh sách sinh viên
+        setIsAddStudentDialogOpen(false)
+        toast({
+          title: "Thành công",
+          description: response.message
+        })
+      } else {
+        toast({
+          variant: "destructive", 
+          title: "Lỗi",
+          description: response.message
+        })
+      }
+    } catch (error: any) {
+      console.error('Lỗi khi thêm sinh viên:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi", 
+        description: error.message || "Không thể thêm sinh viên"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRemoveStudent = async (studentId: string) => {
+    setIsLoading(true)
+
+    try {
+      const result = await removeStudentFromClass(studentId, id)
+      if (result.success) {
+        toast({
+          title: "Thành công",
+          description: result.message
+        })
+        await loadClassData()
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: result.message
+        })
+      }
+    } catch (error: any) {
+      console.error('Lỗi khi xóa sinh viên:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error.message || "Không thể xóa sinh viên"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // const handleUpdateStudent = async (studentId: string, data: {
+  //   student_id?: string
+  //   full_name?: string
+  //   class_code?: string
+  //   status?: 'active' | 'inactive'
+  // }) => {
+  //   setIsLoading(true)
+
+  //   try {
+  //     const result = await updateStudentInfo(studentId, data)
+  //     if (result.success) {
+  //       toast({
+  //         title: "Thành công",
+  //         description: result.message
+  //       })
+  //       await loadClassData()
+  //     } else {
+  //       toast({
+  //         variant: "destructive",
+  //         title: "Lỗi",
+  //         description: result.message
+  //       })
+  //     }
+  //   } catch (error: any) {
+  //     console.error('Lỗi khi cập nhật thông tin sinh viên:', error)
+  //     toast({
+  //       variant: "destructive",
+  //       title: "Lỗi",
+  //       description: error.message || "Không thể cập nhật thông tin sinh viên"
+  //     })
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -240,14 +356,15 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
         <TabsContent value="students">
           <div className="rounded-md border">
             <div className="p-4">
-              <Button>Thêm sinh viên</Button>
+              <Button onClick={() => setIsAddStudentDialogOpen(true)}>
+                Thêm sinh viên
+              </Button>
             </div>
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
                   <th className="py-3 px-4 text-left font-medium">MSSV</th>
                   <th className="py-3 px-4 text-left font-medium">Họ và tên</th>
-                  <th className="py-3 px-4 text-left font-medium">Email</th>
                   <th className="py-3 px-4 text-left font-medium">Thao tác</th>
                 </tr>
               </thead>
@@ -256,15 +373,63 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
                   <tr key={student.id} className="border-t">
                     <td className="py-3 px-4">{student.student_id}</td>
                     <td className="py-3 px-4">{student.full_name}</td>
-                    <td className="py-3 px-4">{student.email}</td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">Xem điểm</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveStudent(student.id)}>Xóa</Button>
+                      <Button variant="ghost" size="sm" onClick={() => {toast({
+                                                                      variant: "destructive",
+                                                                      title: "Lỗi",
+                                                                      description: "Chức năng đang xây dựng"
+                                                                    })}}>Sửa</Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {/* Dialog thêm sinh viên */}
+          <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Thêm sinh viên vào lớp</DialogTitle>
+                <DialogDescription>
+                  Nhập thông tin sinh viên để thêm vào lớp học
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddStudent} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="student_id">
+                    Mã số sinh viên
+                  </label>
+                  <input
+                    id="student_id"
+                    name="student_id"
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="full_name">
+                    Họ và tên
+                  </label>
+                  <input
+                    id="full_name"
+                    name="full_name"
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsAddStudentDialogOpen(false)}>
+                    Hủy
+                  </Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? "Đang xử lý..." : "Thêm sinh viên"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Bài giảng */}

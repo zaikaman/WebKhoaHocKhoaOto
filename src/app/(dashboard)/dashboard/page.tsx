@@ -3,14 +3,34 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { getCurrentUser } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
+import { getCurrentUser, getStudentClasses } from "@/lib/supabase"
+
+interface Course {
+  id: string
+  code: string
+  name: string
+  semester: string
+  academic_year: string
+  status: string
+  teacher: {
+    id: string
+    full_name: string
+  }
+  subjects: {
+    id: string
+    name: string
+    code: string
+    credits: number
+  }
+}
 
 export default function DashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [userName, setUserName] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [courses, setCourses] = useState<Course[]>([])
 
   useEffect(() => {
     checkAuth()
@@ -34,10 +54,16 @@ export default function DashboardPage() {
         return
       }
 
+      
+
       // Nếu là sinh viên thì hiển thị trang này
       setUserName(currentUser.profile.full_name || currentUser.profile.student_id)
       setIsLoading(false)
 
+      // Lấy số lượng lớp đang tham gia
+      const classesData = await getStudentClasses(currentUser.profile.id)
+      setCourses(classesData)
+      
     } catch (error) {
       console.error('Lỗi khi kiểm tra xác thực:', error)
       toast({
@@ -69,7 +95,7 @@ export default function DashboardPage() {
           <div className="flex flex-row items-center justify-between pb-2 space-y-0">
             <h3 className="tracking-tight text-sm font-medium">Lớp đang học</h3>
           </div>
-          <div className="text-2xl font-bold">5</div>
+          <div className="text-2xl font-bold">{courses.length}</div>
         </div>
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex flex-row items-center justify-between pb-2 space-y-0">
