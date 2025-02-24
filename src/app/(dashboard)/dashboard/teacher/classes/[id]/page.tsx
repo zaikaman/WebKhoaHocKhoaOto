@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-import LecturesPage from "../../lectures/page"
+import { LectureList } from "../../lectures/lecture-list"
 import { LectureDetail } from "../../lectures/lecture-details"
 
 export default function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -438,13 +438,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Bài giảng */}
         <TabsContent value="lectures">
-          <div className="rounded-md border">
-            <div className="p-4">
-              <LecturesPage 
-                classId={id} 
-                onUploadSuccess={loadClassData} 
-              />
-            </div>
+  <div className="rounded-md border">
+    <div className="p-4">
+      <LectureList
+        classId={id} 
+        onUploadSuccess={loadClassData} 
+      />
+    </div>
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
