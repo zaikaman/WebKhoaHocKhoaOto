@@ -1,4 +1,7 @@
-import { UploadLecture } from "../../../../../components/upload-lecture"
+"use client"
+
+import { useRouter } from "next/navigation"
+import { UploadLecture } from "@/components/upload-lecture"
 
 interface LecturesPageProps {
   classId: string;
@@ -7,7 +10,7 @@ interface LecturesPageProps {
 
 export default function LecturesPage({ classId, onUploadSuccess }: LecturesPageProps) {
   return (
-    <div className="">
+    <div>
       <UploadLecture 
         classId={classId}
         onUploadSuccess={onUploadSuccess}
