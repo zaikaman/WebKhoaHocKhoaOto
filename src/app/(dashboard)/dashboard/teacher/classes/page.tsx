@@ -56,6 +56,7 @@ export default function TeacherClassesPage() {
       ])
       
       setClasses(classesData)
+      console.log(classesData)
       setSubjects(subjectsData)
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
@@ -264,7 +265,7 @@ export default function TeacherClassesPage() {
                     <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
-                  0 sinh viên
+                  {classItem.enrollments?.length || 0} thành viên
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <svg
@@ -281,7 +282,7 @@ export default function TeacherClassesPage() {
                   >
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                   </svg>
-                  0 bài giảng
+                  {classItem.assignments?.count || 0} bài tập
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <svg
@@ -299,7 +300,7 @@ export default function TeacherClassesPage() {
                     <path d="M9 11l3 3L22 4" />
                     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                   </svg>
-                  0 bài tập
+                  {classItem.exams?.count || 0} bài kiểm tra
                 </div>
               </div>
 
