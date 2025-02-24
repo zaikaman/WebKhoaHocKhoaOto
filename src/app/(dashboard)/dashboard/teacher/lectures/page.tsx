@@ -1,19 +1,23 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { UploadLecture } from "@/components/upload-lecture"
 
-interface LecturesPageProps {
-  classId: string;
-  onUploadSuccess: () => Promise<void>;
-}
+export default function LecturesPage() {
+  const router = useRouter()
+  const params = useParams()
+  const classId = params.id as string
 
-export default function LecturesPage({ classId, onUploadSuccess }: LecturesPageProps) {
+  const handleUploadSuccess = async () => {
+    // Refresh the page data
+    router.refresh()
+  }
+
   return (
     <div>
       <UploadLecture 
         classId={classId}
-        onUploadSuccess={onUploadSuccess}
+        onUploadSuccess={handleUploadSuccess}
       />
     </div>
   )
