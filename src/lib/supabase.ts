@@ -133,9 +133,12 @@ export type Enrollment = {
   class_id: string
   student_id: string
   status: 'enrolled' | 'dropped'
-  grade: number | null
   created_at: string
   updated_at: string
+}
+
+export type ClassList = {
+  
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
@@ -622,3 +625,193 @@ export async function createSubject(subjectData: Omit<Subject, 'id' | 'created_a
     throw error
   }
 } 
+
+// Cập nhật hàm createEnrollment
+export async function createEnrollment(data: {
+  student_id: string
+  full_name: string
+  class_id: string
+}) {
+  try {
+    // Kiểm tra xem sinh viên đã tồn tại chưa
+    const { data: existingProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('student_id', data.student_id)
+      .single()
+
+    if (profileError) {
+      return { success: false, message: 'Không tìm thấy sinh viên trong hệ thống' }
+    }
+
+    // Kiểm tra xem sinh viên đã đăng ký lớp này chưa
+    const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
+      .from('enrollments')
+      .select('id, status')
+      .eq('class_id', data.class_id)
+      .eq('student_id', existingProfile.id)
+      .single()
+
+    if (enrollmentCheckError && enrollmentCheckError.code !== 'PGRST116') {
+      return { success: false, message: 'Lỗi khi kiểm tra đăng ký' }
+    }
+
+    if (existingEnrollment?.status === 'enrolled') {
+      return { success: false, message: 'Sinh viên đã đăng ký lớp học này' }
+    }
+
+    // Kiểm tra quyền truy cập
+    const { data: session } = await supabase.auth.getSession()
+    if (!session?.session?.access_token) {
+      return { success: false, message: 'Không có quyền thực hiện thao tác này' }
+    }
+
+    if (existingEnrollment) {
+      // Cập nhật enrollment hiện có
+      const { error: updateError } = await supabase
+        .from('enrollments')
+        .update({ 
+          status: 'enrolled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingEnrollment.id)
+
+      if (updateError) {
+        return { success: false, message: 'Không thể cập nhật đăng ký' }
+      }
+    } else {
+      // Tạo enrollment mới
+      const { error: createError } = await supabase
+        .from('enrollments')
+        .insert([{
+          class_id: data.class_id,
+          student_id: existingProfile.id,
+          status: 'enrolled',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+
+      if (createError) {
+        return { success: false, message: 'Không thể tạo đăng ký mới' }
+      }
+    }
+
+    return { success: true, message: 'Đăng ký lớp học thành công' }
+  } catch (error: any) {
+    return { 
+      success: false, 
+      message: error.message || 'Không thể thêm sinh viên vào lớp học'
+    }
+  }
+}
+
+export async function getStudentClasses(studentId: string) {
+  try {
+    console.log('StudentId nhận vào:', studentId)
+
+    // Bước 1: Lấy danh sách class_id từ bảng enrollments
+    const { data: enrollments, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('status', 'enrolled')
+
+    if (enrollmentError) throw enrollmentError
+
+    if (!enrollments || enrollments.length === 0) {
+      console.log('Không tìm thấy enrollment nào')
+      return []
+    }
+
+    // Lấy danh sách class_id
+    const classIds = enrollments.map(e => e.class_id)
+
+    // Bước 2: Lấy thông tin các lớp học từ bảng classes
+    const { data: classes, error: classError } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        teacher:profiles!teacher_id (
+          id,
+          full_name
+        ),
+        subjects:subjects!subject_id (
+          id,
+          name,
+          code,
+          credits
+        )
+      `)
+      .filter('id', 'in', `(${classIds.join(',')})`)
+
+    if (classError) throw classError
+
+    return classes || []
+
+  } catch (error) {
+    console.error('Lỗi chi tiết:', error)
+    throw error
+  }
+}
+
+// Hàm xóa sinh viên khỏi lớp học
+export async function removeStudentFromClass(studentId: string, classId: string) {
+  try {
+    const { error } = await supabase
+      .from('enrollments')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('class_id', classId)
+
+    if (error) {
+      console.error('Lỗi khi xóa sinh viên:', error)
+      return {
+        success: false,
+        message: 'Không thể xóa sinh viên khỏi lớp học'
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Đã xóa sinh viên khỏi lớp học thành công'
+    }
+  } catch (error) {
+    console.error('Lỗi chi tiết:', error)
+    return {
+      success: false,
+      message: 'Có lỗi xảy ra khi xóa sinh viên'
+    }
+  }
+}
+
+export async function getClassDetails(courseId: string) {
+  try {
+    console.log(courseId)
+    const { data, error } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        teacher:profiles!teacher_id(id, full_name),
+        subjects(id, name, code, credits),
+        lectures(id, title, description, file_url, created_at),
+        assignments(id, title, description, due_date, status),
+        exams(id, title, description, start_time, end_time, duration, status)
+      `)
+      .eq('id', courseId)
+
+    if (error) {
+      console.error('Chi tiết lỗi:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      throw error
+    }
+console.log("Data : " + data)
+    return data
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin lớp học:', error)
+    throw error
+  }
+}
