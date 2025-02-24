@@ -36,6 +36,19 @@ export type Class = {
   status: 'active' | 'completed'
   created_at: string
   updated_at: string
+  subject?: Subject
+  teacher?: Profile
+  enrollments?: {
+    id: string
+    student_id: string
+    student?: Profile
+  }[]
+  assignments?: {
+    count: number
+  }
+  exams?: {
+    count: number
+  }
 }
 
 export type Lecture = {
@@ -784,9 +797,56 @@ export async function removeStudentFromClass(studentId: string, classId: string)
   }
 }
 
-export async function getClassDetails(courseId: string) {
+export type ClassDetails = {
+  id: string
+  code: string
+  name: string
+  semester: string
+  academic_year: string
+  status: string
+  teacher_id: string
+  subject_id: string
+  created_at: string
+  updated_at: string
+  teacher: {
+    id: string
+    full_name: string
+  }
+  subjects: {
+    id: string
+    name: string 
+    code: string
+    credits: number
+  }
+  lectures: {
+    id: string
+    title: string
+    description: string | null
+    file_url: string | null
+    created_at: string
+  }[]
+  assignments: {
+    id: string
+    title: string
+    description: string | null
+    due_date: string
+  }[]
+  exams: {
+    id: string
+    title: string
+    description: string | null
+    start_time: string
+    end_time: string
+    duration: number
+    status: string
+  }[]
+  enrollments: {
+    count: number
+  }
+}
+
+export async function getClassDetailsById(courseId: string): Promise<ClassDetails> {
   try {
-    console.log(courseId)
     const { data, error } = await supabase
       .from('classes')
       .select(`
@@ -794,10 +854,12 @@ export async function getClassDetails(courseId: string) {
         teacher:profiles!teacher_id(id, full_name),
         subjects(id, name, code, credits),
         lectures(id, title, description, file_url, created_at),
-        assignments(id, title, description, due_date, status),
-        exams(id, title, description, start_time, end_time, duration, status)
+        assignments(id, title, description, due_date),
+        exams(id, title, description, start_time, end_time, duration, status),
+        enrollments(count)
       `)
       .eq('id', courseId)
+      .single()
 
     if (error) {
       console.error('Chi tiết lỗi:', {
@@ -806,9 +868,28 @@ export async function getClassDetails(courseId: string) {
         hint: error.hint,
         code: error.code
       })
-      throw error
+      throw new Error(`Lỗi khi lấy thông tin lớp học: ${error.message}`)
     }
-console.log("Data : " + data)
+
+    if (!data) {
+      throw new Error('Không tìm thấy thông tin lớp học')
+    }
+
+    console.log("Class details:", {
+      id: data.id,
+      code: data.code,
+      name: data.name,
+      semester: data.semester,
+      academic_year: data.academic_year,
+      status: data.status,
+      teacher: data.teacher,
+      subjects: data.subjects,
+      lectures: data.lectures,
+      assignments: data.assignments,
+      exams: data.exams,
+      enrollments: data.enrollments
+    })
+
     return data
   } catch (error) {
     console.error('Lỗi khi lấy thông tin lớp học:', error)
