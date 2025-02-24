@@ -150,8 +150,52 @@ export type Enrollment = {
   updated_at: string
 }
 
-export type ClassList = {
-  
+export type ClassDetails = {
+  id: string
+  code: string
+  name: string
+  semester: string
+  academic_year: string
+  status: string
+  teacher_id: string
+  subject_id: string
+  created_at: string
+  updated_at: string
+  teacher: {
+    id: string
+    full_name: string
+  }
+  subjects: {
+    id: string
+    name: string 
+    code: string
+    credits: number
+  }
+  lectures: {
+    id: string
+    title: string
+    description: string | null
+    file_url: string | null
+    created_at: string
+  }[]
+  assignments: {
+    id: string
+    title: string
+    description: string | null
+    due_date: string
+  }[]
+  exams: {
+    id: string
+    title: string
+    description: string | null
+    start_time: string
+    end_time: string
+    duration: number
+    status: string
+  }[]
+  enrollments: {
+    count: number
+  }
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
@@ -797,54 +841,7 @@ export async function removeStudentFromClass(studentId: string, classId: string)
   }
 }
 
-export type ClassDetails = {
-  id: string
-  code: string
-  name: string
-  semester: string
-  academic_year: string
-  status: string
-  teacher_id: string
-  subject_id: string
-  created_at: string
-  updated_at: string
-  teacher: {
-    id: string
-    full_name: string
-  }
-  subjects: {
-    id: string
-    name: string 
-    code: string
-    credits: number
-  }
-  lectures: {
-    id: string
-    title: string
-    description: string | null
-    file_url: string | null
-    created_at: string
-  }[]
-  assignments: {
-    id: string
-    title: string
-    description: string | null
-    due_date: string
-  }[]
-  exams: {
-    id: string
-    title: string
-    description: string | null
-    start_time: string
-    end_time: string
-    duration: number
-    status: string
-  }[]
-  enrollments: {
-    count: number
-  }
-}
-
+//Lấy thông tin chi tiết lớp học theo Id lớp học
 export async function getClassDetailsById(courseId: string): Promise<ClassDetails> {
   try {
     const { data, error } = await supabase
@@ -896,6 +893,8 @@ export async function getClassDetailsById(courseId: string): Promise<ClassDetail
     throw error
   }
 }
+
+//Hàm thêm bài tập
 export async function uploadAssignmentFile(file: File) {
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random()}.${fileExt}`
@@ -915,3 +914,149 @@ export async function uploadAssignmentFile(file: File) {
 
   return publicUrl
 }
+
+interface LectureUploadData {
+  title: string
+  classId: string
+  fileUrl: string
+  fileType: string
+  fileSize: number
+}
+
+export async function uploadLectureFile(data: LectureUploadData | File, classId?: string, title?: string) {
+  try {
+    let uploadData: LectureUploadData
+
+    if (data instanceof File) {
+      // Logic cũ cho upload file
+      const fileExt = data.name.split('.').pop()?.toLowerCase()
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `lectures/${fileName}`
+      const fileSize = Math.round(data.size / 1024)
+
+      const { error: uploadError } = await supabase.storage
+        .from('lectures')
+        .upload(filePath, data)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('lectures')
+        .getPublicUrl(filePath)
+
+      uploadData = {
+        title: title!,
+        classId: classId!,
+        fileUrl: publicUrl,
+        fileType: fileExt || 'unknown',
+        fileSize
+      }
+    } else {
+      // Logic mới cho link video
+      uploadData = data
+    }
+
+    // Tạo bản ghi trong bảng lectures
+    const { data: result, error } = await supabase
+      .from('lectures')
+      .insert({
+        title: uploadData.title,
+        class_id: uploadData.classId,
+        description: `Bài giảng: ${uploadData.title}`,
+        file_url: uploadData.fileUrl,
+        file_type: uploadData.fileType,
+        file_size: uploadData.fileSize,
+        download_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return result
+
+  } catch (error) {
+    console.error('Error uploading lecture:', error)
+    throw error
+  }
+}
+
+// Hàm gửi video chờ duyệt
+export async function submitVideoForApproval(videoFile: File, classId: string, title: string) {
+  try {
+    // Upload video lên storage tạm
+    const fileExt = videoFile.name.split('.').pop()?.toLowerCase()
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+    const filePath = `pending_videos/${fileName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('pending_videos')
+      .upload(filePath, videoFile)
+
+    if (uploadError) throw uploadError
+
+    // Lấy URL của file
+    const { data: { publicUrl } } = supabase.storage
+      .from('pending_videos')
+      .getPublicUrl(filePath)
+
+    // Tạo bản ghi trong bảng pending_videos
+    const { data, error } = await supabase
+      .from('pending_videos')
+      .insert({
+        title,
+        class_id: classId,
+        description: `Video bài giảng: ${title}`,
+        file_url: publicUrl,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+
+  } catch (error) {
+    console.error('Error submitting video:', error)
+    throw error
+  }
+}
+
+//Hàm xóa bài giảng
+export async function deleteLecture(lectureId: string) {
+  try {
+    // Lấy thông tin file trước khi xóa
+    const { data: lecture, error: fetchError } = await supabase
+      .from('lectures')
+      .select('file_url')
+      .eq('id', lectureId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    // Xóa file từ storage
+    const filePath = lecture.file_url.split('/').pop()
+    const { error: storageError } = await supabase.storage
+      .from('lectures')
+      .remove([`lectures/${filePath}`])
+
+    if (storageError) throw storageError
+
+    // Xóa bản ghi từ database
+    const { error: deleteError } = await supabase
+      .from('lectures')
+      .delete()
+      .eq('id', lectureId)
+
+    if (deleteError) throw deleteError
+
+    return true
+  } catch (error) {
+    console.error('Error deleting lecture:', error)
+    throw error
+  }
+}
+
