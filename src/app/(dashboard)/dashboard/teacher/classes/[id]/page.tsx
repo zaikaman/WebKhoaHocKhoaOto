@@ -25,6 +25,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+import { UploadLecture } from "../../lectures/page" 
+import { LectureDetail } from "../../lectures/lecture-details"
+
 export default function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -302,6 +305,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
       </div>
     )
   }
+  
 
   return (
     <div className="space-y-8">
@@ -436,12 +440,16 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
         <TabsContent value="lectures">
           <div className="rounded-md border">
             <div className="p-4">
-              <Button>Thêm bài giảng</Button>
+              <UploadLecture 
+                classId={id} 
+                onUploadSuccess={loadClassData} 
+              />
             </div>
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
                   <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
+                  <th className="py-3 px-4 text-left font-medium">Loại</th>
                   <th className="py-3 px-4 text-left font-medium">Ngày tạo</th>
                   <th className="py-3 px-4 text-left font-medium">Thao tác</th>
                 </tr>
@@ -450,9 +458,25 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
                 {lectures.map((lecture) => (
                   <tr key={lecture.id} className="border-t">
                     <td className="py-3 px-4">{lecture.title}</td>
-                    <td className="py-3 px-4">{new Date(lecture.created_at).toLocaleDateString('vi-VN')}</td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">Xem</Button>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        lecture.file_type === 'video' 
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {lecture.file_type === 'video' ? 'Link' : 'File'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex gap-2">
+                        <LectureDetail 
+                          lecture={lecture} 
+                          onDelete={loadClassData}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
