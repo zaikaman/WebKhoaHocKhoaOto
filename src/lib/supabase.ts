@@ -896,3 +896,22 @@ export async function getClassDetailsById(courseId: string): Promise<ClassDetail
     throw error
   }
 }
+export async function uploadAssignmentFile(file: File) {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${Math.random()}.${fileExt}`
+  const filePath = `assignments/${fileName}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('assignments')
+    .upload(filePath, file)
+
+  if (uploadError) {
+    throw new Error(`Lỗi khi tải file lên: ${uploadError.message}`)
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('assignments')
+    .getPublicUrl(filePath)
+
+  return publicUrl
+}
