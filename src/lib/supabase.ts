@@ -921,9 +921,11 @@ interface LectureUploadData {
   fileUrl: string
   fileType: string
   fileSize: number
+  description?: string
 }
 
-export async function uploadLectureFile(data: LectureUploadData | File, classId?: string, title?: string) {
+
+export async function uploadLectureFile(data: LectureUploadData | File, classId?: string, title?: string, description?: string) {
   try {
     let uploadData: LectureUploadData
 
@@ -962,7 +964,7 @@ export async function uploadLectureFile(data: LectureUploadData | File, classId?
       .insert({
         title: uploadData.title,
         class_id: uploadData.classId,
-        description: `Bài giảng: ${uploadData.title}`,
+        description: description || `Bài giảng: ${uploadData.title}`,
         file_url: uploadData.fileUrl,
         file_type: uploadData.fileType,
         file_size: uploadData.fileSize,
@@ -983,7 +985,7 @@ export async function uploadLectureFile(data: LectureUploadData | File, classId?
 }
 
 // Hàm gửi video chờ duyệt
-export async function submitVideoForApproval(videoFile: File, classId: string, title: string) {
+export async function submitVideoForApproval(videoFile: File, classId: string, title: string, description?: string) {
   try {
     // Upload video lên storage tạm
     const fileExt = videoFile.name.split('.').pop()?.toLowerCase()
@@ -1007,7 +1009,7 @@ export async function submitVideoForApproval(videoFile: File, classId: string, t
       .insert({
         title,
         class_id: classId,
-        description: `Video bài giảng: ${title}`,
+        description: description || `Video bài giảng: ${title}`,
         file_url: publicUrl,
         status: 'pending',
         created_at: new Date().toISOString(),
@@ -1059,4 +1061,3 @@ export async function deleteLecture(lectureId: string) {
     throw error
   }
 }
-
