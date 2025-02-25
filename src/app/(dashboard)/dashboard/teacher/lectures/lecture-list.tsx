@@ -56,8 +56,20 @@ export function LectureList({ classId, onUploadSuccess }: LectureListProps) {
           {lectures.map((lecture) => (
             <div key={lecture.id} className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <h4 className="font-semibold">{lecture.title}</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold">{lecture.title}</h4>
+                  <span className="text-xs px-2 py-1 bg-muted rounded-full">
+                    {lecture.file_type === 'video' ? 'Link' : 'File'}
+                  </span>
+                </div>
                 <p className="text-sm text-muted-foreground">{lecture.description}</p>
+                {lecture.file_type === 'video' && lecture.fileUrl && (
+                  <p className="text-sm text-blue-500 hover:underline truncate max-w-[300px]">
+                    <a href={lecture.fileUrl} target="_blank" rel="noopener noreferrer">
+                      {lecture.fileUrl}
+                    </a>
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">
                   Ngày tạo: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                 </p>
