@@ -20,7 +20,7 @@ export default function CreateExamPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [classes, setClasses] = useState<Class[]>([])
-  
+
   useEffect(() => {
     loadTeacherClasses()
   }, [])
@@ -49,7 +49,7 @@ export default function CreateExamPage() {
     try {
       setIsLoading(true)
       const formData = new FormData(event.currentTarget)
-      
+
       const examData = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
@@ -64,9 +64,11 @@ export default function CreateExamPage() {
         updated_at: new Date().toISOString()
       }
 
-      await createExam(examData)
+      // Call the createExam function to save the exam data
+      const { error } = await createExam(examData)
+      if (error) throw error
 
-      router.push('/dashboard/teacher/exams/exam')
+      router.push('/dashboard/teacher/exams/examQuestion')
       toast({
         title: "Thành công",
         description: "Đã tạo bài kiểm tra mới"
@@ -116,12 +118,10 @@ export default function CreateExamPage() {
             ))}
           </select>
         </div>
-
         <div className="space-y-2">
           <label className="text-sm font-medium">Mô tả</label>
           <Editor name="description" />
         </div>
-
         <div className="space-y-2">
           <label className="text-sm font-medium">Thời gian bắt đầu</label>
           <input
@@ -131,7 +131,6 @@ export default function CreateExamPage() {
             required
           />
         </div>
-
         <div className="space-y-2">
           <label className="text-sm font-medium">Thời gian kết thúc</label>
           <input
@@ -141,7 +140,17 @@ export default function CreateExamPage() {
             required
           />
         </div>
-
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Thời gian làm bài (phút)</label>
+          <input
+            type="number"
+            name="duration"
+            className="w-full px-3 py-2 border rounded-md"
+            defaultValue={60}
+            min={1}
+            required
+          />
+        </div>
         <div className="space-y-2">
           <label className="text-sm font-medium">Loại bài kiểm tra</label>
           <select
@@ -154,14 +163,11 @@ export default function CreateExamPage() {
             <option value="final">Final</option>
           </select>
         </div>
-
         <div className="flex justify-end space-x-4">
           <Button variant="outline" onClick={() => router.back()}>
             Hủy
           </Button>
-          <Button 
-            type="submit"
-          >
+          <Button type="submit" disabled={isLoading}>
             Tạo bài kiểm tra
           </Button>
         </div>

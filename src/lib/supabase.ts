@@ -912,3 +912,25 @@ export async function uploadAssignmentFile(file: File) {
 
   return publicUrl
 }
+
+export async function createExamQuestion(question: Omit<ExamQuestion, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await supabase
+    .from('exam_questions')
+    .insert([question])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getExamDetails(examId: string): Promise<Exam> {
+  const { data, error } = await supabase
+    .from('exams')
+    .select('*')
+    .eq('id', examId)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
