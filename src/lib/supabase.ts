@@ -934,3 +934,33 @@ export async function getExamDetails(examId: string): Promise<Exam> {
   if (error) throw error;
   return data;
 }
+
+export async function deleteLecture(lectureId: string) {
+  const { data, error } = await supabase
+    .from('lectures')
+    .delete()
+    .eq('id', lectureId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function uploadLectureFile(file: File) {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${Math.random()}.${fileExt}`
+  const filePath = `lectures/${fileName}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('files')
+    .upload(filePath, file)
+
+  if (uploadError) throw uploadError
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('files')
+    .getPublicUrl(filePath)
+
+  return publicUrl
+}
