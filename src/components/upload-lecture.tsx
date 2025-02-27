@@ -43,7 +43,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
       
       // Sau đó tạo bản ghi lecture
       const result = await createLecture({
-        classId,
+        class_id: classId,
         title,
         description,
         file_url: fileUrl,
@@ -87,13 +87,14 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         throw new Error('Vui lòng điền đầy đủ thông tin')
       }
 
-      const result = await uploadLectureFile({
+      // Tạo bản ghi lecture với video URL
+      const result = await createLecture({
+        class_id: classId,
         title,
-        classId,
-        fileUrl: videoUrl,
-        fileType: 'video',
-        fileSize: 0,
-        description
+        description,
+        file_url: videoUrl,
+        file_type: 'video',
+        file_size: 0
       })
 
       toast({
