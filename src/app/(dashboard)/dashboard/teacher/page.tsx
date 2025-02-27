@@ -431,7 +431,7 @@ export default function TeacherDashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold">Bài kiểm tra gần đây</h3>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => router.push('/dashboard/teacher/exams/create')}>
+            <Button size="sm" onClick={() => router.push('/dashboard/teacher/exams')}>
               Tạo bài kiểm tra
             </Button>
             <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/teacher/exams/list')}>

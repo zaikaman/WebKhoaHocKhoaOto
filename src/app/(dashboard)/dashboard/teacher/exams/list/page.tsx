@@ -85,7 +85,7 @@ export default function TeacherExamsListPage() {
           <p className="text-muted-foreground">Quản lý tất cả bài kiểm tra của bạn</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => router.push('/dashboard/teacher/exams/create')}>
+          <Button onClick={() => router.push('/dashboard/teacher/exams')}>
             Tạo bài kiểm tra
           </Button>
           <Button onClick={() => router.back()}>
