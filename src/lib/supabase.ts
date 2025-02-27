@@ -947,20 +947,42 @@ export async function deleteLecture(lectureId: string) {
   return data
 }
 
+export async function listBuckets() {
+  const { data, error } = await supabase.storage.listBuckets()
+  if (error) {
+    console.error('Error listing buckets:', error)
+    throw error
+  }
+  console.log('Available buckets:', data)
+  return data
+}
+
 export async function uploadLectureFile(file: File) {
+  // Log bucket list trước khi upload
+  await listBuckets()
+  
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random()}.${fileExt}`
   const filePath = `lectures/${fileName}`
 
+  console.log('Uploading to path:', filePath)
+
   const { error: uploadError } = await supabase.storage
-    .from('files')
+    .from('lectures')
     .upload(filePath, file)
 
-  if (uploadError) throw uploadError
+  if (uploadError) {
+    console.error('Upload error:', uploadError)
+    throw uploadError
+  }
+
+  console.log('Upload successful, getting public URL...')
 
   const { data: { publicUrl } } = supabase.storage
-    .from('files')
+    .from('lectures')
     .getPublicUrl(filePath)
+
+  console.log('Generated public URL:', publicUrl)
 
   return publicUrl
 }
