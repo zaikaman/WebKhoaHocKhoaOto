@@ -392,7 +392,7 @@ export default function TeacherDashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold">Bài giảng gần đây</h3>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/teacher/lectures')}>
             Xem tất cả
           </Button>
         </div>
@@ -431,10 +431,10 @@ export default function TeacherDashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold">Bài kiểm tra gần đây</h3>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => router.push('/dashboard/teacher/exams/')}>
+            <Button size="sm" onClick={() => router.push('/dashboard/teacher/exams/create')}>
               Tạo bài kiểm tra
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/teacher/exams/list')}>
               Xem tất cả
             </Button>
           </div>
