@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { uploadLectureFile } from '@/lib/supabase'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { FileUpIcon, LinkIcon } from "lucide-react"
+import { createLecture } from '@/lib/supabase'
 
 interface UploadLectureProps {
   classId: string;
@@ -37,7 +38,18 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         throw new Error('Vui lòng điền đầy đủ thông tin')
       }
 
-      const result = await uploadLectureFile(file, classId, title, description)
+      // Upload file trước
+      const fileUrl = await uploadLectureFile(file)
+      
+      // Sau đó tạo bản ghi lecture
+      const result = await createLecture({
+        classId,
+        title,
+        description,
+        file_url: fileUrl,
+        file_type: file.type,
+        file_size: file.size
+      })
       
       toast({
         title: "Thành công",
