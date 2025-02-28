@@ -133,6 +133,8 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                     <p className="font-medium break-all">
                       {lecture.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
                         ? 'Word Document (.docx)'
+                        : lecture.file_type === 'application/pdf'
+                        ? 'PDF (.pdf)'
                         : lecture.file_type}
                     </p>
                   </div>

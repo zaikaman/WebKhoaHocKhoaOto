@@ -383,15 +383,15 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
                       <td className="py-3 px-4">{student.student_id}</td>
                       <td className="py-3 px-4">{student.full_name}</td>
                       <td className="py-3 px-4">
+                      <Button variant="ghost" size="sm" onClick={() => {toast({
+                                                                        variant: "destructive",
+                                                                        title: "Lỗi",
+                                                                        description: "Chức năng đang xây dựng"
+                                                                      })}}>Thông tin</Button>
                         <Button variant="ghost" size="sm" onClick={() => {
                           console.log(student.id)
                           handleRemoveStudent(student.id)
                         }}>Xóa</Button>
-                        <Button variant="ghost" size="sm" onClick={() => {toast({
-                                                                        variant: "destructive",
-                                                                        title: "Lỗi",
-                                                                        description: "Chức năng đang xây dựng"
-                                                                      })}}>Sửa</Button>
                       </td>
                     </tr>
                   ))}
