@@ -377,45 +377,24 @@ D. Đáp án D
           {assignments.map((assignment) => (
             <div key={assignment.id} className="p-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-4">
-                <div className={`p-2 rounded-full ${
-                  assignment.type === 'multiple_choice'
-                    ? 'bg-blue-100 text-blue-600'
-                    : 'bg-purple-100 text-purple-600'
-                }`}>
-                  {assignment.type === 'multiple_choice' ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M9 11l3 3L22 4" />
-                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <line x1="10" y1="9" x2="8" y2="9" />
-                    </svg>
-                  )}
+                <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <line x1="10" y1="9" x2="8" y2="9" />
+                  </svg>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -429,24 +408,14 @@ D. Đáp án D
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{assignment.subject} - {assignment.className}</p>
-                  <div className="grid grid-cols-4 gap-4 mt-2 text-sm">
+                  <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Loại bài tập</p>
-                      <p className="font-medium">
-                        {assignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
-                      </p>
+                      <p className="text-muted-foreground">Điểm tối đa</p>
+                      <p className="font-medium">{assignment.maxPoints} điểm</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Hạn nộp</p>
                       <p className="font-medium">{new Date(assignment.dueDate).toLocaleDateString('vi-VN')}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Số câu hỏi</p>
-                      <p className="font-medium">
-                        {assignment.type === 'multiple_choice' 
-                          ? `${assignment.totalQuestions} câu`
-                          : 'N/A'}
-                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Đã nộp</p>
