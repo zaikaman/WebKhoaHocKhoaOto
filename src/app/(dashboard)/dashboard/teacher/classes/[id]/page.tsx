@@ -76,7 +76,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
             title: "Lỗi",
             description: "Không tìm thấy thông tin lớp học"
           })
-          return
+          return 
         }
 
         // Kiểm tra xem giáo viên có phải là người phụ trách lớp này không
@@ -364,31 +364,40 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
                 Thêm sinh viên
               </Button>
             </div>
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">MSSV</th>
-                  <th className="py-3 px-4 text-left font-medium">Họ và tên</th>
-                  <th className="py-3 px-4 text-left font-medium">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student) => (
-                  <tr key={student.id} className="border-t">
-                    <td className="py-3 px-4">{student.student_id}</td>
-                    <td className="py-3 px-4">{student.full_name}</td>
-                    <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm" onClick={() => handleRemoveStudent(student.id)}>Xóa</Button>
-                      <Button variant="ghost" size="sm" onClick={() => {toast({
-                                                                      variant: "destructive",
-                                                                      title: "Lỗi",
-                                                                      description: "Chức năng đang xây dựng"
-                                                                    })}}>Sửa</Button>
-                    </td>
+            {students.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8">
+                <p className="text-muted-foreground">Chưa có sinh viên nào trong lớp học</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="py-3 px-4 text-left font-medium">MSSV</th>
+                    <th className="py-3 px-4 text-left font-medium">Họ và tên</th>
+                    <th className="py-3 px-4 text-left font-medium">Thao tác</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {students.map((student) => (
+                    <tr key={student.id} className="border-t">
+                      <td className="py-3 px-4">{student.student_id}</td>
+                      <td className="py-3 px-4">{student.full_name}</td>
+                      <td className="py-3 px-4">
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          console.log(student.id)
+                          handleRemoveStudent(student.id)
+                        }}>Xóa</Button>
+                        <Button variant="ghost" size="sm" onClick={() => {toast({
+                                                                        variant: "destructive",
+                                                                        title: "Lỗi",
+                                                                        description: "Chức năng đang xây dựng"
+                                                                      })}}>Sửa</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Dialog thêm sinh viên */}
