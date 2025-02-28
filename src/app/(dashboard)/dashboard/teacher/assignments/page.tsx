@@ -172,9 +172,10 @@ export default function TeacherAssignmentsPage() {
               <TabsContent value="multiple_choice" className="space-y-4">
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label>Tải lên file Word/PDF theo mẫu</Label>
+                    <Label htmlFor="file-upload">Tải lên file Word/PDF theo mẫu</Label>
                     <div className="grid w-full max-w-sm items-center gap-1.5">
                       <Input 
+                        id="file-upload"
                         type="file" 
                         accept=".docx,.pdf"
                         onChange={(e) => {
@@ -196,9 +197,9 @@ export default function TeacherAssignmentsPage() {
                   </div>
                   <div className="grid gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="title">Tiêu đề</Label>
+                      <Label htmlFor="title-mc">Tiêu đề</Label>
                       <Input 
-                        id="title" 
+                        id="title-mc"
                         placeholder="Nhập tiêu đề bài tập"
                         value={formData.title}
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -206,9 +207,9 @@ export default function TeacherAssignmentsPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="description">Mô tả</Label>
+                      <Label htmlFor="description-mc">Mô tả</Label>
                       <Textarea 
-                        id="description" 
+                        id="description-mc"
                         placeholder="Nhập mô tả bài tập"
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -216,8 +217,9 @@ export default function TeacherAssignmentsPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="class">Lớp học</Label>
+                      <Label htmlFor="class-mc">Lớp học</Label>
                       <select 
+                        id="class-mc"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                         value={formData.classId}
                         onChange={(e) => setFormData({...formData, classId: e.target.value})}
@@ -230,9 +232,9 @@ export default function TeacherAssignmentsPage() {
                       </select>
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="dueDate">Hạn nộp</Label>
+                      <Label htmlFor="dueDate-mc">Hạn nộp</Label>
                       <Input 
-                        id="dueDate" 
+                        id="dueDate-mc"
                         type="datetime-local"
                         value={formData.dueDate}
                         onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
@@ -246,9 +248,9 @@ export default function TeacherAssignmentsPage() {
                 <div className="space-y-4 pt-4">
                   <div className="grid gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="title">Tiêu đề</Label>
+                      <Label htmlFor="title-essay">Tiêu đề</Label>
                       <Input 
-                        id="title" 
+                        id="title-essay"
                         placeholder="Nhập tiêu đề bài tập"
                         value={formData.title}
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -256,9 +258,9 @@ export default function TeacherAssignmentsPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="description">Mô tả</Label>
+                      <Label htmlFor="description-essay">Mô tả</Label>
                       <Textarea 
-                        id="description" 
+                        id="description-essay"
                         placeholder="Nhập mô tả và yêu cầu của bài tập"
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -266,8 +268,9 @@ export default function TeacherAssignmentsPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="class">Lớp học</Label>
+                      <Label htmlFor="class-essay">Lớp học</Label>
                       <select 
+                        id="class-essay"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                         value={formData.classId}
                         onChange={(e) => setFormData({...formData, classId: e.target.value})}
@@ -280,9 +283,9 @@ export default function TeacherAssignmentsPage() {
                       </select>
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="maxPoints">Điểm tối đa</Label>
+                      <Label htmlFor="maxPoints-essay">Điểm tối đa</Label>
                       <Input 
-                        id="maxPoints" 
+                        id="maxPoints-essay"
                         type="number" 
                         min="0" 
                         max="100"
@@ -292,9 +295,9 @@ export default function TeacherAssignmentsPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="dueDate">Hạn nộp</Label>
+                      <Label htmlFor="dueDate-essay">Hạn nộp</Label>
                       <Input 
-                        id="dueDate" 
+                        id="dueDate-essay"
                         type="datetime-local"
                         value={formData.dueDate}
                         onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
@@ -302,8 +305,9 @@ export default function TeacherAssignmentsPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Tài liệu đính kèm (không bắt buộc)</Label>
+                      <Label htmlFor="attachments">Tài liệu đính kèm (không bắt buộc)</Label>
                       <Input 
+                        id="attachments"
                         type="file" 
                         multiple
                         onChange={(e) => {
