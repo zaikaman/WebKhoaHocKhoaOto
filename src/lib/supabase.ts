@@ -987,3 +987,24 @@ export async function uploadLectureFile(file: File) {
 
   return publicUrl
 }
+
+//Hàm yấy chi tiết bài giảng
+export async function getLecture(lectureId: string): Promise<Lecture> {
+  const { data, error } = await supabase
+    .from('lectures')
+    .select('*')
+    .eq('id', lectureId)
+    .single()
+  if (error) throw error
+  return data
+} 
+
+//Hàm cập nhật bài giảng
+export async function updateLecture(lectureId: string, lecture: Partial<Lecture>) {
+  const { data, error } = await supabase
+    .from('lectures')
+    .update(lecture)
+    .eq('id', lectureId)
+    .select()
+    .single()
+}

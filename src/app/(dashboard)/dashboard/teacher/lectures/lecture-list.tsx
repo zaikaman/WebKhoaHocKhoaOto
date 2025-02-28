@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { UploadLecture } from "@/components/upload-lecture"
 import { getClassLectures } from "@/lib/supabase"
 import { LectureDetail } from "./lecture-details"
-
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 interface LectureListProps {
   classId: string;
   onUploadSuccess: () => Promise<void>;
@@ -13,6 +14,9 @@ interface LectureListProps {
 export function LectureList({ classId, onUploadSuccess }: LectureListProps) {
   const [lectures, setLectures] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedLecture, setSelectedLecture] = useState<any | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     loadLectures()
@@ -31,6 +35,11 @@ export function LectureList({ classId, onUploadSuccess }: LectureListProps) {
   }
 
   const handleLectureDelete = async () => {
+    await loadLectures()
+    await onUploadSuccess()
+  }
+
+  const handleLectureUpdate = async () => {
     await loadLectures()
     await onUploadSuccess()
   }
@@ -98,11 +107,18 @@ export function LectureList({ classId, onUploadSuccess }: LectureListProps) {
                       {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                     </span>
                   </td>
-                  <td className="py-4 px-4">
+                  <td className="py-4 px-4 space-x-2">
                     <LectureDetail 
                       lecture={lecture}
                       onDelete={handleLectureDelete}
                     />
+                    <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.push(`/dashboard/teacher/lectures/${lecture.id}/edit`)}
+      >
+        Chỉnh sửa
+      </Button>
                   </td>
                 </tr>
               ))}
