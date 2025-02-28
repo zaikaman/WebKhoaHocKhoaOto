@@ -130,7 +130,11 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-muted-foreground">Loại file</p>
-                    <p className="font-medium">{lecture.file_type}</p>
+                    <p className="font-medium break-all">
+                      {lecture.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+                        ? 'Word Document (.docx)'
+                        : lecture.file_type}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Kích thước</p>
