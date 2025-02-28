@@ -82,7 +82,7 @@ export default function TeacherAssignmentsPage() {
           subject: classItem.subject.name,
           className: classItem.name,
           dueDate: a.due_date,
-          status: 'published',
+          status: 'published' as const,
           submittedCount: 0,
           maxPoints: a.total_points
         })))
