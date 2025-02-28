@@ -22,8 +22,7 @@ import { Loader2 } from "lucide-react"
 type Assignment = {
   id: string
   title: string
-  description: string
-  type: 'multiple_choice' | 'essay'
+  description: string | null
   subject: string
   className: string
   dueDate: string
@@ -79,15 +78,13 @@ export default function TeacherAssignmentsPage() {
         allAssignments.push(...assignments.map(a => ({
           id: a.id,
           title: a.title,
-          description: a.description || '',
-          type: a.type,
+          description: a.description,
           subject: classItem.subject.name,
           className: classItem.name,
           dueDate: a.due_date,
-          status: a.status,
-          totalQuestions: a.total_questions,
-          submittedCount: a.submitted_count || 0,
-          maxPoints: a.max_points
+          status: 'published',
+          submittedCount: 0,
+          maxPoints: a.total_points
         })))
       }
 
