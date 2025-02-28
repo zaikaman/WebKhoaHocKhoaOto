@@ -21,8 +21,34 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileFormRef = useRef<HTMLFormElement>(null)
   const videoFormRef = useRef<HTMLFormElement>(null)
+
+  // Thêm hàm xử lý khi file thay đổi
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    if (file) {
+      // Kiểm tra kích thước file (ví dụ: giới hạn 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "File không được vượt quá 100MB"
+        })
+        return
+      }
+      setSelectedFile(file)
+    }
+  }
+
+  // Thêm hàm xóa file đã chọn
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    if (fileFormRef.current) {
+      fileFormRef.current.reset()
+    }
+  }
 
   async function handleFileUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -180,16 +206,56 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
 
             {/* Upload File */}
             <div className="space-y-1">
-              <Label htmlFor="file" >
-                File
+              <Label htmlFor="file">
+                File bài giảng
               </Label>
-              <Input
-                id="file"
-                name="file"
-                type="file"
-                className="cursor-pointer w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                required
-              />
+              <div className="mt-1">
+                {!selectedFile ? (
+                  <label 
+                    htmlFor="file" 
+                    className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-dashed border-blue-400 rounded-lg appearance-none cursor-pointer hover:border-blue-500 focus:outline-none">
+                    <div className="flex flex-col items-center space-y-2">
+                      <FileUpIcon className="w-6 h-6 text-blue-500"/>
+                      <span className="font-medium text-sm text-gray-600">
+                        Kéo thả file vào đây hoặc click để chọn file
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        (Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX)
+                      </span>
+                    </div>
+                  </label>
+                ) : (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <FileUpIcon className="w-8 h-8 text-blue-500"/>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{selectedFile.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="text-sm text-red-500 hover:text-red-700"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <Input
+                  id="file"
+                  name="file"
+                  type="file"
+                  className="hidden"
+                  required
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
+                  onChange={handleFileChange}
+                />
+              </div>
             </div>
           </div>
 
@@ -210,7 +276,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
     <Input
       id="title"
       name="title"
-      placeholder="Nhập tiêu đề video"
+      placeholder="Nhập tiêu đề bài giảng"
       required
       className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
     />
@@ -224,7 +290,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
     <Textarea
       id="description"
       name="description"
-      placeholder="Nhập mô tả về nội dung video"
+      placeholder="Nhập mô tả về nội dung bài giảng"
       rows={3}
       className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
     />
@@ -233,13 +299,13 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
   {/* Link video */}
   <div className="space-y-1">
     <Label htmlFor="videoUrl" >
-      Link video
+      Link bài giảng
     </Label>
     <Input
       id="videoUrl"
       name="videoUrl"
       type="url"
-      placeholder="Nhập link video (YouTube, Drive,...)"
+      placeholder="Nhập link bài giảng (YouTube)"
       required
       className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
     />

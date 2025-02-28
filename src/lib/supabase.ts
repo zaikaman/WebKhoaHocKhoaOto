@@ -753,7 +753,7 @@ export async function createEnrollment(data: {
       }
     }
 
-    return { success: true, message: 'Đăng ký lớp học thành công' }
+    return { success: true, message: 'Thêm sinh viên thành công' }
   } catch (error: any) {
     return { 
       success: false, 
@@ -814,10 +814,11 @@ export async function getStudentClasses(studentId: string) {
 // Hàm xóa sinh viên khỏi lớp học
 export async function removeStudentFromClass(studentId: string, classId: string) {
   try {
+    // Xóa enrollment trực tiếp bằng studentId đã có
     const { error } = await supabase
       .from('enrollments')
       .delete()
-      .eq('student_id', studentId)
+      .eq('student_id', studentId) // Sử dụng studentId trực tiếp
       .eq('class_id', classId)
 
     if (error) {
@@ -835,7 +836,7 @@ export async function removeStudentFromClass(studentId: string, classId: string)
   } catch (error) {
     console.error('Lỗi chi tiết:', error)
     return {
-      success: false,
+      success: false, 
       message: 'Có lỗi xảy ra khi xóa sinh viên'
     }
   }
@@ -985,4 +986,25 @@ export async function uploadLectureFile(file: File) {
   console.log('Generated public URL:', publicUrl)
 
   return publicUrl
+}
+
+//Hàm yấy chi tiết bài giảng
+export async function getLecture(lectureId: string): Promise<Lecture> {
+  const { data, error } = await supabase
+    .from('lectures')
+    .select('*')
+    .eq('id', lectureId)
+    .single()
+  if (error) throw error
+  return data
+} 
+
+//Hàm cập nhật bài giảng
+export async function updateLecture(lectureId: string, lecture: Partial<Lecture>) {
+  const { data, error } = await supabase
+    .from('lectures')
+    .update(lecture)
+    .eq('id', lectureId)
+    .select()
+    .single()
 }
