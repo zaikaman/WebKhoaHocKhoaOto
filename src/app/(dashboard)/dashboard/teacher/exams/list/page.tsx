@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getTeacherClasses, getClassExams } from "@/lib/supabase"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam } from "@/lib/supabase"
 
 type Exam = {
   id: string
@@ -24,6 +25,8 @@ export default function TeacherExamsListPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [exams, setExams] = useState<Exam[]>([])
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [currentExamId, setCurrentExamId] = useState<string | null>(null)
 
   useEffect(() => {
     loadExams()
@@ -71,6 +74,53 @@ export default function TeacherExamsListPage() {
         variant: "destructive",
         title: "Lỗi",
         description: "Không thể tải danh sách bài kiểm tra"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleEdit = (examId: string) => {
+    setCurrentExamId(examId)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditChoice = (choice: 'title' | 'question') => {
+    setIsEditDialogOpen(false)
+    if (choice === 'title') {
+      router.push(`/dashboard/teacher/exams/${currentExamId}`)
+    } else {
+      router.push(`/dashboard/teacher/exams/examQuestion?examId=${currentExamId}`)
+    }
+  }
+
+  const handleDeleteExam = async (examId: string) => {
+    if (!examId) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không tìm thấy ID bài kiểm tra để xóa"
+      })
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const { error } = await deleteExam(examId)
+      if (error) throw error
+
+      toast({
+        variant: "success",
+        title: "Thành công",
+        description: "Đã xóa bài kiểm tra"
+      })
+      loadExams()
+    } catch (error) {
+      console.error('Error deleting exam:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể xóa bài kiểm tra"
       })
     } finally {
       setIsLoading(false)
@@ -172,8 +222,11 @@ export default function TeacherExamsListPage() {
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/teacher/exams/${exam.id}`)}>
-                  Chi tiết
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(exam.id)}>
+                  Chỉnh sửa
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteExam(exam.id)}>
+                  Xóa
                 </Button>
               </div>
             </div>
@@ -186,6 +239,19 @@ export default function TeacherExamsListPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chọn hành động chỉnh sửa</DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => handleEditChoice('title')}>Chỉnh sửa tiêu đề</Button>
+            <Button onClick={() => handleEditChoice('question')}>Chỉnh sửa câu hỏi</Button>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
