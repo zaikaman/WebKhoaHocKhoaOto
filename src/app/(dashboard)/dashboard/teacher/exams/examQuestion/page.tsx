@@ -62,28 +62,39 @@ export default function ExamQuestionPage() {
   const handleQuestionSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
+    
+    console.log('Form Data:', {
+      content: formData.get('content'),
+      type: formData.get('type'),
+      points: formData.get('points'),
+      option1: formData.get('option1'),
+      option2: formData.get('option2'),
+      option3: formData.get('option3'),
+      option4: formData.get('option4'),
+      correctOption: formData.get('correctOption'),
+      correctAnswer: formData.get('correctAnswer')
+    })
 
     const newQuestion = {
       exam_id: examId || '',
-      type: formData.get('type') as 'multiple_choice' | 'essay',
+      type: examType,
       content: formData.get('content') as string,
       points: Number(formData.get('points')),
-      options: formData.get('type') === 'multiple_choice' ? [
+      options: examType === 'multiple_choice' ? [
         formData.get('option1') as string,
         formData.get('option2') as string,
         formData.get('option3') as string,
         formData.get('option4') as string
       ] : null,
-      correct_answer: formData.get('type') === 'multiple_choice' ? 
+      correct_answer: examType === 'multiple_choice' ? 
         (formData.get(`option${Number(formData.get('correctOption'))}`) as string) :
         (formData.get('correctAnswer') as string)
     }
 
-    console.log('New Question:', newQuestion); // Log dữ liệu câu hỏi
+    console.log('Dữ liệu câu hỏi mới:', newQuestion)
 
     try {
       if (currentQuestion) {
-        // Giữ lại các trường id, created_at, updated_at khi cập nhật
         const updatedQuestion: ExamQuestion = {
           ...currentQuestion,
           ...newQuestion,
@@ -91,10 +102,22 @@ export default function ExamQuestionPage() {
           created_at: currentQuestion.created_at,
           updated_at: new Date().toISOString()
         }
+        console.log('Đang cập nhật câu hỏi:', updatedQuestion)
         setQuestions(questions.map(q => q.id === currentQuestion.id ? updatedQuestion : q))
       } else {
-        const savedQuestion = await createExamQuestion(newQuestion)
-        setQuestions([...questions, savedQuestion])
+        console.log('Đang gọi createExamQuestion với dữ liệu:', newQuestion)
+        try {
+          const savedQuestion = await createExamQuestion(newQuestion)
+          console.log('Kết quả trả về từ createExamQuestion:', savedQuestion)
+          setQuestions([...questions, savedQuestion])
+        } catch (createError) {
+          console.error('Lỗi từ createExamQuestion:', {
+            error: createError,
+            message: createError instanceof Error ? createError.message : 'Unknown error',
+            stack: createError instanceof Error ? createError.stack : undefined
+          })
+          throw createError
+        }
       }
       toast({
         variant: "success",
@@ -102,11 +125,18 @@ export default function ExamQuestionPage() {
         description: "Câu hỏi đã được lưu thành công"
       })
     } catch (error) {
-      console.error('Lỗi khi lưu câu hỏi:', error) // Log lỗi chi tiết
+      console.error('Chi tiết lỗi khi lưu câu hỏi:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        questionData: newQuestion
+      })
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể lưu câu hỏi"
+        description: error instanceof Error 
+          ? `Không thể lưu câu hỏi: ${error.message}`
+          : "Không thể lưu câu hỏi"
       })
     } finally {
       setIsQuestionDialogOpen(false)
@@ -217,6 +247,7 @@ export default function ExamQuestionPage() {
                 <DialogTitle>{currentQuestion ? "Cập nhật câu hỏi" : "Thêm câu hỏi"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleQuestionSubmit} className="space-y-4">
+                <input type="hidden" name="type" value={examType} />
                 <div className="space-y-2">
                   <Label htmlFor="content">Nội dung câu hỏi</Label>
                   <Textarea id="content" name="content" defaultValue={currentQuestion?.content} required />
