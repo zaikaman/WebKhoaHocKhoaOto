@@ -106,8 +106,8 @@ export default function TeacherExamsListPage() {
 
     try {
       setIsLoading(true)
-      const { error } = await deleteExam(examId)
-      if (error) throw error
+      const result = await deleteExam(examId)
+      if (!result) throw new Error('Không thể xóa bài kiểm tra')
 
       toast({
         variant: "success",

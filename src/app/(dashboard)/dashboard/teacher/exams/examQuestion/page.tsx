@@ -63,7 +63,7 @@ export default function ExamQuestionPage() {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
 
-    const newQuestion: ExamQuestion = {
+    const newQuestion = {
       exam_id: examId || '',
       type: formData.get('type') as 'multiple_choice' | 'essay',
       content: formData.get('content') as string,
@@ -76,16 +76,22 @@ export default function ExamQuestionPage() {
       ] : null,
       correct_answer: formData.get('type') === 'multiple_choice' ? 
         (formData.get(`option${Number(formData.get('correctOption'))}`) as string) :
-        (formData.get('correctAnswer') as string),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+        (formData.get('correctAnswer') as string)
     }
 
     console.log('New Question:', newQuestion); // Log dữ liệu câu hỏi
 
     try {
       if (currentQuestion) {
-        setQuestions(questions.map(q => q.id === currentQuestion.id ? newQuestion : q))
+        // Giữ lại các trường id, created_at, updated_at khi cập nhật
+        const updatedQuestion: ExamQuestion = {
+          ...currentQuestion,
+          ...newQuestion,
+          id: currentQuestion.id,
+          created_at: currentQuestion.created_at,
+          updated_at: new Date().toISOString()
+        }
+        setQuestions(questions.map(q => q.id === currentQuestion.id ? updatedQuestion : q))
       } else {
         const savedQuestion = await createExamQuestion(newQuestion)
         setQuestions([...questions, savedQuestion])

@@ -1008,3 +1008,34 @@ export async function updateLecture(lectureId: string, lecture: Partial<Lecture>
     .select()
     .single()
 }
+
+export async function getExamQuestions(examId: string): Promise<ExamQuestion[]> {
+  const { data, error } = await supabase
+    .from('exam_questions')
+    .select('*')
+    .eq('exam_id', examId)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteExam(examId: string) {
+  // Xóa tất cả câu hỏi của bài thi trước
+  const { error: questionsError } = await supabase
+    .from('exam_questions')
+    .delete()
+    .eq('exam_id', examId)
+
+  if (questionsError) throw questionsError
+
+  // Sau đó xóa bài thi
+  const { error: examError } = await supabase
+    .from('exams')
+    .delete()
+    .eq('id', examId)
+
+  if (examError) throw examError
+
+  return true
+}
