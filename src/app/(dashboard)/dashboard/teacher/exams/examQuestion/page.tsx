@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -15,23 +15,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { createExam, createExamQuestion } from "@/lib/supabase"
+import { createExam, createExamQuestion, getExamDetails, getExamQuestions, ExamQuestion } from "@/lib/supabase"
 
-type ExamQuestion = {
-  id: string
-  exam_id: string
-  content: string
-  type: 'multiple_choice' | 'essay'
-  points: number
-  options: string[] | null
-  correct_answer: string | null
-  created_at: string
-  updated_at: string
-}
 
-export default function CreateExamPage() {
+export default function ExamQuestionPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const [examId, setExamId] = useState<string | null>(null)
   const [examTitle, setExamTitle] = useState("")
   const [examDescription, setExamDescription] = useState("")
   const [examDuration, setExamDuration] = useState(60)
@@ -39,6 +29,30 @@ export default function CreateExamPage() {
   const [questions, setQuestions] = useState<ExamQuestion[]>([])
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false)
   const [currentQuestion, setCurrentQuestion] = useState<ExamQuestion | null>(null)
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search)
+    const id = query.get('examId')
+    if (id) {
+      setExamId(id)
+      loadExamDetails(id)
+    }
+  }, [])
+
+  const loadExamDetails = async (id: string) => {
+    try {
+      const examDetails = await getExamDetails(id)
+      const examQuestions = await getExamQuestions(id)
+      setQuestions(examQuestions)
+    } catch (error) {
+      console.error('Lỗi khi tải thông tin bài kiểm tra:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải thông tin bài kiểm tra"
+      })
+    }
+  }
 
   const handleAddQuestion = () => {
     setCurrentQuestion(null)
@@ -50,32 +64,39 @@ export default function CreateExamPage() {
     const formData = new FormData(event.currentTarget)
 
     const newQuestion: ExamQuestion = {
-      id: currentQuestion?.id || Date.now().toString(),
-      exam_id: '',
-      type: examType,
+      exam_id: examId || '',
+      type: formData.get('type') as 'multiple_choice' | 'essay',
       content: formData.get('content') as string,
       points: Number(formData.get('points')),
-      options: examType === 'multiple_choice' ? [
+      options: formData.get('type') === 'multiple_choice' ? [
         formData.get('option1') as string,
         formData.get('option2') as string,
         formData.get('option3') as string,
         formData.get('option4') as string
       ] : null,
-      correct_answer: examType === 'multiple_choice' ? 
+      correct_answer: formData.get('type') === 'multiple_choice' ? 
         (formData.get(`option${Number(formData.get('correctOption'))}`) as string) :
-        (examType === 'essay' ? formData.get('correctAnswer') as string : null),
+        (formData.get('correctAnswer') as string),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
+
+    console.log('New Question:', newQuestion); // Log dữ liệu câu hỏi
 
     try {
       if (currentQuestion) {
         setQuestions(questions.map(q => q.id === currentQuestion.id ? newQuestion : q))
       } else {
-        setQuestions([...questions, newQuestion])
+        const savedQuestion = await createExamQuestion(newQuestion)
+        setQuestions([...questions, savedQuestion])
       }
+      toast({
+        variant: "success",
+        title: "Thành công",
+        description: "Câu hỏi đã được lưu thành công"
+      })
     } catch (error) {
-      console.error('Error saving question:', error)
+      console.error('Lỗi khi lưu câu hỏi:', error) // Log lỗi chi tiết
       toast({
         variant: "destructive",
         title: "Lỗi",
@@ -87,22 +108,20 @@ export default function CreateExamPage() {
   }
 
   const handleCreateExam = async () => {
-    const errors: string[] = [];
-    const savedQuestions: ExamQuestion[] = [];
+    const errors: string[] = []
+    const savedQuestions: ExamQuestion[] = []
 
-    // Lưu từng câu hỏi và theo dõi lỗi
     for (const question of questions) {
       try {
-        const savedQuestion = await createExamQuestion(question);
-        savedQuestions.push(savedQuestion);
+        const savedQuestion = await createExamQuestion(question)
+        savedQuestions.push(savedQuestion)
       } catch (error) {
-        console.error(`Lỗi khi lưu câu hỏi ${question.content}:`, error);
-        errors.push(`Câu hỏi "${question.content.slice(0, 50)}...": ${(error as Error).message}`);
+        console.error(`Lỗi khi lưu câu hỏi ${question.content}:`, error)
+        errors.push(`Câu hỏi "${question.content.slice(0, 50)}...": ${(error as Error).message}`)
       }
     }
 
     if (errors.length > 0) {
-      // Có lỗi xảy ra
       toast({
         variant: "destructive",
         title: "Lỗi khi lưu một số câu hỏi",
@@ -113,15 +132,14 @@ export default function CreateExamPage() {
             ))}
           </div>
         )
-      });
+      })
     } else {
-      // Tất cả câu hỏi đều được lưu thành công
       toast({
         variant: "success", 
         title: "Thành công",
         description: "Tạo bài kiểm tra thành công"
-      });
-      router.back();
+      })
+      router.back()
     }
   }
 
@@ -129,32 +147,9 @@ export default function CreateExamPage() {
     <div className="space-y-6 p-6 bg-gray-50 rounded-lg shadow-md">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Tạo bài kiểm tra mới</h2>
-        <p className="text-muted-foreground">Tạo bài kiểm tra cho lớp học của bạn</p>
+        <p className="text-muted-foreground">Mã đề: {examId}</p>
       </div>
       
-      {/* <div className="space-y-2">
-        <label className="text-sm font-medium">Tiêu đề</label>
-        <input
-          name="title"
-          className="w-full px-3 py-2 border rounded-md"
-          value={examTitle}
-          onChange={(e) => setExamTitle(e.target.value)}
-          placeholder="Nhập tiêu đề bài kiểm tra"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Mô tả</label>
-        <textarea
-          name="description"
-          className="w-full px-3 py-2 border rounded-md"
-          value={examDescription}
-          onChange={(e) => setExamDescription(e.target.value)}
-          placeholder="Nhập mô tả bài kiểm tra"
-        />
-      </div> */}
-
       <Tabs value={examType} onValueChange={(value) => setExamType(value as 'multiple_choice' | 'essay')}>
         <TabsList>
           <TabsTrigger value="multiple_choice">Trắc nghiệm</TabsTrigger>
@@ -209,75 +204,75 @@ export default function CreateExamPage() {
               </div>
             </div>
           ))}
+
+          <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{currentQuestion ? "Cập nhật câu hỏi" : "Thêm câu hỏi"}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleQuestionSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="content">Nội dung câu hỏi</Label>
+                  <Textarea id="content" name="content" defaultValue={currentQuestion?.content} required />
+                </div>
+                {examType === 'multiple_choice' && (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4].map((num) => (
+                      <div key={num} className="space-y-2">
+                        <label className="text-sm font-medium">Đáp án {num}</label>
+                        <input
+                          name={`option${num}`}
+                          className="w-full px-3 py-2 border rounded-md"
+                          defaultValue={currentQuestion?.options?.[num - 1]}
+                          required
+                        />
+                      </div>
+                    ))}
+                    <div className="space-y-2">
+                      <Label htmlFor="correctOption">Đáp án đúng</Label>
+                      <select
+                        id="correctOption"
+                        name="correctOption"
+                        className="w-full px-3 py-2 border rounded-md"
+                        defaultValue={currentQuestion?.options?.indexOf(currentQuestion.correct_answer || '') || 0}
+                        required
+                      >
+                        <option value="0">Đáp án 1</option>
+                        <option value="1">Đáp án 2</option>
+                        <option value="2">Đáp án 3</option>
+                        <option value="3">Đáp án 4</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {examType === 'essay' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="correctAnswer">Đáp án đúng</Label>
+                    <Textarea
+                      id="correctAnswer"
+                      name="correctAnswer"
+                      defaultValue={currentQuestion?.correct_answer || ''}
+                      placeholder="Nhập đáp án đúng cho câu hỏi tự luận"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="points">Điểm</Label>
+                  <Input id="points" name="points" type="number" min="0" step="0.5" defaultValue={currentQuestion?.points || 1} required />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>Hủy</Button>
+                  <Button type="submit">{currentQuestion ? "Cập nhật" : "Thêm"}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </Tabs>
 
-      <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{currentQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleQuestionSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="content">Nội dung câu hỏi</Label>
-              <Textarea id="content" name="content" defaultValue={currentQuestion?.content} required />
-            </div>
-            {examType === 'multiple_choice' && (
-              <div className="space-y-4">
-                {[1, 2, 3, 4].map((num) => (
-                  <div key={num} className="space-y-2">
-                    <label className="text-sm font-medium">Đáp án {num}</label>
-                    <input
-                      name={`option${num}`}
-                      className="w-full px-3 py-2 border rounded-md"
-                      defaultValue={currentQuestion?.options?.[num - 1]}
-                      required
-                    />
-                  </div>
-                ))}
-                <div className="space-y-2">
-                  <Label htmlFor="correctOption">Đáp án đúng</Label>
-                  <select
-                    id="correctOption"
-                    name="correctOption"
-                    className="w-full px-3 py-2 border rounded-md"
-                    defaultValue={currentQuestion?.options?.indexOf(currentQuestion.correct_answer || '') || 0}
-                    required
-                  >
-                    <option value="0">Đáp án 1</option>
-                    <option value="1">Đáp án 2</option>
-                    <option value="2">Đáp án 3</option>
-                    <option value="3">Đáp án 4</option>
-                  </select>
-                </div>
-              </div>
-            )}
-            {examType === 'essay' && (
-              <div className="space-y-2">
-                <Label htmlFor="correctAnswer">Đáp án đúng</Label>
-                <Textarea
-                  id="correctAnswer"
-                  name="correctAnswer"
-                  defaultValue={currentQuestion?.correct_answer || ''}
-                  placeholder="Nhập đáp án đúng cho câu hỏi tự luận"
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="points">Điểm</Label>
-              <Input id="points" name="points" type="number" min="0" step="0.5" defaultValue={currentQuestion?.points || 1} required />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>Hủy</Button>
-              <Button type="submit">{currentQuestion ? "Cập nhật" : "Thêm"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       <div className="flex justify-end space-x-4">
         <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
-        <Button disabled={questions.length === 0} onClick={handleCreateExam}>Tạo bài kiểm tra</Button>
+        <Button disabled={questions.length === 0} onClick={handleCreateExam}>Hoàn tất</Button>
       </div>
     </div>
   )
