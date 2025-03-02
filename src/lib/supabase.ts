@@ -1039,3 +1039,32 @@ export async function deleteExam(examId: string) {
 
   return true
 }
+// Hàm xóa câu hỏi
+export async function deleteExamQuestion(questionId: string) {
+  const { data, error } = await supabase
+    .from('exam_questions')
+    .delete()
+    .eq('id', questionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+export async function updateExamQuestion(question: ExamQuestion) {
+  const { data, error } = await supabase
+    .from('exam_questions')
+    .update({
+      content: question.content,
+      points: question.points,
+      options: question.options,
+      correct_answer: question.correct_answer,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', question.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
