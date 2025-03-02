@@ -50,9 +50,9 @@ export default function ExamQuestionPage() {
     }
   }
 
-  const handleAddQuestion = () => {
+  const handleAddQuestion = (type: 'multiple_choice' | 'essay') => {
     setCurrentQuestion(null)
-    setExamType('multiple_choice')
+    setExamType(type)
     setIsQuestionDialogOpen(true)
   }
 
@@ -77,6 +77,8 @@ export default function ExamQuestionPage() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
+
+    console.log("New Question:", newQuestion);
 
     try {
       if (currentQuestion) {
@@ -145,7 +147,7 @@ export default function ExamQuestionPage() {
         </TabsList>
 
         <div className="mt-4">
-          <Button onClick={handleAddQuestion}>Thêm câu hỏi</Button>
+          <Button onClick={() => handleAddQuestion(examType)}>Thêm câu hỏi</Button>
         </div>
 
         <div className="mt-4 space-y-4">
@@ -175,7 +177,7 @@ export default function ExamQuestionPage() {
                   <div className="mt-2">
                     <h4 className="font-medium">Các đáp án:</h4>
                     <ul className="list-disc pl-5">
-                      {question.options.map((option: string, idx: number) => (
+                      {question.options.map((option: string, idx: number ) => (
                         <li key={idx}>{option}</li>
                       ))}
                     </ul>
@@ -225,10 +227,10 @@ export default function ExamQuestionPage() {
                         defaultValue={currentQuestion?.options?.indexOf(currentQuestion.correct_answer || '') || 0}
                         required
                       >
-                        <option value="0">Đáp án 1</option>
-                        <option value="1">Đáp án 2</option>
-                        <option value="2">Đáp án 3</option>
-                        <option value="3">Đáp án 4</option>
+                        <option value="1">Đáp án 1</option>
+                        <option value="2">Đáp án 2</option>
+                        <option value="3">Đáp án 3</option>
+                        <option value="4">Đáp án 4</option>
                       </select>
                     </div>
                   </div>
@@ -250,7 +252,12 @@ export default function ExamQuestionPage() {
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>Hủy</Button>
-                  <Button type="submit">{currentQuestion ? "Cập nhật" : "Thêm"}</Button>
+                  <Button type="submit" onClick={() => { 
+                    // Refresh the page after submission
+                    window.location.reload(); 
+                  }}>
+                    {currentQuestion ? "Cập nhật" : "Thêm"}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
