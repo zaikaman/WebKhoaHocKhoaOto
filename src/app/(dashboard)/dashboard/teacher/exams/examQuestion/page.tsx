@@ -15,20 +15,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { createExam, createExamQuestion, getExamDetails, getExamQuestions, ExamQuestion } from "@/lib/supabase"
-
+import { createExam, updateExamQuestion, deleteExamQuestion, getExamDetails, getExamQuestions, ExamQuestion, createExamQuestion } from "@/lib/supabase"
 
 export default function ExamQuestionPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [examId, setExamId] = useState<string | null>(null)
-  const [examTitle, setExamTitle] = useState("")
-  const [examDescription, setExamDescription] = useState("")
-  const [examDuration, setExamDuration] = useState(60)
-  const [examType, setExamType] = useState<'multiple_choice' | 'essay'>('multiple_choice')
   const [questions, setQuestions] = useState<ExamQuestion[]>([])
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false)
   const [currentQuestion, setCurrentQuestion] = useState<ExamQuestion | null>(null)
+  const [examType, setExamType] = useState<'multiple_choice' | 'essay'>('multiple_choice')
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search)
@@ -56,26 +52,15 @@ export default function ExamQuestionPage() {
 
   const handleAddQuestion = () => {
     setCurrentQuestion(null)
+    setExamType('multiple_choice')
     setIsQuestionDialogOpen(true)
   }
 
   const handleQuestionSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
-    
-    console.log('Form Data:', {
-      content: formData.get('content'),
-      type: formData.get('type'),
-      points: formData.get('points'),
-      option1: formData.get('option1'),
-      option2: formData.get('option2'),
-      option3: formData.get('option3'),
-      option4: formData.get('option4'),
-      correctOption: formData.get('correctOption'),
-      correctAnswer: formData.get('correctAnswer')
-    })
 
-    const newQuestion = {
+    const newQuestion: Omit<ExamQuestion, 'id'> = {
       exam_id: examId || '',
       type: examType,
       content: formData.get('content') as string,
@@ -88,36 +73,27 @@ export default function ExamQuestionPage() {
       ] : null,
       correct_answer: examType === 'multiple_choice' ? 
         (formData.get(`option${Number(formData.get('correctOption'))}`) as string) :
-        (formData.get('correctAnswer') as string)
+        (formData.get('correctAnswer') as string),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
-
-    console.log('Dữ liệu câu hỏi mới:', newQuestion)
 
     try {
       if (currentQuestion) {
         const updatedQuestion: ExamQuestion = {
           ...currentQuestion,
           ...newQuestion,
-          id: currentQuestion.id,
-          created_at: currentQuestion.created_at,
           updated_at: new Date().toISOString()
         }
-        console.log('Đang cập nhật câu hỏi:', updatedQuestion)
-        setQuestions(questions.map(q => q.id === currentQuestion.id ? updatedQuestion : q))
+
+        const { data, error } = await updateExamQuestion(updatedQuestion)
+        if (error) throw error
+
+        setQuestions(questions.map(q => q.id === currentQuestion.id ? data : q))
       } else {
-        console.log('Đang gọi createExamQuestion với dữ liệu:', newQuestion)
-        try {
-          const savedQuestion = await createExamQuestion(newQuestion)
-          console.log('Kết quả trả về từ createExamQuestion:', savedQuestion)
-          setQuestions([...questions, savedQuestion])
-        } catch (createError) {
-          console.error('Lỗi từ createExamQuestion:', {
-            error: createError,
-            message: createError instanceof Error ? createError.message : 'Unknown error',
-            stack: createError instanceof Error ? createError.stack : undefined
-          })
-          throw createError
-        }
+        const { data, error } = await createExamQuestion(newQuestion)
+        if (error) throw error
+        setQuestions([...questions, data])
       }
       toast({
         variant: "success",
@@ -125,67 +101,43 @@ export default function ExamQuestionPage() {
         description: "Câu hỏi đã được lưu thành công"
       })
     } catch (error) {
-      console.error('Chi tiết lỗi khi lưu câu hỏi:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined,
-        questionData: newQuestion
-      })
+      console.error('Chi tiết lỗi khi lưu câu hỏi:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error instanceof Error 
-          ? `Không thể lưu câu hỏi: ${error.message}`
-          : "Không thể lưu câu hỏi"
+        description: "Không thể lưu câu hỏi"
       })
     } finally {
       setIsQuestionDialogOpen(false)
     }
   }
 
-  const handleCreateExam = async () => {
-    const errors: string[] = []
-    const savedQuestions: ExamQuestion[] = []
-
-    for (const question of questions) {
-      try {
-        const savedQuestion = await createExamQuestion(question)
-        savedQuestions.push(savedQuestion)
-      } catch (error) {
-        console.error(`Lỗi khi lưu câu hỏi ${question.content}:`, error)
-        errors.push(`Câu hỏi "${question.content.slice(0, 50)}...": ${(error as Error).message}`)
-      }
-    }
-
-    if (errors.length > 0) {
+  const handleDeleteQuestion = async (questionId: string) => {
+    try {
+      const { error } = await deleteExamQuestion(questionId)
+      if (error) throw error
+      setQuestions(questions.filter(q => q.id !== questionId))
+      toast({
+        variant: "success",
+        title: "Thành công",
+        description: "Câu hỏi đã được xóa thành công"
+      })
+    } catch (error) {
+      console.error('Lỗi khi xóa câu hỏi:', error)
       toast({
         variant: "destructive",
-        title: "Lỗi khi lưu một số câu hỏi",
-        description: (
-          <div className="mt-2">
-            {errors.map((error, index) => (
-              <p key={index} className="text-sm">{error}</p>
-            ))}
-          </div>
-        )
+        title: "Lỗi",
+        description: "Không thể xóa câu hỏi"
       })
-    } else {
-      toast({
-        variant: "success", 
-        title: "Thành công",
-        description: "Tạo bài kiểm tra thành công"
-      })
-      router.back()
     }
   }
 
   return (
     <div className="space-y-6 p-6 bg-gray-50 rounded-lg shadow-md">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Tạo bài kiểm tra mới</h2>
-        <p className="text-muted-foreground">Mã đề: {examId}</p>
+        <h2 className="text-3xl font-bold tracking-tight">Tạo câu hỏi cho bài kiểm tra</h2>
       </div>
-      
+
       <Tabs value={examType} onValueChange={(value) => setExamType(value as 'multiple_choice' | 'essay')}>
         <TabsList>
           <TabsTrigger value="multiple_choice">Trắc nghiệm</TabsTrigger>
@@ -201,12 +153,16 @@ export default function ExamQuestionPage() {
             <div key={question.id} className="rounded-lg border p-4 bg-white shadow-sm relative">
               <div className="absolute top-2 right-2 flex space-x-2">
                 <Button 
-                  onClick={() => { setCurrentQuestion(question); setIsQuestionDialogOpen(true); }} 
+                  onClick={() => { 
+                    setCurrentQuestion(question); 
+                    setExamType(question.type);
+                    setIsQuestionDialogOpen(true); 
+                  }} 
                 >
                   Chỉnh sửa
                 </Button>
                 <Button 
-                  onClick={() => setQuestions(questions.filter(q => q.id !== question.id))}
+                  onClick={() => handleDeleteQuestion(question.id)}
                   variant="outline"
                 >
                   &times;
@@ -223,15 +179,11 @@ export default function ExamQuestionPage() {
                         <li key={idx}>{option}</li>
                       ))}
                     </ul>
-                  </div>
-                )}
-                {question.type === 'essay' && question.correct_answer && (
-                  <div className="mt-2">
                     <h4 className="font-medium">Đáp án đúng:</h4>
                     <p>{question.correct_answer}</p>
                   </div>
                 )}
-                {question.type === 'multiple_choice' && question.correct_answer && (
+                {question.type === 'essay' && question.correct_answer && (
                   <div className="mt-2">
                     <h4 className="font-medium">Đáp án đúng:</h4>
                     <p>{question.correct_answer}</p>
@@ -247,10 +199,9 @@ export default function ExamQuestionPage() {
                 <DialogTitle>{currentQuestion ? "Cập nhật câu hỏi" : "Thêm câu hỏi"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleQuestionSubmit} className="space-y-4">
-                <input type="hidden" name="type" value={examType} />
                 <div className="space-y-2">
                   <Label htmlFor="content">Nội dung câu hỏi</Label>
-                  <Textarea id="content" name="content" defaultValue={currentQuestion?.content} required />
+                  <Textarea id="content" name="content" defaultValue={currentQuestion?.content || ''} required />
                 </div>
                 {examType === 'multiple_choice' && (
                   <div className="space-y-4">
@@ -260,7 +211,7 @@ export default function ExamQuestionPage() {
                         <input
                           name={`option${num}`}
                           className="w-full px-3 py-2 border rounded-md"
-                          defaultValue={currentQuestion?.options?.[num - 1]}
+                          defaultValue={currentQuestion?.options?.[num - 1] || ''}
                           required
                         />
                       </div>
@@ -309,7 +260,7 @@ export default function ExamQuestionPage() {
 
       <div className="flex justify-end space-x-4">
         <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
-        <Button disabled={questions.length === 0} onClick={handleCreateExam}>Hoàn tất</Button>
+        <Button onClick={() => router.push('/dashboard/teacher/exams/list')}>Hoàn tất</Button>
       </div>
     </div>
   )
