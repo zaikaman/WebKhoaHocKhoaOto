@@ -113,6 +113,11 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         throw new Error('Vui lòng điền đầy đủ thông tin')
       }
 
+      // Kiểm tra URL có phải từ YouTube không
+      if (!videoUrl.includes('youtube.com') && !videoUrl.includes('youtu.be')) {
+        throw new Error('Chỉ chấp nhận link video từ YouTube')
+      }
+
       // Tạo bản ghi lecture với video URL
       const result = await createLecture({
         class_id: classId,
@@ -299,16 +304,21 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
   {/* Link video */}
   <div className="space-y-1">
     <Label htmlFor="videoUrl" >
-      Link bài giảng
+      Link bài giảng từ YouTube
     </Label>
     <Input
       id="videoUrl"
       name="videoUrl"
       type="url"
-      placeholder="Nhập link bài giảng (YouTube)"
+      placeholder="Nhập link video YouTube (youtube.com hoặc youtu.be)"
       required
+      pattern="^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+"
+      title="Chỉ chấp nhận link từ YouTube"
       className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
     />
+    <p className="text-xs text-gray-500 mt-1">
+      Chỉ chấp nhận link video từ YouTube (youtube.com hoặc youtu.be)
+    </p>
   </div> </div>
  
                 

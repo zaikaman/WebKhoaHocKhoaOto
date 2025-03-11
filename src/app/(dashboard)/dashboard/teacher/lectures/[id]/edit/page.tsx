@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { getLecture, updateLecture, uploadLectureFile } from "@/lib/supabase"
-import { Editor } from '@tinymce/tinymce-react'
-import { Document, Paragraph, Packer, TextRun } from "docx"
-import mammoth from "mammoth"
+import { getLecture, updateLecture, uploadLectureFile, deleteLectureFile } from "@/lib/supabase"
+import { FileUpIcon, XIcon } from "lucide-react"
 
 export default function LectureEditPage() {
   const router = useRouter()
@@ -17,17 +15,13 @@ export default function LectureEditPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [lecture, setLecture] = useState<any>(null)
-  const [fileContent, setFileContent] = useState<string>("")
-  const [isEditing, setIsEditing] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    file_url: ""
+    file_url: "",
   })
-  const [originalFileType, setOriginalFileType] = useState<'text' | 'docx'>('text')
-  const [htmlContent, setHtmlContent] = useState<string>("")
-  const editorRef = useRef<any>(null)
-  const [images, setImages] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     loadLecture()
@@ -40,7 +34,7 @@ export default function LectureEditPage() {
       setFormData({
         title: lectureData.title,
         description: lectureData.description || "",
-        file_url: lectureData.file_url
+        file_url: lectureData.file_url || "",
       })
     } catch (error) {
       console.error("Lỗi khi tải bài giảng:", error)
@@ -48,111 +42,6 @@ export default function LectureEditPage() {
         variant: "destructive", 
         title: "Lỗi",
         description: "Không thể tải thông tin bài giảng"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function loadFileContent() {
-    try {
-      setIsLoading(true)
-      const response = await fetch(formData.file_url)
-      if (!response.ok) throw new Error('Không thể tải nội dung file')
-      
-      const fileType = lecture.file_type.toLowerCase()
-      
-      if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const blob = await response.blob()
-        const arrayBuffer = await blob.arrayBuffer()
-        
-        const result = await mammoth.convertToHtml({ arrayBuffer })
-        
-        if (!result.value) {
-          throw new Error('Không thể đọc nội dung file DOCX')
-        }
-
-        setHtmlContent(result.value)
-        setOriginalFileType('docx')
-        setIsEditing(true)
-      } else {
-        const content = await response.text()
-        setHtmlContent(content)
-        setOriginalFileType('text')
-        setIsEditing(true)
-      }
-    } catch (error) {
-      console.error("Lỗi khi tải nội dung file:", error)
-      toast({
-        variant: "destructive", 
-        title: "Lỗi",
-        description: "Không thể tải nội dung file"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function handleSaveContent() {
-    try {
-      setIsLoading(true)
-      let newFileUrl;
-      
-      if (originalFileType === 'docx') {
-        const htmlContent = editorRef.current.getContent()
-        
-        const doc = new Document({
-          sections: [{
-            properties: {},
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun(htmlContent.replace(/<[^>]*>/g, ''))
-                ],
-              }),
-            ],
-          }],
-        });
-
-        const blob = await Packer.toBlob(doc);
-
-        const file = new File([blob], `updated_${Date.now()}.docx`, {
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-
-        newFileUrl = await uploadLectureFile(file)
-      } else {
-        const content = editorRef.current.getContent()
-        const blob = new Blob([content], { type: lecture.file_type })
-        const file = new File([blob], `updated_${Date.now()}.${lecture.file_type.split('/')[1]}`, {
-          type: lecture.file_type
-        })
-
-        newFileUrl = await uploadLectureFile(file)
-      }
-
-      await updateLecture(params.id as string, {
-        title: formData.title,
-        description: formData.description,
-        file_url: newFileUrl
-      })
-
-      setFormData(prev => ({ ...prev, file_url: newFileUrl }))
-      setIsEditing(false)
-
-      toast({
-        title: "Thành công",
-        description: "Đã cập nhật bài giảng"
-      })
-
-      await loadLecture()
-
-    } catch (error) {
-      console.error("Lỗi khi lưu nội dung:", error)
-      toast({
-        variant: "destructive",
-        title: "Lỗi", 
-        description: "Không thể lưu nội dung đã chỉnh sửa"
       })
     } finally {
       setIsLoading(false)
@@ -167,15 +56,65 @@ export default function LectureEditPage() {
     }))
   }
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      if (file.size > 100 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "File không được vượt quá 100MB"
+        })
+        return
+      }
+      setSelectedFile(file)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      let updatedFileUrl = formData.file_url
+
+      if (lecture.file_type === 'video') {
+        // Kiểm tra URL YouTube
+        if (!formData.file_url.includes('youtube.com') && !formData.file_url.includes('youtu.be')) {
+          throw new Error('Chỉ chấp nhận link video từ YouTube')
+        }
+        updatedFileUrl = formData.file_url
+      } else {
+        // Kiểm tra file mới
+        if (!selectedFile && !formData.file_url) {
+          throw new Error('Vui lòng chọn file')
+        }
+        
+        if (selectedFile) {
+          // Xóa file cũ nếu có
+          if (formData.file_url) {
+            await deleteLectureFile(formData.file_url)
+          }
+          // Upload file mới
+          updatedFileUrl = await uploadLectureFile(selectedFile)
+        }
+      }
+
       await updateLecture(params.id as string, {
         title: formData.title,
         description: formData.description,
-        file_url: formData.file_url
+        file_url: updatedFileUrl,
+        ...(selectedFile && {
+          file_type: selectedFile.type,
+          file_size: selectedFile.size
+        })
       })
 
       toast({
@@ -184,12 +123,11 @@ export default function LectureEditPage() {
       })
 
       router.back()
-    } catch (error) {
-      console.error("Lỗi khi cập nhật:", error)
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể cập nhật bài giảng"
+        description: error.message || "Không thể cập nhật bài giảng"
       })
     } finally {
       setIsLoading(false)
@@ -207,13 +145,13 @@ export default function LectureEditPage() {
   if (!lecture) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg font-medium">Đang tải...</div>
+        <div className="text-lg font-medium">Không tìm thấy bài giảng</div>
       </div>
     )
   }
 
   return (
-    <div className="w-full p-6 space-y-8">
+    <div className="w-full px-20 py-0 space-y-2">
       <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-sm">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Chỉnh sửa bài giảng</h2>
@@ -254,106 +192,84 @@ export default function LectureEditPage() {
             />
           </div>
 
-          {lecture.file_type === 'video' && (
+          {lecture.file_type === 'video' ? (
             <div>
               <label htmlFor="file_url" className="block text-sm font-medium text-gray-700 mb-1">
-                Link video
+                Link YouTube
               </label>
               <Input
                 id="file_url"
                 name="file_url"
+                type="url"
                 value={formData.file_url}
                 onChange={handleInputChange}
+                placeholder="Nhập link video YouTube"
+                pattern="^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+"
+                title="Chỉ chấp nhận link từ YouTube"
                 required
                 className="w-full"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Chỉ chấp nhận link video từ YouTube (youtube.com hoặc youtu.be)
+              </p>
             </div>
-          )}
-
-          {lecture.file_type !== 'video' && (
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">
-                File bài giảng
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                File bài giảng ( bài giảng cũ sẽ được ghi đè khi bạn upload file mới ) :
               </label>
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-700">File hiện tại:</p>
-                    <a 
-                      href={formData.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer" 
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      Tải xuống file
-                    </a>
-                  </div>
-                  <div className="space-x-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => window.open(formData.file_url, '_blank')}
-                      className="hover:bg-gray-100"
-                    >
-                      Xem file
-                    </Button>
-                    {!isEditing && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={loadFileContent}
-                        disabled={isLoading}
-                        className="hover:bg-gray-200"
-                      >
-                        Chỉnh sửa nội dung
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-gray-700">
-                      Chỉnh sửa nội dung
-                    </label>
-                    <Button
-                      type="button"
-                      onClick={handleSaveContent}
-                      disabled={isLoading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Lưu nội dung
-                    </Button>
-                  </div>
-                  <div className="border rounded-lg overflow-hidden">
-                    <Editor
-                      apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
-                      onInit={(evt, editor) => editorRef.current = editor}
-                      initialValue={htmlContent}
-                      init={{
-                        height: 500,
-                        menubar: true,
-                        plugins: [
-                          'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                          'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                          'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                        ],
-                        toolbar: 'undo redo | blocks | ' +
-                          'bold italic forecolor | alignleft aligncenter ' +
-                          'alignright alignjustify | bullist numlist outdent indent | ' +
-                          'removeformat | help',
-                        content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-                        branding: false,
-                        promotion: false,
-                        tracking: false,
-                        send_usage_data: false
-                      }}
-                    />
-                  </div>
+              {!selectedFile && formData.file_url && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg mb-3">
+                  <FileUpIcon className="text-blue-500" size={20} />
+                  <span className="text-sm text-blue-700">File hiện tại: <a href={formData.file_url} target="_blank" className="text-blue-700 hover:underline">Ở ĐÂY</a></span>
                 </div>
               )}
+              <div className="mt-1">
+                {!selectedFile ? (
+                  <label 
+                    htmlFor="file" 
+                    className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-dashed border-blue-400 rounded-lg appearance-none cursor-pointer hover:border-blue-500 focus:outline-none">
+                    <div className="flex flex-col items-center space-y-2">
+                      <FileUpIcon className="w-6 h-6 text-blue-500"/>
+                      <span className="font-medium text-sm text-gray-600">
+                        Kéo thả file vào đây hoặc click để chọn file
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        (Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX)
+                      </span>
+                    </div>
+                  </label>
+                ) : (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <FileUpIcon className="w-8 h-8 text-blue-500"/>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{selectedFile.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="text-sm text-red-500 hover:text-red-700"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <Input
+                  id="file"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -368,27 +284,4 @@ export default function LectureEditPage() {
       </form>
     </div>
   )
-}
-
-function getEditorLanguage(fileType: string) {
-  const type = fileType.toLowerCase()
-  switch (type) {
-    case 'text/html':
-      return 'html'
-    case 'text/css':
-      return 'css'
-    case 'application/javascript':
-    case 'text/javascript':
-      return 'javascript'
-    case 'application/json':
-      return 'json'
-    case 'text/markdown':
-    case 'application/markdown':
-      return 'markdown'
-    case 'text/xml':
-    case 'application/xml':
-      return 'xml'
-    default:
-      return 'plaintext'
-  }
 }

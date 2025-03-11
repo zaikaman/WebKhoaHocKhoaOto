@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { deleteLecture } from '@/lib/supabase'
+import { deleteLecture, deleteLectureFile } from '@/lib/supabase'
 import type { Lecture } from '@/lib/supabase'
 
 interface LectureDetailProps {
@@ -26,6 +26,7 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
     try {
       setIsDeleting(true)
       await deleteLecture(lecture.id)
+      await deleteLectureFile(lecture.file_url)
       setIsOpen(false)
       onDelete()
       toast({
@@ -109,7 +110,7 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-muted-foreground">Loại</p>
-                    <p className="font-medium">Link video</p>
+                    <p className="font-medium">Link</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Ngày tạo</p>
@@ -135,16 +136,14 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                         ? 'Word Document (.docx)'
                         : lecture.file_type === 'application/pdf'
                         ? 'PDF (.pdf)'
+                        : lecture.file_type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                        ? 'PowerPoint (.pptx)'
                         : lecture.file_type}
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Kích thước</p>
                     <p className="font-medium">{lecture.file_size}KB</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Lượt tải</p>
-                    <p className="font-medium">{lecture.download_count}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Ngày tạo</p>

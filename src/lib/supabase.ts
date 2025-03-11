@@ -988,7 +988,7 @@ export async function uploadLectureFile(file: File) {
   return publicUrl
 }
 
-//Hàm yấy chi tiết bài giảng
+//Hàm lấy chi tiết bài giảng
 export async function getLecture(lectureId: string): Promise<Lecture> {
   const { data, error } = await supabase
     .from('lectures')
@@ -998,6 +998,42 @@ export async function getLecture(lectureId: string): Promise<Lecture> {
   if (error) throw error
   return data
 } 
+
+// Hàm xóa file bài giảng
+export async function deleteLectureFile(fileUrl: string) {
+  try {
+    // Kiểm tra nếu là URL YouTube thì không cần xóa file
+    if (fileUrl.includes('youtube.com') || fileUrl.includes('youtu.be')) {
+      return true
+    }
+
+    // Lấy đường dẫn file từ URL
+    const url = new URL(fileUrl)
+    const pathSegments = url.pathname.split('/')
+    
+    // Đúng vị trí bucket và file name
+    const bucketName = pathSegments[5] // "lectures"
+    const fileName = pathSegments.slice(6).join('/') // "lectures/0.43643969707262675.docx"
+
+    console.log('Deleting file:', { bucketName, fileName })
+
+    // Xóa file từ storage bucket
+    const { error: storageError } = await supabase.storage
+      .from(bucketName)
+      .remove([fileName])
+
+    if (storageError) {
+      console.error('Error deleting file:', storageError)
+      throw storageError
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in deleteLectureFile:', error)
+    throw error
+  }
+}
+
 
 //Hàm cập nhật bài giảng
 export async function updateLecture(lectureId: string, lecture: Partial<Lecture>) {
