@@ -65,10 +65,10 @@ export default function CreateExamPage() {
       }
 
       // Call the createExam function to save the exam data
-      const { error } = await createExam(examData)
-      if (error) throw error
+      const exam = await createExam(examData)
+      if (!exam) throw new Error('Không thể tạo bài kiểm tra')
 
-      router.push('/dashboard/teacher/exams/examQuestion')
+      router.push(`/dashboard/teacher/exams/examQuestion?examId=${exam.id}`)
       toast({
         title: "Thành công",
         description: "Đã tạo bài kiểm tra mới"

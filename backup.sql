@@ -546,48 +546,48 @@ COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg
 CREATE FUNCTION extensions.grant_pg_net_access() RETURNS event_trigger
     LANGUAGE plpgsql
     AS $$
-  BEGIN
-    IF EXISTS (
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_net'
+  )
+  THEN
+    IF NOT EXISTS (
       SELECT 1
-      FROM pg_event_trigger_ddl_commands() AS ev
-      JOIN pg_extension AS ext
-      ON ev.objid = ext.oid
-      WHERE ext.extname = 'pg_net'
+      FROM pg_roles
+      WHERE rolname = 'supabase_functions_admin'
     )
     THEN
-      IF NOT EXISTS (
-        SELECT 1
-        FROM pg_roles
-        WHERE rolname = 'supabase_functions_admin'
-      )
-      THEN
-        CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
-      END IF;
-
-      GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
-
-      IF EXISTS (
-        SELECT FROM pg_extension
-        WHERE extname = 'pg_net'
-        -- all versions in use on existing projects as of 2025-02-20
-        -- version 0.12.0 onwards don't need these applied
-        AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
-      ) THEN
-        ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
-        ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
-
-        ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
-        ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
-
-        REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
-        REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
-
-        GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
-        GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
-      END IF;
+      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
     END IF;
-  END;
-  $$;
+
+    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+
+    IF EXISTS (
+      SELECT FROM pg_extension
+      WHERE extname = 'pg_net'
+      -- all versions in use on existing projects as of 2025-02-20
+      -- version 0.12.0 onwards don't need these applied
+      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
+    ) THEN
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+
+      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+
+      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    END IF;
+  END IF;
+END;
+$$;
 
 
 ALTER FUNCTION extensions.grant_pg_net_access() OWNER TO postgres;
@@ -2292,6 +2292,39 @@ COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when 
 
 
 --
+-- Name: assignment_questions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.assignment_questions (
+    id bigint NOT NULL,
+    assignment_id uuid,
+    content text NOT NULL,
+    type text NOT NULL,
+    points numeric(5,2) NOT NULL,
+    options jsonb,
+    correct_answer text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+
+ALTER TABLE public.assignment_questions OWNER TO postgres;
+
+--
+-- Name: assignment_questions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.assignment_questions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.assignment_questions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: assignment_submissions; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2875,6 +2908,7 @@ COPY auth.audit_log_entries (instance_id, id, payload, created_at, ip_address) F
 00000000-0000-0000-0000-000000000000	65de91d3-e778-4862-b34c-8251b545e7a3	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-24 08:57:22.671948+00	
 00000000-0000-0000-0000-000000000000	71b5098c-33b4-4118-bd44-330eae798be4	{"action":"logout","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-02-24 09:04:07.337069+00	
 00000000-0000-0000-0000-000000000000	92495b31-7778-4398-980e-5a28a866c495	{"action":"login","actor_id":"e368b85d-7038-4211-be16-c959c7931de0","actor_username":"3122410449@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-24 09:04:10.185866+00	
+00000000-0000-0000-0000-000000000000	eeda7769-cbbf-49d5-8a21-4443151358e7	{"action":"logout","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-02-28 01:36:17.729262+00	
 00000000-0000-0000-0000-000000000000	fdb9d2b0-d738-428d-9c9f-9049d4a4d5c8	{"action":"login","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-24 09:05:37.791864+00	
 00000000-0000-0000-0000-000000000000	f8ddd411-1aa6-493a-b225-0cecb9a471b1	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-02-24 09:05:39.533995+00	
 00000000-0000-0000-0000-000000000000	2d9fb779-94dc-4329-8152-4ca49a88b5ac	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-02-24 09:05:39.534595+00	
@@ -2930,6 +2964,51 @@ COPY auth.audit_log_entries (instance_id, id, payload, created_at, ip_address) F
 00000000-0000-0000-0000-000000000000	4e8e538f-5767-4a74-bc27-41ae80d9b4d5	{"action":"login","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-26 10:08:05.831319+00	
 00000000-0000-0000-0000-000000000000	7bf82ccf-9683-4f03-92f7-ea513021ba58	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-27 00:42:12.711234+00	
 00000000-0000-0000-0000-000000000000	187d2c23-4b96-4613-9894-c38f030aba64	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-27 01:00:52.137303+00	
+00000000-0000-0000-0000-000000000000	29b81c7b-9825-4254-bfa0-9034e0d6b3d1	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-27 01:13:37.629731+00	
+00000000-0000-0000-0000-000000000000	a547505d-7b19-4676-9df5-a704955214d1	{"action":"token_refreshed","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-02-27 01:24:22.422844+00	
+00000000-0000-0000-0000-000000000000	52e0ee81-b679-48cb-81b2-d6fd2c459674	{"action":"token_revoked","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-02-27 01:24:22.428716+00	
+00000000-0000-0000-0000-000000000000	e55b0daa-be8a-459d-a86c-c6e6886a07a5	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-27 01:24:22.810132+00	
+00000000-0000-0000-0000-000000000000	a0a3268e-d344-4471-bf56-1c2d2fb17e57	{"action":"login","actor_id":"620de24c-a40a-432a-be36-86852092f3c1","actor_username":"3122569172@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-27 02:10:32.61643+00	
+00000000-0000-0000-0000-000000000000	87fa87e1-c108-4d71-ade0-fab4d28e3cbc	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-27 02:16:43.446366+00	
+00000000-0000-0000-0000-000000000000	da35a3a0-64a8-400a-b87b-e433e1f45ad9	{"action":"token_refreshed","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-02-28 01:31:14.862599+00	
+00000000-0000-0000-0000-000000000000	eb90f3a3-e0ce-4723-9cb7-1eeee6cd27a0	{"action":"token_revoked","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-02-28 01:31:14.888181+00	
+00000000-0000-0000-0000-000000000000	26e245f5-c7ab-4795-a7f6-2c688d341efd	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 01:31:14.910238+00	
+00000000-0000-0000-0000-000000000000	4fa69ccc-c51f-4345-a541-cb5e382522f6	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 01:36:20.079772+00	
+00000000-0000-0000-0000-000000000000	21804b24-237f-4864-96f4-dba9c958723e	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 02:26:00.003161+00	
+00000000-0000-0000-0000-000000000000	8633dfaa-8b94-48f5-9391-460f16ead600	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 03:15:47.159396+00	
+00000000-0000-0000-0000-000000000000	51ab82bf-f43a-4b8b-a1c4-2067170ba7ce	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 03:19:29.329767+00	
+00000000-0000-0000-0000-000000000000	10bbb551-a749-4958-b95e-2298e60d7c99	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 03:22:02.037987+00	
+00000000-0000-0000-0000-000000000000	c1542013-1ba6-49a1-b131-fca18de2e39d	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 03:26:57.530266+00	
+00000000-0000-0000-0000-000000000000	75ab5309-9ffc-4bb9-927a-7cd3bf6bce6c	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 03:33:43.531055+00	
+00000000-0000-0000-0000-000000000000	82badc1b-484a-438f-ae45-70b4d504a781	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-02-28 03:36:35.817711+00	
+00000000-0000-0000-0000-000000000000	86d10f77-652d-4e35-97b3-b1c15ecf1a9f	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 10:37:40.106542+00	
+00000000-0000-0000-0000-000000000000	fc2acd83-6d4e-4885-8868-94c5f05ed4f3	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 10:37:40.120794+00	
+00000000-0000-0000-0000-000000000000	a4f30db5-08d3-4449-b1db-a61965ac6fd1	{"action":"login","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-01 10:37:40.995271+00	
+00000000-0000-0000-0000-000000000000	046e2612-e9ff-48cb-823e-454595706536	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 11:36:22.936884+00	
+00000000-0000-0000-0000-000000000000	8ec41d59-ad73-4b8a-a2f5-3316ed66f2ae	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 11:36:22.941786+00	
+00000000-0000-0000-0000-000000000000	914345fa-48db-4c08-ac0f-f526fe0d18d1	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-01 13:08:51.191758+00	
+00000000-0000-0000-0000-000000000000	13ed7a79-9fec-4b50-8477-fb1ac48509db	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-01 13:20:02.254778+00	
+00000000-0000-0000-0000-000000000000	50b58802-1b5d-47c4-85fe-3d95d0a80f3c	{"action":"token_refreshed","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 14:18:33.853603+00	
+00000000-0000-0000-0000-000000000000	2afc1a86-14e9-4eaa-b22f-38eeb7af17dd	{"action":"token_revoked","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 14:18:33.85742+00	
+00000000-0000-0000-0000-000000000000	5210cf22-caaf-4b8f-aaf4-2ad64a3b2fbd	{"action":"token_refreshed","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 16:06:16.513734+00	
+00000000-0000-0000-0000-000000000000	97b97a22-3fba-4699-ad38-e64b28b9af6b	{"action":"token_revoked","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-01 16:06:16.517718+00	
+00000000-0000-0000-0000-000000000000	03e0fc20-fa64-4e10-b05d-9ecc51167932	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-02 01:34:47.084516+00	
+00000000-0000-0000-0000-000000000000	92ed4a09-ef65-433e-b9bb-46f4c1cc6e1d	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-02 01:34:47.095746+00	
+00000000-0000-0000-0000-000000000000	237c8d9b-096d-4a6b-b2af-3b9dd7e7d34d	{"action":"login","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-02 01:34:48.142753+00	
+00000000-0000-0000-0000-000000000000	db0fcc66-c022-42bf-889b-12c6f53c3321	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-02 02:33:04.992832+00	
+00000000-0000-0000-0000-000000000000	98343808-e3fa-4db1-bb7d-3ddd93587dd2	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-02 02:33:05.001853+00	
+00000000-0000-0000-0000-000000000000	98ed9323-ca35-42d4-add0-13042e2e83bc	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-02 03:32:08.10302+00	
+00000000-0000-0000-0000-000000000000	d7ce0941-e5d4-433e-97d6-7629d9061997	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-02 03:32:08.106894+00	
+00000000-0000-0000-0000-000000000000	acb3b9f4-0cdc-40c1-9ad7-8c83e2f28301	{"action":"login","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-02 03:42:14.130773+00	
+00000000-0000-0000-0000-000000000000	67cbb0fb-783d-4e94-a7f9-f3d35128b943	{"action":"token_refreshed","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-09 03:14:30.432427+00	
+00000000-0000-0000-0000-000000000000	53b9ddb6-9358-49af-a89f-7807251c065b	{"action":"token_revoked","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-09 03:14:30.437965+00	
+00000000-0000-0000-0000-000000000000	e60fb6d7-656e-4951-884f-7765d2ee136d	{"action":"login","actor_id":"557d4ebc-ccbf-4402-ae59-4dd4b357e97c","actor_username":"3122410471@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-09 03:14:30.499359+00	
+00000000-0000-0000-0000-000000000000	f1a66915-de65-4e58-b0a6-a34efeccbdcc	{"action":"token_refreshed","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-11 12:14:02.534177+00	
+00000000-0000-0000-0000-000000000000	f7adc1be-f42a-400f-aabd-dbd22ed3c7b3	{"action":"token_revoked","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-03-11 12:14:02.555641+00	
+00000000-0000-0000-0000-000000000000	84265902-967d-435b-8897-215b6e3bb53b	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-11 12:14:09.369403+00	
+00000000-0000-0000-0000-000000000000	41955bb7-b900-40c4-877f-59dd10f49a93	{"action":"logout","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-03-11 12:47:38.775625+00	
+00000000-0000-0000-0000-000000000000	47f0d354-e214-46b3-b40c-b8bac02eab26	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-11 12:47:41.325143+00	
+00000000-0000-0000-0000-000000000000	e97df9e7-24fd-454f-aa81-50383497d531	{"action":"login","actor_id":"e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0","actor_username":"gv001@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-03-12 11:37:25.498513+00	
 \.
 
 
@@ -2973,21 +3052,19 @@ COPY auth.mfa_amr_claims (session_id, created_at, updated_at, authentication_met
 9dfeb7a8-e6fe-4cc3-b745-40ce979507da	2025-02-21 10:44:50.455318+00	2025-02-21 10:44:50.455318+00	password	db3df238-fa5f-4866-8fff-b0c815d6e7eb
 e2a38421-eb86-4044-8d69-847a586ca278	2025-02-21 10:45:04.108237+00	2025-02-21 10:45:04.108237+00	password	c282254d-851b-4da0-bb97-4117f7eb8bf6
 7f2d9202-c457-4934-9ab8-597d28bf64de	2025-02-24 10:04:00.380817+00	2025-02-24 10:04:00.380817+00	password	a3e176b1-21fb-4eb6-9e68-e7223a20a1ff
-eb9d06ad-c69c-4df4-aaec-d493ec1f808f	2025-02-24 10:32:01.325723+00	2025-02-24 10:32:01.325723+00	password	037c2b8e-134e-404d-87fb-6f68c388035c
-e91e348b-cff9-4821-b31c-d2fb62370699	2025-02-24 10:34:28.019053+00	2025-02-24 10:34:28.019053+00	password	4f3a4586-94fb-4623-a772-bb8ae873f467
-ea3379b0-8ccc-444d-9864-99e782e8ea97	2025-02-24 12:32:43.991476+00	2025-02-24 12:32:43.991476+00	password	f5467ef8-12f4-44ec-bdad-338691f19e35
-b985c3fb-076a-4068-b1ce-91bc0db7a39c	2025-02-24 13:03:55.62101+00	2025-02-24 13:03:55.62101+00	password	7fee4513-0763-4299-a45e-0e67dda5cf5b
-b36aed6a-a77a-4649-bc9d-1a671588669b	2025-02-24 14:01:29.869085+00	2025-02-24 14:01:29.869085+00	password	8c6bda41-46ee-49d5-b1f4-95f0aae1bcec
-b2d38524-5861-45aa-b55a-e45a1a01ae93	2025-02-24 15:05:00.469719+00	2025-02-24 15:05:00.469719+00	password	e247dc81-67c5-4e66-95e3-81a1c09bc0d8
-5f134508-b490-4456-91b0-750ac2c0f0d9	2025-02-25 10:53:34.934832+00	2025-02-25 10:53:34.934832+00	password	6c9a09b3-f239-4f5e-87fb-f6506cb6770a
 48c63613-68b7-457a-bdc9-0be84e80355e	2025-02-26 08:11:12.510075+00	2025-02-26 08:11:12.510075+00	password	d03ebbe8-f5aa-4312-a5fe-4d6d61183a9f
 9b60c2f1-2c1d-4eab-ba82-04bb983f8f43	2025-02-26 08:18:36.054904+00	2025-02-26 08:18:36.054904+00	password	fa227453-7a9e-4570-a175-3f03995d2573
 b2a1c144-a6a1-448b-8455-fd8324727a91	2025-02-26 10:08:05.852314+00	2025-02-26 10:08:05.852314+00	password	1cd4f39d-4cac-4ec8-8e3e-45f4d6d50da2
-33ca5698-7958-4a01-af69-048770ab19eb	2025-02-27 00:42:12.802376+00	2025-02-27 00:42:12.802376+00	password	0dfdea8c-c6ff-4d35-9a70-049d6cb48159
-93229c00-803f-4f9b-a7d2-caa819e70639	2025-02-27 01:00:52.153257+00	2025-02-27 01:00:52.153257+00	password	37256869-ea3e-42c4-9cc4-ae5af0a15b99
+87e1d4e1-a14a-4ac1-aa49-e76b2ccbd51a	2025-02-27 02:10:32.630474+00	2025-02-27 02:10:32.630474+00	password	60c9f4ca-934c-4bbb-9f73-97d0f5734942
 4f357219-b631-4e2b-8ac0-550c6a92f189	2025-02-21 05:32:45.756468+00	2025-02-21 05:32:45.756468+00	password	d8bce818-321c-4ef5-a143-7e89f42f6ced
 04f08f9a-ece0-4c06-822b-35535d3d6fee	2025-02-21 05:34:02.95416+00	2025-02-21 05:34:02.95416+00	password	53514688-70d5-431b-80e3-0bd2b0563c61
+f6c6c137-5078-4754-95c7-8fbfc1942ac0	2025-03-01 10:37:41.008984+00	2025-03-01 10:37:41.008984+00	password	5b838963-b6ed-4750-a9a4-ad65408bed4a
 c9b80a15-e3f0-4fb3-9d6f-98716fae7e44	2025-02-21 05:51:03.432657+00	2025-02-21 05:51:03.432657+00	password	d85f22b7-e4cd-45fd-8b4f-141786e104b1
+fba4752b-d6f7-4a8b-865b-c92fdcd9a9be	2025-03-02 01:34:48.154075+00	2025-03-02 01:34:48.154075+00	password	39df7a61-48c2-41a9-b5d3-fa051a464832
+8856798f-3515-4789-839d-7ad2b7b31857	2025-03-02 03:42:14.145705+00	2025-03-02 03:42:14.145705+00	password	dd901471-31d5-4821-adf8-244eda79446c
+8f33c327-36d9-4cee-b027-51310aecede2	2025-03-09 03:14:30.504395+00	2025-03-09 03:14:30.504395+00	password	8169396b-4459-43d3-a7e7-3fc78868906b
+3f025bb6-1dfc-4bd0-93f6-b1e32c992607	2025-03-11 12:47:41.337405+00	2025-03-11 12:47:41.337405+00	password	5a833436-2c47-47f2-898c-01a3c3c86886
+d0249604-7968-46c7-8219-52fab74833d8	2025-03-12 11:37:25.528119+00	2025-03-12 11:37:25.528119+00	password	56978d1d-9e59-41a8-9de7-6fb3ec31ff0d
 \.
 
 
@@ -3022,29 +3099,29 @@ COPY auth.one_time_tokens (id, user_id, token_type, token_hash, relates_to, crea
 COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, updated_at, parent, session_id) FROM stdin;
 00000000-0000-0000-0000-000000000000	66	auUo3-_cyGLyDtivHJLqRw	2956b155-1d48-4058-acdb-c1151fa5c9fd	f	2025-02-21 10:44:50.453621+00	2025-02-21 10:44:50.453621+00	\N	9dfeb7a8-e6fe-4cc3-b745-40ce979507da
 00000000-0000-0000-0000-000000000000	67	rCRYJV3h4kb6-KszSYlocA	2956b155-1d48-4058-acdb-c1151fa5c9fd	f	2025-02-21 10:45:04.10713+00	2025-02-21 10:45:04.10713+00	\N	e2a38421-eb86-4044-8d69-847a586ca278
+00000000-0000-0000-0000-000000000000	161	jqy60qlULacfuJnQxwol2Q	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-02-26 10:08:05.841643+00	2025-03-01 10:37:40.122006+00	\N	b2a1c144-a6a1-448b-8455-fd8324727a91
+00000000-0000-0000-0000-000000000000	179	Vx7HuzAnPLssqKjDjUe5wQ	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-03-01 10:37:40.133052+00	2025-03-01 10:37:40.133052+00	jqy60qlULacfuJnQxwol2Q	b2a1c144-a6a1-448b-8455-fd8324727a91
+00000000-0000-0000-0000-000000000000	180	TpHlUVDwTTbm6IKwhtSrqg	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-03-01 10:37:41.004377+00	2025-03-01 11:36:22.942295+00	\N	f6c6c137-5078-4754-95c7-8fbfc1942ac0
+00000000-0000-0000-0000-000000000000	181	H38Z-gF1ZAl_IbzVIPxteg	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-03-01 11:36:22.944611+00	2025-03-02 01:34:47.096864+00	TpHlUVDwTTbm6IKwhtSrqg	f6c6c137-5078-4754-95c7-8fbfc1942ac0
+00000000-0000-0000-0000-000000000000	186	8Bbzjf2oYpYBwJ-b5AhFUQ	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-03-02 01:34:47.105246+00	2025-03-02 01:34:47.105246+00	H38Z-gF1ZAl_IbzVIPxteg	f6c6c137-5078-4754-95c7-8fbfc1942ac0
+00000000-0000-0000-0000-000000000000	187	qOijRmrMCosQWTI90jfc6g	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-03-02 01:34:48.152244+00	2025-03-02 02:33:05.002409+00	\N	fba4752b-d6f7-4a8b-865b-c92fdcd9a9be
+00000000-0000-0000-0000-000000000000	188	xB0MuvfNGzC2HooYARxpDA	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-03-02 02:33:05.005266+00	2025-03-02 03:32:08.107415+00	qOijRmrMCosQWTI90jfc6g	fba4752b-d6f7-4a8b-865b-c92fdcd9a9be
+00000000-0000-0000-0000-000000000000	189	bLUjIX3mg15br6m9PSL15Q	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-03-02 03:32:08.109677+00	2025-03-02 03:32:08.109677+00	xB0MuvfNGzC2HooYARxpDA	fba4752b-d6f7-4a8b-865b-c92fdcd9a9be
 00000000-0000-0000-0000-000000000000	135	Gg5NCCjAf5RIv8lOl9IoLQ	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-02-24 10:04:00.378228+00	2025-02-24 11:09:02.565799+00	\N	7f2d9202-c457-4934-9ab8-597d28bf64de
-00000000-0000-0000-0000-000000000000	143	SZTmYbnD9AxJeZydx-GHdA	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	t	2025-02-24 10:32:01.324526+00	2025-02-24 12:32:32.612251+00	\N	eb9d06ad-c69c-4df4-aaec-d493ec1f808f
-00000000-0000-0000-0000-000000000000	147	yuf8xW0PtbXeZPH8jfWPsw	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-24 12:32:32.614528+00	2025-02-24 12:32:32.614528+00	SZTmYbnD9AxJeZydx-GHdA	eb9d06ad-c69c-4df4-aaec-d493ec1f808f
 00000000-0000-0000-0000-000000000000	44	Oag97LI6nqXMECm8PP6qDQ	dc743d86-49ee-43d6-a8c7-eb7a8b032a93	f	2025-02-21 05:32:45.754755+00	2025-02-21 05:32:45.754755+00	\N	4f357219-b631-4e2b-8ac0-550c6a92f189
 00000000-0000-0000-0000-000000000000	45	JNs5EHzrajVQCVCnobUwCQ	0af601e2-d596-49c7-9b53-12d86ecb6d12	f	2025-02-21 05:34:02.952481+00	2025-02-21 05:34:02.952481+00	\N	04f08f9a-ece0-4c06-822b-35535d3d6fee
-00000000-0000-0000-0000-000000000000	149	C6u04KgL2cFsmbU4yy8giw	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-24 12:32:43.990374+00	2025-02-24 12:32:43.990374+00	\N	ea3379b0-8ccc-444d-9864-99e782e8ea97
 00000000-0000-0000-0000-000000000000	48	Jn16hgUlp-f1Qn3e6EhJIg	6477eb40-4562-4138-97e1-56d9cea1bd3d	f	2025-02-21 05:51:03.42891+00	2025-02-21 05:51:03.42891+00	\N	c9b80a15-e3f0-4fb3-9d6f-98716fae7e44
-00000000-0000-0000-0000-000000000000	150	O7Gbjwil0AZxfkN5zIL4Yg	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-24 13:03:55.616432+00	2025-02-24 13:03:55.616432+00	\N	b985c3fb-076a-4068-b1ce-91bc0db7a39c
-00000000-0000-0000-0000-000000000000	151	h7Cjchvqa_DSTlNGaLMGHA	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	t	2025-02-24 14:01:29.865274+00	2025-02-24 15:01:27.519325+00	\N	b36aed6a-a77a-4649-bc9d-1a671588669b
-00000000-0000-0000-0000-000000000000	145	EMbpck7SKHcA_Adimab0Rw	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	t	2025-02-24 10:34:28.016776+00	2025-02-24 15:04:59.745644+00	\N	e91e348b-cff9-4821-b31c-d2fb62370699
-00000000-0000-0000-0000-000000000000	153	2qdEGOgYhEHBiuubBTK1kg	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-24 15:04:59.74621+00	2025-02-24 15:04:59.74621+00	EMbpck7SKHcA_Adimab0Rw	e91e348b-cff9-4821-b31c-d2fb62370699
-00000000-0000-0000-0000-000000000000	154	27cicAbLGlR7wQARmcfV_w	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-24 15:05:00.468435+00	2025-02-24 15:05:00.468435+00	\N	b2d38524-5861-45aa-b55a-e45a1a01ae93
-00000000-0000-0000-0000-000000000000	152	dne7kBUwF5lhBn39QOa45w	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	t	2025-02-24 15:01:27.52157+00	2025-02-25 10:53:04.473238+00	h7Cjchvqa_DSTlNGaLMGHA	b36aed6a-a77a-4649-bc9d-1a671588669b
-00000000-0000-0000-0000-000000000000	155	TN9uZYLiAGl_SPkscedxZQ	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-25 10:53:04.479382+00	2025-02-25 10:53:04.479382+00	dne7kBUwF5lhBn39QOa45w	b36aed6a-a77a-4649-bc9d-1a671588669b
-00000000-0000-0000-0000-000000000000	156	LUgGIwuGwdNDTnLxb6g9yQ	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-25 10:53:34.931921+00	2025-02-25 10:53:34.931921+00	\N	5f134508-b490-4456-91b0-750ac2c0f0d9
 00000000-0000-0000-0000-000000000000	146	hUwDsHnghLUcdOQsDA_lyQ	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-02-24 11:09:02.567508+00	2025-02-26 08:11:10.390432+00	Gg5NCCjAf5RIv8lOl9IoLQ	7f2d9202-c457-4934-9ab8-597d28bf64de
 00000000-0000-0000-0000-000000000000	157	JqdCHfcK59xqrZnz1MFNlw	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-02-26 08:11:10.401217+00	2025-02-26 08:11:10.401217+00	hUwDsHnghLUcdOQsDA_lyQ	7f2d9202-c457-4934-9ab8-597d28bf64de
 00000000-0000-0000-0000-000000000000	158	Xe8R0G4qCpus0aCCyC6a-w	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-02-26 08:11:12.507772+00	2025-02-26 08:11:12.507772+00	\N	48c63613-68b7-457a-bdc9-0be84e80355e
 00000000-0000-0000-0000-000000000000	159	ZO6-kQ5MmhunYxKREjEzug	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-02-26 08:18:36.048673+00	2025-02-26 09:18:33.729326+00	\N	9b60c2f1-2c1d-4eab-ba82-04bb983f8f43
 00000000-0000-0000-0000-000000000000	160	jx8_aTy5FTC_oHWpSGvNxQ	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-02-26 09:18:33.732765+00	2025-02-26 09:18:33.732765+00	ZO6-kQ5MmhunYxKREjEzug	9b60c2f1-2c1d-4eab-ba82-04bb983f8f43
-00000000-0000-0000-0000-000000000000	161	jqy60qlULacfuJnQxwol2Q	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-02-26 10:08:05.841643+00	2025-02-26 10:08:05.841643+00	\N	b2a1c144-a6a1-448b-8455-fd8324727a91
-00000000-0000-0000-0000-000000000000	162	a2G0AhQl5eVaDOsxEmhxTg	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-27 00:42:12.763512+00	2025-02-27 00:42:12.763512+00	\N	33ca5698-7958-4a01-af69-048770ab19eb
-00000000-0000-0000-0000-000000000000	163	O0WusuIdFRDGLRE_bspuMw	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-02-27 01:00:52.148028+00	2025-02-27 01:00:52.148028+00	\N	93229c00-803f-4f9b-a7d2-caa819e70639
+00000000-0000-0000-0000-000000000000	167	Jdb1aolYxXIFbp7q875Zow	620de24c-a40a-432a-be36-86852092f3c1	f	2025-02-27 02:10:32.624477+00	2025-02-27 02:10:32.624477+00	\N	87e1d4e1-a14a-4ac1-aa49-e76b2ccbd51a
+00000000-0000-0000-0000-000000000000	190	r2Qz53_4UAGmi9HN5NPgdA	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	t	2025-03-02 03:42:14.140926+00	2025-03-09 03:14:30.438388+00	\N	8856798f-3515-4789-839d-7ad2b7b31857
+00000000-0000-0000-0000-000000000000	191	RcmyAaM3aOqOuHwZaLuGVw	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-03-09 03:14:30.442089+00	2025-03-09 03:14:30.442089+00	r2Qz53_4UAGmi9HN5NPgdA	8856798f-3515-4789-839d-7ad2b7b31857
+00000000-0000-0000-0000-000000000000	192	GG6CjfRPpyd6hjnJKwnQBw	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	f	2025-03-09 03:14:30.503241+00	2025-03-09 03:14:30.503241+00	\N	8f33c327-36d9-4cee-b027-51310aecede2
+00000000-0000-0000-0000-000000000000	195	LwAtVtD-SErWYAy5y0A-WA	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-03-11 12:47:41.330972+00	2025-03-11 12:47:41.330972+00	\N	3f025bb6-1dfc-4bd0-93f6-b1e32c992607
+00000000-0000-0000-0000-000000000000	196	i0RlK6QnJv87nuPkphZ0Ig	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	f	2025-03-12 11:37:25.516346+00	2025-03-12 11:37:25.516346+00	\N	d0249604-7968-46c7-8219-52fab74833d8
 \.
 
 
@@ -3140,22 +3217,20 @@ COPY auth.schema_migrations (version) FROM stdin;
 COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_after, refreshed_at, user_agent, ip, tag) FROM stdin;
 9dfeb7a8-e6fe-4cc3-b745-40ce979507da	2956b155-1d48-4058-acdb-c1151fa5c9fd	2025-02-21 10:44:50.451965+00	2025-02-21 10:44:50.451965+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
 e2a38421-eb86-4044-8d69-847a586ca278	2956b155-1d48-4058-acdb-c1151fa5c9fd	2025-02-21 10:45:04.106432+00	2025-02-21 10:45:04.106432+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
-b985c3fb-076a-4068-b1ce-91bc0db7a39c	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 13:03:55.613765+00	2025-02-24 13:03:55.613765+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
-e91e348b-cff9-4821-b31c-d2fb62370699	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 10:34:28.016126+00	2025-02-24 15:04:59.749038+00	\N	aal1	\N	2025-02-24 15:04:59.748969	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
-b2d38524-5861-45aa-b55a-e45a1a01ae93	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 15:05:00.467474+00	2025-02-24 15:05:00.467474+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
+b2a1c144-a6a1-448b-8455-fd8324727a91	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-02-26 10:08:05.836844+00	2025-03-01 10:37:40.14421+00	\N	aal1	\N	2025-03-01 10:37:40.144133	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
 7f2d9202-c457-4934-9ab8-597d28bf64de	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-02-24 10:04:00.376312+00	2025-02-26 08:11:10.420564+00	\N	aal1	\N	2025-02-26 08:11:10.420491	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
 48c63613-68b7-457a-bdc9-0be84e80355e	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-02-26 08:11:12.491718+00	2025-02-26 08:11:12.491718+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
-b2a1c144-a6a1-448b-8455-fd8324727a91	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-02-26 10:08:05.836844+00	2025-02-26 10:08:05.836844+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
-93229c00-803f-4f9b-a7d2-caa819e70639	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-27 01:00:52.141673+00	2025-02-27 01:00:52.141673+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	113.161.85.113	\N
+fba4752b-d6f7-4a8b-865b-c92fdcd9a9be	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-03-02 01:34:48.143524+00	2025-03-02 03:32:08.115549+00	\N	aal1	\N	2025-03-02 03:32:08.11546	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
 4f357219-b631-4e2b-8ac0-550c6a92f189	dc743d86-49ee-43d6-a8c7-eb7a8b032a93	2025-02-21 05:32:45.753778+00	2025-02-21 05:32:45.753778+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.252.154.193	\N
 04f08f9a-ece0-4c06-822b-35535d3d6fee	0af601e2-d596-49c7-9b53-12d86ecb6d12	2025-02-21 05:34:02.951482+00	2025-02-21 05:34:02.951482+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.252.154.193	\N
 c9b80a15-e3f0-4fb3-9d6f-98716fae7e44	6477eb40-4562-4138-97e1-56d9cea1bd3d	2025-02-21 05:51:03.427165+00	2025-02-21 05:51:03.427165+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.252.154.193	\N
-eb9d06ad-c69c-4df4-aaec-d493ec1f808f	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 10:32:01.323863+00	2025-02-24 12:32:32.617587+00	\N	aal1	\N	2025-02-24 12:32:32.617515	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
-ea3379b0-8ccc-444d-9864-99e782e8ea97	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 12:32:43.989717+00	2025-02-24 12:32:43.989717+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
-b36aed6a-a77a-4649-bc9d-1a671588669b	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 14:01:29.861792+00	2025-02-25 10:53:04.491282+00	\N	aal1	\N	2025-02-25 10:53:04.49119	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
-5f134508-b490-4456-91b0-750ac2c0f0d9	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-25 10:53:34.927172+00	2025-02-25 10:53:34.927172+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0	42.119.229.184	\N
 9b60c2f1-2c1d-4eab-ba82-04bb983f8f43	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-02-26 08:18:36.043451+00	2025-02-26 09:18:33.735816+00	\N	aal1	\N	2025-02-26 09:18:33.735742	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
-33ca5698-7958-4a01-af69-048770ab19eb	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-27 00:42:12.742839+00	2025-02-27 00:42:12.742839+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	113.161.85.113	\N
+87e1d4e1-a14a-4ac1-aa49-e76b2ccbd51a	620de24c-a40a-432a-be36-86852092f3c1	2025-02-27 02:10:32.620458+00	2025-02-27 02:10:32.620458+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	113.161.85.113	\N
+f6c6c137-5078-4754-95c7-8fbfc1942ac0	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-03-01 10:37:40.99683+00	2025-03-02 01:34:47.112548+00	\N	aal1	\N	2025-03-02 01:34:47.112478	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	171.233.235.197	\N
+8856798f-3515-4789-839d-7ad2b7b31857	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-03-02 03:42:14.135579+00	2025-03-09 03:14:30.450097+00	\N	aal1	\N	2025-03-09 03:14:30.450024	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	118.71.199.102	\N
+8f33c327-36d9-4cee-b027-51310aecede2	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	2025-03-09 03:14:30.501655+00	2025-03-09 03:14:30.501655+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36	118.71.199.102	\N
+3f025bb6-1dfc-4bd0-93f6-b1e32c992607	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-03-11 12:47:41.328728+00	2025-03-11 12:47:41.328728+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0	58.187.187.170	\N
+d0249604-7968-46c7-8219-52fab74833d8	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-03-12 11:37:25.509658+00	2025-03-12 11:37:25.509658+00	\N	aal1	\N	\N	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36	171.252.188.245	\N
 \.
 
 
@@ -3183,11 +3258,11 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 00000000-0000-0000-0000-000000000000	6477eb40-4562-4138-97e1-56d9cea1bd3d	authenticated	authenticated	3122560072@gmail.com	$2a$10$d737uMSIZcwsVyQfrCcxbO2pKsRYhIJ18hdrPi6LJSw1CenJBycMq	2025-02-21 05:51:03.423192+00	\N		\N		\N			\N	2025-02-21 05:51:03.427096+00	{"provider": "email", "providers": ["email"]}	{"sub": "6477eb40-4562-4138-97e1-56d9cea1bd3d", "role": "student", "email": "3122560072@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:51:03.412102+00	2025-02-21 05:51:03.432228+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	dc743d86-49ee-43d6-a8c7-eb7a8b032a93	authenticated	authenticated	3122560572@gmail.com	$2a$10$J2yofg3zaPFwvtG/kcFIO.Zcu/soZGLfy8L9HsjM94SykU2gs8Jb6	2025-02-21 05:32:45.750152+00	\N		\N		\N			\N	2025-02-21 05:32:45.753712+00	{"provider": "email", "providers": ["email"]}	{"sub": "dc743d86-49ee-43d6-a8c7-eb7a8b032a93", "role": "student", "email": "3122560572@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:32:45.742462+00	2025-02-21 05:32:45.756075+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	2956b155-1d48-4058-acdb-c1151fa5c9fd	authenticated	authenticated	gv002@gmail.com	$2a$10$XeB9HZXUKle57cZzsi.EJu.MTXwFXpmg2Dq0a4I9liN9qnBAV7v/2	2025-02-21 10:44:50.448086+00	\N		\N		\N			\N	2025-02-21 10:45:04.106359+00	{"provider": "email", "providers": ["email"]}	{"sub": "2956b155-1d48-4058-acdb-c1151fa5c9fd", "role": "teacher", "email": "gv002@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 10:44:50.439267+00	2025-02-21 10:45:04.107966+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	authenticated	authenticated	gv001@gmail.com	$2a$10$3s0W1bOVVPUWEgmcYb7tgulu4pV.7VRya0fzoB/oPjaVsDzaF.IoK	2025-02-21 05:51:53.363042+00	\N		\N		\N			\N	2025-02-27 01:00:52.141593+00	{"provider": "email", "providers": ["email"]}	{"sub": "e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0", "role": "teacher", "email": "gv001@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:51:53.358174+00	2025-02-27 01:00:52.152699+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	e368b85d-7038-4211-be16-c959c7931de0	authenticated	authenticated	3122410449@gmail.com	$2a$10$Uy/CoRS/8ExltTwchGAayObrIGQ2y.NlPAkKsgLObop8CXcaVt/7e	2025-02-21 10:17:00.938163+00	\N		\N		\N			\N	2025-02-24 12:32:33.762045+00	{"provider": "email", "providers": ["email"]}	{"sub": "e368b85d-7038-4211-be16-c959c7931de0", "role": "student", "email": "3122410449@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 10:17:00.927194+00	2025-02-24 12:32:33.772321+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	620de24c-a40a-432a-be36-86852092f3c1	authenticated	authenticated	3122569172@gmail.com	$2a$10$tw4Apk0t.Uh8uuuf5Ma8JOtYHkG0GBmwqYOrOV1usNsPHiwRnhybm	2025-02-21 05:37:07.007255+00	\N		\N		\N			\N	2025-02-21 10:11:57.219556+00	{"provider": "email", "providers": ["email"]}	{"sub": "620de24c-a40a-432a-be36-86852092f3c1", "role": "student", "email": "3122569172@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:37:06.999745+00	2025-02-21 10:11:57.221319+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	0af601e2-d596-49c7-9b53-12d86ecb6d12	authenticated	authenticated	3122569072@gmail.com	$2a$10$j37/bi/eL88IFmGn3USRbO6hAKCA0ULwghVqTJHYHu3mUaJJvyO9O	2025-02-21 05:34:02.946716+00	\N		\N		\N			\N	2025-02-21 05:34:02.951408+00	{"provider": "email", "providers": ["email"]}	{"sub": "0af601e2-d596-49c7-9b53-12d86ecb6d12", "role": "student", "email": "3122569072@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:34:02.939525+00	2025-02-21 05:34:02.953723+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	authenticated	authenticated	3122410471@gmail.com	$2a$10$FDdnwzr3TF9sv91voKkklO5Ph27Reoax4Al3wC1orKeswQ8279AYa	2025-02-21 08:15:30.226186+00	\N		\N		\N			\N	2025-02-26 10:08:05.836765+00	{"provider": "email", "providers": ["email"]}	{"sub": "557d4ebc-ccbf-4402-ae59-4dd4b357e97c", "role": "teacher", "email": "3122410471@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 08:15:30.199727+00	2025-02-26 10:08:05.851723+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	620de24c-a40a-432a-be36-86852092f3c1	authenticated	authenticated	3122569172@gmail.com	$2a$10$tw4Apk0t.Uh8uuuf5Ma8JOtYHkG0GBmwqYOrOV1usNsPHiwRnhybm	2025-02-21 05:37:07.007255+00	\N		\N		\N			\N	2025-02-27 02:10:32.620378+00	{"provider": "email", "providers": ["email"]}	{"sub": "620de24c-a40a-432a-be36-86852092f3c1", "role": "student", "email": "3122569172@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:37:06.999745+00	2025-02-27 02:10:32.629909+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	557d4ebc-ccbf-4402-ae59-4dd4b357e97c	authenticated	authenticated	3122410471@gmail.com	$2a$10$FDdnwzr3TF9sv91voKkklO5Ph27Reoax4Al3wC1orKeswQ8279AYa	2025-02-21 08:15:30.226186+00	\N		\N		\N			\N	2025-03-09 03:14:30.50158+00	{"provider": "email", "providers": ["email"]}	{"sub": "557d4ebc-ccbf-4402-ae59-4dd4b357e97c", "role": "teacher", "email": "3122410471@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 08:15:30.199727+00	2025-03-09 03:14:30.5041+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	authenticated	authenticated	gv001@gmail.com	$2a$10$3s0W1bOVVPUWEgmcYb7tgulu4pV.7VRya0fzoB/oPjaVsDzaF.IoK	2025-02-21 05:51:53.363042+00	\N		\N		\N			\N	2025-03-12 11:37:25.508469+00	{"provider": "email", "providers": ["email"]}	{"sub": "e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0", "role": "teacher", "email": "gv001@gmail.com", "email_verified": true, "phone_verified": false}	\N	2025-02-21 05:51:53.358174+00	2025-03-12 11:37:25.526111+00	\N	\N			\N		0	\N		\N	f	\N	f
 \.
 
 
@@ -3196,6 +3271,14 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 --
 
 COPY pgsodium.key (id, status, created, expires, key_type, key_id, key_context, name, associated_data, raw_key, raw_key_nonce, parent_key, comment, user_data) FROM stdin;
+\.
+
+
+--
+-- Data for Name: assignment_questions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.assignment_questions (id, assignment_id, content, type, points, options, correct_answer, created_at, updated_at) FROM stdin;
 \.
 
 
@@ -3230,7 +3313,7 @@ aaf54224-49e8-45a4-93ba-e3f2aae82827	f7bdff59-8976-44ba-910d-52708eb4b387	e3f47b
 --
 
 COPY public.enrollments (id, class_id, student_id, status, created_at, updated_at) FROM stdin;
-0c4bd1d2-03c4-44a3-8664-1c297ed370ee	aaf54224-49e8-45a4-93ba-e3f2aae82827	e368b85d-7038-4211-be16-c959c7931de0	enrolled	2025-02-23 07:32:11.647+00	2025-02-23 07:32:11.647+00
+a658b604-c432-42b7-94e8-4b4d4717e156	aaf54224-49e8-45a4-93ba-e3f2aae82827	e368b85d-7038-4211-be16-c959c7931de0	enrolled	2025-02-28 01:46:55.383+00	2025-02-28 01:46:55.384+00
 \.
 
 
@@ -3239,6 +3322,10 @@ COPY public.enrollments (id, class_id, student_id, status, created_at, updated_a
 --
 
 COPY public.exam_questions (id, exam_id, content, type, points, options, correct_answer, created_at, updated_at) FROM stdin;
+1a4a7e8c-cf16-4ff6-904f-80816fffa5de	2ab42746-f136-4c70-8ac3-efa2d1841dbf	Kh├╣ng	multiple_choice	1.00	["A", "B", "C", "D"]	\N	2025-03-01 13:23:22.793006+00	2025-03-01 13:23:22.793006+00
+de6727e3-4994-4b76-b422-0272cdd676fc	d81f5313-5f72-48ca-a50b-8beb332925d2	vinh c├│ ─æß║╣p trai kh├┤ng	essay	1.00	\N	kh├┤ng	2025-03-02 01:55:04.328+00	2025-03-02 01:55:04.328+00
+8cd896c7-6d8c-4f3e-9058-06eaed8b4b39	36b8bc63-fae9-46a8-8e58-fb8258fd1afe	thß╗ïnh ngu 	essay	1.00	\N	sure 8\n	2025-03-02 02:19:37.453+00	2025-03-02 03:18:45.531+00
+a8528c2e-a8c2-45b4-846d-fac017996297	36b8bc63-fae9-46a8-8e58-fb8258fd1afe	sß╗æ b├⌐ nhß║Ñt	multiple_choice	1.00	["1", "2", "3", "4"]	4	2025-03-02 02:15:14.485+00	2025-03-02 03:29:52.007+00
 \.
 
 
@@ -3257,8 +3344,10 @@ COPY public.exam_submissions (id, exam_id, student_id, answers, score, submitted
 COPY public.exams (id, class_id, title, description, type, duration, total_points, start_time, end_time, status, created_at, updated_at) FROM stdin;
 d81f5313-5f72-48ca-a50b-8beb332925d2	5f9c94a6-6bb5-4a65-a0ee-2b9fce239e5e	123	<p>12312</p>	quiz	60	100.00	2025-02-24 18:41:00+00	2025-02-25 18:41:00+00	upcoming	2025-02-24 11:41:40.682+00	2025-02-24 11:41:40.682+00
 36b8bc63-fae9-46a8-8e58-fb8258fd1afe	5f9c94a6-6bb5-4a65-a0ee-2b9fce239e5e	si├¬u kh├│	<p>si├¬u si├¬u kh├│</p>	midterm	60	100.00	2025-02-26 15:19:00+00	2025-02-27 15:19:00+00	upcoming	2025-02-26 08:19:23.235+00	2025-02-26 08:19:23.236+00
-a7c75ef0-8336-487f-8e9e-87d6a4f26ea0	5f9c94a6-6bb5-4a65-a0ee-2b9fce239e5e	12312312	<p>123</p>	quiz	60	100.00	2025-02-26 17:11:00+00	2025-02-26 17:11:00+00	upcoming	2025-02-26 10:12:00.325+00	2025-02-26 10:12:00.325+00
 928acdd9-d12b-48d3-84ec-3b1c3dbaf798	aaf54224-49e8-45a4-93ba-e3f2aae82827	KTPM	<p>KTPM</p>	quiz	10	100.00	2025-02-27 07:48:00+00	2025-02-27 07:58:00+00	upcoming	2025-02-27 00:48:46.582+00	2025-02-27 00:48:46.582+00
+8209bb19-9fc4-4771-80b1-bd678e6201e3	aaf54224-49e8-45a4-93ba-e3f2aae82827	KTPM	<p>KTPM</p>	final	60	100.00	2025-02-27 09:47:00+00	2025-02-28 09:47:00+00	upcoming	2025-02-27 02:47:42.193+00	2025-02-27 02:47:42.193+00
+2ab42746-f136-4c70-8ac3-efa2d1841dbf	aaf54224-49e8-45a4-93ba-e3f2aae82827	KTPM	<p>KTPM</p>	quiz	60	100.00	2025-03-01 20:09:00+00	2025-03-01 22:11:00+00	upcoming	2025-03-01 13:09:23.65+00	2025-03-01 13:09:23.65+00
+50811f3a-0104-4f9c-881a-671bd78a8a95	aaf54224-49e8-45a4-93ba-e3f2aae82827	Test	<p>ASDA</p>	quiz	60	100.00	2025-03-12 18:38:00+00	2025-03-12 12:38:00+00	upcoming	2025-03-12 11:38:13.474+00	2025-03-12 11:38:13.474+00
 \.
 
 
@@ -3267,8 +3356,9 @@ a7c75ef0-8336-487f-8e9e-87d6a4f26ea0	5f9c94a6-6bb5-4a65-a0ee-2b9fce239e5e	123123
 --
 
 COPY public.lectures (id, class_id, title, description, file_url, file_type, file_size, download_count, created_at, updated_at) FROM stdin;
-a71de645-55a6-4858-9273-2806085bc61a	aaf54224-49e8-45a4-93ba-e3f2aae82827	Ch╞░╞íng 1	B├ái giß║úng: Ch╞░╞íng 1	https://lrnlbvdgqpazzwbsxhqc.supabase.co/storage/v1/object/public/lectures/lectures/7vf12gpkzfx.docx	docx	655	0	2025-02-24 13:35:52.387+00	2025-02-24 13:35:52.387+00
-8cb0e1f9-0be1-4aa7-b8a5-9f801288705e	aaf54224-49e8-45a4-93ba-e3f2aae82827	B├ái 1	B├ái giß║úng: B├ái 1	https://github.com/zaikaman/WebKhoaHocKhoaOto/tree/main	video	0	0	2025-02-24 14:08:59.692+00	2025-02-24 14:08:59.692+00
+0528f4ef-8fa0-4661-be6d-bcfcf1777553	aaf54224-49e8-45a4-93ba-e3f2aae82827	Ch╞░╞íng 2	B├ái 2	https://lrnlbvdgqpazzwbsxhqc.supabase.co/storage/v1/object/public/lectures/lectures/0.602822338939019.pdf	application/pdf	356827	0	2025-02-28 01:57:23.848999+00	2025-02-28 01:57:23.848999+00
+2d9ec2b9-0788-40b0-94bc-3edbc75a99d2	aaf54224-49e8-45a4-93ba-e3f2aae82827	KTPM	KTPM	https://lrnlbvdgqpazzwbsxhqc.supabase.co/storage/v1/object/public/lectures/lectures/0.10943812805361008.docx	application/vnd.openxmlformats-officedocument.wordprocessingml.document	670427	0	2025-02-27 01:20:18.769561+00	2025-02-27 01:20:18.769561+00
+fbcaab62-983e-4dc8-8400-9cc168dd6b32	aaf54224-49e8-45a4-93ba-e3f2aae82827	Link b├ái 1	Link b├ái 1	https://www.youtube.com/watch?v=q23RCXNfZUM	video	0	0	2025-03-11 13:12:37.074373+00	2025-03-11 13:12:37.074373+00
 \.
 
 
@@ -3376,7 +3466,7 @@ COPY realtime.subscription (id, subscription_id, entity, filters, claims, create
 --
 
 COPY storage.buckets (id, name, owner, created_at, updated_at, public, avif_autodetection, file_size_limit, allowed_mime_types, owner_id) FROM stdin;
-lectures	lectures	\N	2025-02-24 13:12:32.367753+00	2025-02-24 13:12:32.367753+00	f	f	\N	\N	\N
+lectures	lectures	\N	2025-02-24 13:12:32.367753+00	2025-02-24 13:12:32.367753+00	t	f	\N	\N	\N
 \.
 
 
@@ -3420,7 +3510,17 @@ COPY storage.migrations (id, name, hash, executed_at) FROM stdin;
 
 COPY storage.objects (id, bucket_id, name, owner, created_at, updated_at, last_accessed_at, metadata, version, owner_id, user_metadata) FROM stdin;
 6fd19b1a-3a43-4a90-b347-6347f0ef3343	lectures	lectures/.emptyFolderPlaceholder	\N	2025-02-24 13:31:03.283667+00	2025-02-24 13:31:03.283667+00	2025-02-24 13:31:03.283667+00	{"eTag": "\\"d41d8cd98f00b204e9800998ecf8427e\\"", "size": 0, "mimetype": "application/octet-stream", "cacheControl": "max-age=3600", "lastModified": "2025-02-24T13:31:04.000Z", "contentLength": 0, "httpStatusCode": 200}	8c97a90d-a2e8-435a-b4ae-cc111fdb3653	\N	{}
-c63720b4-2709-494a-93f7-aabcbbbfad24	lectures	lectures/7vf12gpkzfx.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-24 13:35:53.183852+00	2025-02-24 13:35:53.183852+00	2025-02-24 13:35:53.183852+00	{"eTag": "\\"747dc66edebe06635e719469bfab1672\\"", "size": 670427, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-02-24T13:35:54.000Z", "contentLength": 670427, "httpStatusCode": 200}	49db445f-99e8-4abb-a257-eebbda251585	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+dc494711-cc1a-4719-b9a1-b1551433ec70	lectures	0.5939345145438424.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-27 01:14:04.53117+00	2025-02-27 01:14:04.53117+00	2025-02-27 01:14:04.53117+00	{"eTag": "\\"747dc66edebe06635e719469bfab1672\\"", "size": 670427, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-02-27T01:14:05.000Z", "contentLength": 670427, "httpStatusCode": 200}	cc50fc93-9681-46e5-a67e-3519cff69110	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+03432ecb-355d-4066-a95b-5c00012932b1	lectures	lectures/0.45352118830205645.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-27 01:20:18.428209+00	2025-02-27 01:20:18.428209+00	2025-02-27 01:20:18.428209+00	{"eTag": "\\"747dc66edebe06635e719469bfab1672\\"", "size": 670427, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-02-27T01:20:19.000Z", "contentLength": 670427, "httpStatusCode": 200}	cba8566f-1e89-4558-ab97-1921d5ecb18f	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+41f3d5d9-8178-4491-a662-c086d9c9e5a6	lectures	lectures/0.48710103603125443.pdf	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-28 01:55:37.563192+00	2025-02-28 01:55:37.563192+00	2025-02-28 01:55:37.563192+00	{"eTag": "\\"f0c4c1568d709d5d8628ede5a8dc5033\\"", "size": 771457, "mimetype": "application/pdf", "cacheControl": "max-age=3600", "lastModified": "2025-02-28T01:55:38.000Z", "contentLength": 771457, "httpStatusCode": 200}	01543a75-8c60-42ae-a173-24e2d95d6b16	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+be773f5b-eaa5-46db-9426-38d6121ce337	lectures	lectures/0.602822338939019.pdf	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-28 01:57:23.240651+00	2025-02-28 01:57:23.240651+00	2025-02-28 01:57:23.240651+00	{"eTag": "\\"872019f2773b461d73e47800068b781c\\"", "size": 356827, "mimetype": "application/pdf", "cacheControl": "max-age=3600", "lastModified": "2025-02-28T01:57:24.000Z", "contentLength": 356827, "httpStatusCode": 200}	3f5ec925-818c-4c74-b1f1-40f79d0cff53	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+60ff1e01-4831-4d25-9a77-37b8e1722577	lectures	lectures/0.47220905032547256.pdf	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-28 02:00:57.347343+00	2025-02-28 02:00:57.347343+00	2025-02-28 02:00:57.347343+00	{"eTag": "\\"f0c4c1568d709d5d8628ede5a8dc5033\\"", "size": 771457, "mimetype": "application/pdf", "cacheControl": "max-age=3600", "lastModified": "2025-02-28T02:00:58.000Z", "contentLength": 771457, "httpStatusCode": 200}	45b33bee-85ae-4844-8b48-f5e54977093b	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+3d946ca5-7749-4d09-ac1c-74c301789392	lectures	lectures/0.8733202141787042.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-28 02:44:38.06947+00	2025-02-28 02:44:38.06947+00	2025-02-28 02:44:38.06947+00	{"eTag": "\\"5cbed07a20c9294af3d45c8eeae57078\\"", "size": 17934, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-02-28T02:44:38.000Z", "contentLength": 17934, "httpStatusCode": 200}	16a81104-82a7-475f-89d3-9f36af178ea5	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+fd2bded9-7a8d-446b-a282-956dc5b87dbd	lectures	lectures/0.4915425817234633.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-02-28 03:39:06.008457+00	2025-02-28 03:39:06.008457+00	2025-02-28 03:39:06.008457+00	{"eTag": "\\"5cbed07a20c9294af3d45c8eeae57078\\"", "size": 17934, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-02-28T03:39:06.000Z", "contentLength": 17934, "httpStatusCode": 200}	40a30c9a-dd86-485d-bcce-64c84a9b3f3b	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+12d862c7-db3f-4e42-9ced-cf019a15f840	lectures	lectures/0.8146433656060499.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-03-11 12:41:10.395373+00	2025-03-11 12:41:10.395373+00	2025-03-11 12:41:10.395373+00	{"eTag": "\\"306a172eae2a8c40ebc0116936054daf\\"", "size": 18978, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-03-11T12:41:11.000Z", "contentLength": 18978, "httpStatusCode": 200}	765d63cb-16f6-4717-a357-923abebfe328	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+93b60274-ddf7-4212-a4f1-f0af0494a729	lectures	lectures/0.43643969707262675.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-03-11 12:48:44.800441+00	2025-03-11 12:48:44.800441+00	2025-03-11 12:48:44.800441+00	{"eTag": "\\"306a172eae2a8c40ebc0116936054daf\\"", "size": 18978, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-03-11T12:48:45.000Z", "contentLength": 18978, "httpStatusCode": 200}	5a6bcec1-688c-4621-b7f6-149b8ad18a92	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+0df4e47d-962a-411b-9c45-1273cee4d5fd	lectures	lectures/0.4114465000827612.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-03-11 12:57:55.00079+00	2025-03-11 12:57:55.00079+00	2025-03-11 12:57:55.00079+00	{"eTag": "\\"306a172eae2a8c40ebc0116936054daf\\"", "size": 18978, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-03-11T12:57:55.000Z", "contentLength": 18978, "httpStatusCode": 200}	98c259bf-1dea-4493-9da6-722948cbcee3	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
+92e79dd7-dd94-4aea-b0ab-cac432772c33	lectures	lectures/0.15610829578508634.docx	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	2025-03-11 13:02:56.433783+00	2025-03-11 13:02:56.433783+00	2025-03-11 13:02:56.433783+00	{"eTag": "\\"306a172eae2a8c40ebc0116936054daf\\"", "size": 18978, "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cacheControl": "max-age=3600", "lastModified": "2025-03-11T13:02:57.000Z", "contentLength": 18978, "httpStatusCode": 200}	02c1e573-2b6a-42bb-a4c0-8dccb209a9a6	e3f47bb2-dc17-4a26-b445-a2f6b6d6dad0	{}
 \.
 
 
@@ -3452,7 +3552,7 @@ COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, up
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: supabase_auth_admin
 --
 
-SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 163, true);
+SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 196, true);
 
 
 --
@@ -3460,6 +3560,13 @@ SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 163, true);
 --
 
 SELECT pg_catalog.setval('pgsodium.key_key_id_seq', 1, false);
+
+
+--
+-- Name: assignment_questions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.assignment_questions_id_seq', 1, false);
 
 
 --
@@ -3643,6 +3750,14 @@ ALTER TABLE ONLY auth.users
 
 ALTER TABLE ONLY auth.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: assignment_questions assignment_questions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.assignment_questions
+    ADD CONSTRAINT assignment_questions_pkey PRIMARY KEY (id);
 
 
 --
@@ -4126,6 +4241,13 @@ CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
 
 
 --
+-- Name: idx_assignment_questions_assignment_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_assignment_questions_assignment_id ON public.assignment_questions USING btree (assignment_id);
+
+
+--
 -- Name: ix_realtime_subscription_entity; Type: INDEX; Schema: realtime; Owner: supabase_admin
 --
 
@@ -4281,6 +4403,14 @@ ALTER TABLE ONLY auth.sessions
 
 ALTER TABLE ONLY auth.sso_domains
     ADD CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: assignment_questions assignment_questions_assignment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.assignment_questions
+    ADD CONSTRAINT assignment_questions_assignment_id_fkey FOREIGN KEY (assignment_id) REFERENCES public.assignments(id) ON DELETE CASCADE;
 
 
 --
@@ -4715,6 +4845,12 @@ CREATE POLICY "Users can update own profile." ON public.profiles FOR UPDATE USIN
 
 
 --
+-- Name: assignment_questions; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.assignment_questions ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: assignment_submissions; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
@@ -4731,12 +4867,6 @@ ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
-
---
--- Name: enrollments; Type: ROW SECURITY; Schema: public; Owner: postgres
---
-
-ALTER TABLE public.enrollments ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: exam_questions; Type: ROW SECURITY; Schema: public; Owner: postgres
@@ -4936,6 +5066,7 @@ GRANT ALL ON SCHEMA storage TO dashboard_user;
 --
 
 GRANT ALL ON FUNCTION auth.email() TO dashboard_user;
+GRANT ALL ON FUNCTION auth.email() TO postgres;
 
 
 --
@@ -4951,6 +5082,7 @@ GRANT ALL ON FUNCTION auth.jwt() TO dashboard_user;
 --
 
 GRANT ALL ON FUNCTION auth.role() TO dashboard_user;
+GRANT ALL ON FUNCTION auth.role() TO postgres;
 
 
 --
@@ -4958,139 +5090,125 @@ GRANT ALL ON FUNCTION auth.role() TO dashboard_user;
 --
 
 GRANT ALL ON FUNCTION auth.uid() TO dashboard_user;
+GRANT ALL ON FUNCTION auth.uid() TO postgres;
 
 
 --
--- Name: FUNCTION algorithm_sign(signables text, secret text, algorithm text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION algorithm_sign(signables text, secret text, algorithm text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.algorithm_sign(signables text, secret text, algorithm text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.algorithm_sign(signables text, secret text, algorithm text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.algorithm_sign(signables text, secret text, algorithm text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION armor(bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION armor(bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.armor(bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.armor(bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.armor(bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION armor(bytea, text[], text[]); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION armor(bytea, text[], text[]); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.armor(bytea, text[], text[]) FROM postgres;
 GRANT ALL ON FUNCTION extensions.armor(bytea, text[], text[]) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.armor(bytea, text[], text[]) TO dashboard_user;
 
 
 --
--- Name: FUNCTION crypt(text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION crypt(text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.crypt(text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.crypt(text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.crypt(text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION dearmor(text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION dearmor(text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.dearmor(text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.dearmor(text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.dearmor(text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION decrypt(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION decrypt(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.decrypt(bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.decrypt(bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.decrypt(bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION decrypt_iv(bytea, bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION decrypt_iv(bytea, bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.decrypt_iv(bytea, bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.decrypt_iv(bytea, bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.decrypt_iv(bytea, bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION digest(bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION digest(bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.digest(bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.digest(bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.digest(bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION digest(text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION digest(text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.digest(text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.digest(text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.digest(text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION encrypt(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION encrypt(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.encrypt(bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.encrypt(bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.encrypt(bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION encrypt_iv(bytea, bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION encrypt_iv(bytea, bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.encrypt_iv(bytea, bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.encrypt_iv(bytea, bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.encrypt_iv(bytea, bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION gen_random_bytes(integer); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION gen_random_bytes(integer); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.gen_random_bytes(integer) FROM postgres;
 GRANT ALL ON FUNCTION extensions.gen_random_bytes(integer) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.gen_random_bytes(integer) TO dashboard_user;
 
 
 --
--- Name: FUNCTION gen_random_uuid(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION gen_random_uuid(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.gen_random_uuid() FROM postgres;
 GRANT ALL ON FUNCTION extensions.gen_random_uuid() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.gen_random_uuid() TO dashboard_user;
 
 
 --
--- Name: FUNCTION gen_salt(text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION gen_salt(text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.gen_salt(text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.gen_salt(text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.gen_salt(text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION gen_salt(text, integer); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION gen_salt(text, integer); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.gen_salt(text, integer) FROM postgres;
 GRANT ALL ON FUNCTION extensions.gen_salt(text, integer) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.gen_salt(text, integer) TO dashboard_user;
 
@@ -5121,226 +5239,201 @@ GRANT ALL ON FUNCTION extensions.grant_pg_net_access() TO dashboard_user;
 
 
 --
--- Name: FUNCTION hmac(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION hmac(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.hmac(bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.hmac(bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.hmac(bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION hmac(text, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION hmac(text, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.hmac(text, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.hmac(text, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.hmac(text, text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT blk_read_time double precision, OUT blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT blk_read_time double precision, OUT blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT blk_read_time double precision, OUT blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT blk_read_time double precision, OUT blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT blk_read_time double precision, OUT blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pg_stat_statements_reset(userid oid, dbid oid, queryid bigint); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pg_stat_statements_reset(userid oid, dbid oid, queryid bigint); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pg_stat_statements_reset(userid oid, dbid oid, queryid bigint) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pg_stat_statements_reset(userid oid, dbid oid, queryid bigint) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pg_stat_statements_reset(userid oid, dbid oid, queryid bigint) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_armor_headers(text, OUT key text, OUT value text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_armor_headers(text, OUT key text, OUT value text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_armor_headers(text, OUT key text, OUT value text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_armor_headers(text, OUT key text, OUT value text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_armor_headers(text, OUT key text, OUT value text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_key_id(bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_key_id(bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_key_id(bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_key_id(bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_key_id(bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_decrypt(bytea, bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_decrypt(bytea, bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_decrypt(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_decrypt(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_decrypt(bytea, bytea, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_decrypt(bytea, bytea, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_decrypt_bytea(bytea, bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_decrypt_bytea(bytea, bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_decrypt_bytea(bytea, bytea, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_encrypt(text, bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_encrypt(text, bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_encrypt(text, bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt(text, bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt(text, bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_encrypt(text, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_encrypt(text, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_encrypt(text, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt(text, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt(text, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_encrypt_bytea(bytea, bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_encrypt_bytea(bytea, bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_pub_encrypt_bytea(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_pub_encrypt_bytea(bytea, bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_decrypt(bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_decrypt(bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_decrypt(bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt(bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt(bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_decrypt(bytea, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_decrypt(bytea, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_decrypt(bytea, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt(bytea, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt(bytea, text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_decrypt_bytea(bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_decrypt_bytea(bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_decrypt_bytea(bytea, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_decrypt_bytea(bytea, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_encrypt(text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_encrypt(text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_encrypt(text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt(text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt(text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_encrypt(text, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_encrypt(text, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_encrypt(text, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt(text, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt(text, text, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_encrypt_bytea(bytea, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_encrypt_bytea(bytea, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION pgp_sym_encrypt_bytea(bytea, text, text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION pgp_sym_encrypt_bytea(bytea, text, text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text) TO dashboard_user;
 
@@ -5367,136 +5460,121 @@ GRANT ALL ON FUNCTION extensions.set_graphql_placeholder() TO postgres WITH GRAN
 
 
 --
--- Name: FUNCTION sign(payload json, secret text, algorithm text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION sign(payload json, secret text, algorithm text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.sign(payload json, secret text, algorithm text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.sign(payload json, secret text, algorithm text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.sign(payload json, secret text, algorithm text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION try_cast_double(inp text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION try_cast_double(inp text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.try_cast_double(inp text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.try_cast_double(inp text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.try_cast_double(inp text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION url_decode(data text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION url_decode(data text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.url_decode(data text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.url_decode(data text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.url_decode(data text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION url_encode(data bytea); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION url_encode(data bytea); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.url_encode(data bytea) FROM postgres;
 GRANT ALL ON FUNCTION extensions.url_encode(data bytea) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.url_encode(data bytea) TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_generate_v1(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_generate_v1(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_generate_v1() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v1() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v1() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_generate_v1mc(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_generate_v1mc(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_generate_v1mc() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v1mc() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v1mc() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_generate_v3(namespace uuid, name text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_generate_v3(namespace uuid, name text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_generate_v3(namespace uuid, name text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v3(namespace uuid, name text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v3(namespace uuid, name text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_generate_v4(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_generate_v4(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_generate_v4() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v4() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v4() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_generate_v5(namespace uuid, name text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_generate_v5(namespace uuid, name text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_generate_v5(namespace uuid, name text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v5(namespace uuid, name text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_generate_v5(namespace uuid, name text) TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_nil(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_nil(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_nil() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_nil() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_nil() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_ns_dns(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_ns_dns(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_ns_dns() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_ns_dns() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_ns_dns() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_ns_oid(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_ns_oid(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_ns_oid() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_ns_oid() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_ns_oid() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_ns_url(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_ns_url(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_ns_url() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_ns_url() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_ns_url() TO dashboard_user;
 
 
 --
--- Name: FUNCTION uuid_ns_x500(); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION uuid_ns_x500(); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.uuid_ns_x500() FROM postgres;
 GRANT ALL ON FUNCTION extensions.uuid_ns_x500() TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.uuid_ns_x500() TO dashboard_user;
 
 
 --
--- Name: FUNCTION verify(token text, secret text, algorithm text); Type: ACL; Schema: extensions; Owner: postgres
+-- Name: FUNCTION verify(token text, secret text, algorithm text); Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE ALL ON FUNCTION extensions.verify(token text, secret text, algorithm text) FROM postgres;
 GRANT ALL ON FUNCTION extensions.verify(token text, secret text, algorithm text) TO postgres WITH GRANT OPTION;
 GRANT ALL ON FUNCTION extensions.verify(token text, secret text, algorithm text) TO dashboard_user;
 
@@ -5682,6 +5760,76 @@ GRANT ALL ON FUNCTION realtime.topic() TO dashboard_user;
 
 
 --
+-- Name: FUNCTION can_insert_object(bucketid text, name text, owner uuid, metadata jsonb); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) TO postgres;
+
+
+--
+-- Name: FUNCTION extension(name text); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.extension(name text) TO postgres;
+
+
+--
+-- Name: FUNCTION filename(name text); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.filename(name text) TO postgres;
+
+
+--
+-- Name: FUNCTION foldername(name text); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.foldername(name text) TO postgres;
+
+
+--
+-- Name: FUNCTION get_size_by_bucket(); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.get_size_by_bucket() TO postgres;
+
+
+--
+-- Name: FUNCTION list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text) TO postgres;
+
+
+--
+-- Name: FUNCTION list_objects_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.list_objects_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text) TO postgres;
+
+
+--
+-- Name: FUNCTION operation(); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.operation() TO postgres;
+
+
+--
+-- Name: FUNCTION search(prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.search(prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text) TO postgres;
+
+
+--
+-- Name: FUNCTION update_updated_at_column(); Type: ACL; Schema: storage; Owner: supabase_storage_admin
+--
+
+GRANT ALL ON FUNCTION storage.update_updated_at_column() TO postgres;
+
+
+--
 -- Name: TABLE audit_log_entries; Type: ACL; Schema: auth; Owner: supabase_auth_admin
 --
 
@@ -5834,19 +5982,17 @@ GRANT SELECT ON TABLE auth.users TO postgres WITH GRANT OPTION;
 
 
 --
--- Name: TABLE pg_stat_statements; Type: ACL; Schema: extensions; Owner: postgres
+-- Name: TABLE pg_stat_statements; Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE extensions.pg_stat_statements FROM postgres;
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE extensions.pg_stat_statements TO postgres WITH GRANT OPTION;
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE extensions.pg_stat_statements TO dashboard_user;
 
 
 --
--- Name: TABLE pg_stat_statements_info; Type: ACL; Schema: extensions; Owner: postgres
+-- Name: TABLE pg_stat_statements_info; Type: ACL; Schema: extensions; Owner: supabase_admin
 --
 
-REVOKE SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE extensions.pg_stat_statements_info FROM postgres;
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE extensions.pg_stat_statements_info TO postgres WITH GRANT OPTION;
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE extensions.pg_stat_statements_info TO dashboard_user;
 
@@ -5870,6 +6016,24 @@ GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE pgsodium.
 --
 
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE pgsodium.mask_columns TO pgsodium_keyholder;
+
+
+--
+-- Name: TABLE assignment_questions; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE public.assignment_questions TO anon;
+GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE public.assignment_questions TO authenticated;
+GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE public.assignment_questions TO service_role;
+
+
+--
+-- Name: SEQUENCE assignment_questions_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.assignment_questions_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.assignment_questions_id_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.assignment_questions_id_seq TO service_role;
 
 
 --
@@ -6046,6 +6210,7 @@ GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE storage.o
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE storage.s3_multipart_uploads TO service_role;
 GRANT SELECT ON TABLE storage.s3_multipart_uploads TO authenticated;
 GRANT SELECT ON TABLE storage.s3_multipart_uploads TO anon;
+GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE storage.s3_multipart_uploads TO postgres;
 
 
 --
@@ -6055,6 +6220,7 @@ GRANT SELECT ON TABLE storage.s3_multipart_uploads TO anon;
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE storage.s3_multipart_uploads_parts TO service_role;
 GRANT SELECT ON TABLE storage.s3_multipart_uploads_parts TO authenticated;
 GRANT SELECT ON TABLE storage.s3_multipart_uploads_parts TO anon;
+GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLE storage.s3_multipart_uploads_parts TO postgres;
 
 
 --
