@@ -28,8 +28,8 @@ import {
 import { LectureList } from "../../lectures/lecture-list"
 import { LectureDetail } from "../../lectures/lecture-details"
 
-export default function ClassDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function ClassDetailPage({ params }: { params: { id: string } }) {
+const { id } = params
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
@@ -543,4 +543,4 @@ export default function ClassDetailPage({ params }: { params: Promise<{ id: stri
       </Tabs>
     </div>
   )
-} 
+}
