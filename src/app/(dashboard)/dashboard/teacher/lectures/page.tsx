@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getTeacherClasses, getClassLectures } from "@/lib/supabase"
+import { getCurrentUser, getTeacherClasses, getClassLectures, deleteLecture } from "@/lib/supabase"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 type Lecture = {
   id: string
@@ -22,6 +23,8 @@ export default function TeacherLecturesPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [lectures, setLectures] = useState<Lecture[]>([])
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null)
 
   useEffect(() => {
     loadLectures()
@@ -73,6 +76,25 @@ export default function TeacherLecturesPage() {
     }
   }
 
+  async function handleDeleteLecture(lectureId: string) {
+    try {
+      const { error } = await deleteLecture(lectureId);
+      if (error) throw error;
+      setLectures(lectures.filter(l => l.id !== lectureId));
+      toast({
+        title: "Thành công",
+        description: "Bài giảng đã được xóa thành công"
+      });
+    } catch (error) {
+      console.error('Lỗi khi xóa bài giảng:', error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể xóa bài giảng"
+      });
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -97,18 +119,9 @@ export default function TeacherLecturesPage() {
         {lectures.map((lecture) => (
           <div key={lecture.id} className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
             <div className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <h4 className="font-semibold line-clamp-2">{lecture.title}</h4>
-                  <p className="text-sm text-muted-foreground">{lecture.subject} - {lecture.className}</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => window.open(lecture.fileUrl, '_blank')}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" x2="12" y1="15" y2="3" />
-                  </svg>
-                </Button>
+              <div className="space-y-1">
+                <h4 className="font-semibold line-clamp-2">{lecture.title}</h4>
+                <p className="text-sm text-muted-foreground">{lecture.subject} - {lecture.className}</p>
               </div>
               <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
                 {lecture.description}
@@ -116,6 +129,20 @@ export default function TeacherLecturesPage() {
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <p>Ngày tải lên: {new Date(lecture.uploadDate).toLocaleDateString('vi-VN')}</p>
                 <p>{lecture.downloadCount} lượt tải</p>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Button size="sm" onClick={() => {
+                  setSelectedLecture(lecture);
+                  setIsDetailDialogOpen(true);
+                }}>
+                  Xem chi tiết
+                </Button>
+                <Button size="sm" onClick={() => router.push(`/dashboard/teacher/lectures/${lecture.id}/edit`)}>
+                  Chỉnh sửa
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => handleDeleteLecture(lecture.id)}>
+                  Xóa
+                </Button>
               </div>
             </div>
           </div>
@@ -127,6 +154,28 @@ export default function TeacherLecturesPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-[500px] p-4">
+          <DialogHeader>
+            <DialogTitle>{selectedLecture?.title}</DialogTitle>
+            <p className="text-sm text-muted-foreground">{selectedLecture?.subject} - {selectedLecture?.className}</p>
+          </DialogHeader>
+          <div className="mt-4">
+            <p>{selectedLecture?.description}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Ngày tải lên: {selectedLecture ? new Date(selectedLecture.uploadDate).toLocaleDateString('vi-VN') : ''}
+            </p>
+            <p className="text-sm text-muted-foreground">{selectedLecture?.downloadCount} lượt tải</p>
+            {selectedLecture?.fileUrl && (
+              <p className="mt-2"><a href={selectedLecture.fileUrl} target="_blank" rel="noreferrer" className="text-blue-500 underline">Xem file bài giảng</a></p>
+            )}
+          </div>
+          <DialogFooter className="flex justify-end pt-4">
+            <Button onClick={() => setIsDetailDialogOpen(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
