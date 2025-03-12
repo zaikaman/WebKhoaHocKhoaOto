@@ -515,8 +515,10 @@ export default function ExamQuestionPage() {
               </DialogHeader>
               <form onSubmit={handleQuestionSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="content" className="text-sm font-medium flex items-center gap-2">
-                    Nội dung câu hỏi <span className="text-red-500">*</span>
+                  <Label htmlFor="content">
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      Nội dung câu hỏi <span className="text-red-500">*</span>
+                    </span>
                   </Label>
                   <div className="w-full h-[120px]">
                     <Textarea 
@@ -536,8 +538,10 @@ export default function ExamQuestionPage() {
                     <div className="grid grid-cols-2 gap-4">
                       {[1, 2, 3, 4].map((num) => (
                         <div key={num} className="space-y-2">
-                          <Label className="text-sm font-medium flex items-center gap-2">
-                            Đáp án {num} <span className="text-red-500">*</span>
+                          <Label htmlFor={`option${num}`}>
+                            <span className="text-sm font-medium flex items-center gap-2">
+                              Đáp án {num} <span className="text-red-500">*</span>
+                            </span>
                           </Label>
                           <Input
                             name={`option${num}`}
@@ -550,8 +554,10 @@ export default function ExamQuestionPage() {
                       ))}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="correctOption" className="text-sm font-medium flex items-center gap-2">
-                        Đáp án đúng <span className="text-red-500">*</span>
+                      <Label htmlFor="correctOption">
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          Đáp án đúng <span className="text-red-500">*</span>
+                        </span>
                       </Label>
                       <select
                         id="correctOption"
@@ -570,8 +576,10 @@ export default function ExamQuestionPage() {
 
                 {examType === 'essay' && (
                   <div className="space-y-2 border rounded-lg p-4 bg-gray-50">
-                    <Label htmlFor="correctAnswer" className="text-sm font-medium flex items-center gap-2">
-                      Đáp án mẫu <span className="text-red-500">*</span>
+                    <Label htmlFor="correctAnswer">
+                      <span className="text-sm font-medium flex items-center gap-2">
+                        Đáp án mẫu <span className="text-red-500">*</span>
+                      </span>
                     </Label>
                     <div className="w-full h-[120px]">
                       <Textarea
@@ -588,8 +596,10 @@ export default function ExamQuestionPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="points" className="text-sm font-medium flex items-center gap-2">
-                    Điểm <span className="text-red-500">*</span>
+                  <Label htmlFor="points">
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      Điểm <span className="text-red-500">*</span>
+                    </span>
                   </Label>
                   <Input
                     type="number"
