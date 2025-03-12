@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from "lucide-react"
+import * as XLSX from 'xlsx'
+import { supabase, createAssignment, Assignment as DBAssignment } from '@/lib/supabase'
 
 type Assignment = {
   id: string
@@ -26,10 +28,14 @@ type Assignment = {
   subject: string
   className: string
   dueDate: string
-  status: 'draft' | 'published'
+  type: 'multiple_choice' | 'essay'
   totalQuestions?: number
   submittedCount: number
   maxPoints: number
+}
+
+type CreateAssignmentData = Omit<DBAssignment, 'id' | 'created_at' | 'updated_at'> & {
+  type: 'multiple_choice' | 'essay'
 }
 
 export default function TeacherAssignmentsPage() {
@@ -40,6 +46,13 @@ export default function TeacherAssignmentsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
   const [classes, setClasses] = useState<Array<{id: string, name: string}>>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [questions, setQuestions] = useState<Array<{
+    content: string
+    options?: string[]
+    correct_answer: string
+    points: number
+  }>>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -82,7 +95,7 @@ export default function TeacherAssignmentsPage() {
           subject: classItem.subject.name,
           className: classItem.name,
           dueDate: a.due_date,
-          status: 'published' as const,
+          type: (a as any).type || 'multiple_choice',
           submittedCount: 0,
           maxPoints: a.total_points
         })))
@@ -106,12 +119,204 @@ export default function TeacherAssignmentsPage() {
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement assignment creation
-    setShowCreateDialog(false)
-    toast({
-      title: "Thành công",
-      description: "Đã tạo bài tập mới"
-    })
+    try {
+      setIsLoading(true)
+
+      // Validate form data
+      console.error('Form data:', formData)
+      if (!formData.title || !formData.description || !formData.classId || !formData.dueDate) {
+        console.error('Missing required fields:', {
+          title: !formData.title,
+          description: !formData.description,
+          classId: !formData.classId,
+          dueDate: !formData.dueDate
+        })
+        throw new Error('Vui lòng điền đầy đủ thông tin')
+      }
+
+      if (formData.type === 'multiple_choice' && questions.length === 0) {
+        console.error('No questions found for multiple choice assignment')
+        throw new Error('Vui lòng thêm câu hỏi cho bài tập trắc nghiệm')
+      }
+
+      // Create assignment
+      const assignmentData: CreateAssignmentData = {
+        title: formData.title,
+        description: formData.description,
+        class_id: formData.classId,
+        due_date: formData.dueDate,
+        total_points: Number(formData.maxPoints),
+        file_url: null,
+        type: formData.type
+      }
+      console.error('Assignment data to be created:', assignmentData)
+
+      // Create assignment using the helper function
+      console.error('Calling createAssignment...')
+      const assignment = await createAssignment(assignmentData)
+      console.error('Assignment created:', assignment)
+
+      // If multiple choice, create questions
+      if (formData.type === 'multiple_choice' && questions.length > 0) {
+        const questionsData = questions.map(q => ({
+          assignment_id: assignment.id,
+          content: q.content,
+          type: 'multiple_choice',
+          options: q.options ? JSON.stringify(q.options) : null,
+          correct_answer: q.correct_answer,
+          points: q.points,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }))
+        console.error('Questions data to be inserted:', questionsData)
+
+        const { error: questionsError } = await supabase
+          .from('assignment_questions')
+          .insert(questionsData)
+
+        if (questionsError) {
+          console.error('Error inserting questions:', questionsError)
+          throw questionsError
+        }
+      }
+
+      // Reset form and close dialog
+      setFormData({
+        title: '',
+        description: '',
+        classId: '',
+        dueDate: '',
+        maxPoints: '100',
+        type: 'multiple_choice'
+      })
+      setQuestions([])
+      setSelectedFile(null)
+      setShowCreateDialog(false)
+
+      // Show success message and reload data
+      toast({
+        title: "Thành công",
+        description: "Đã tạo bài tập mới"
+      })
+      loadData()
+
+    } catch (error) {
+      console.error('Chi tiết lỗi khi tạo bài tập:', error)
+      if (error instanceof Error) {
+        console.error('Error name:', error.name)
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+      }
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error instanceof Error ? error.message : "Không thể tạo bài tập"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setSelectedFile(file)
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+      if (!Array.isArray(jsonData) || jsonData.length === 0) {
+        throw new Error('File không có dữ liệu')
+      }
+
+      // Validate và chuyển đổi dữ liệu
+      const validQuestions = jsonData
+        .filter((row: any) => {
+          return row.content && 
+                 row.option1 && row.option2 && row.option3 && row.option4 &&
+                 row.correct_option &&
+                 Number(row.correct_option) >= 1 && Number(row.correct_option) <= 4
+        })
+        .map((row: any) => ({
+          content: row.content.trim(),
+          options: [
+            row.option1.trim(),
+            row.option2.trim(),
+            row.option3.trim(),
+            row.option4.trim()
+          ],
+          correct_answer: row[`option${row.correct_option}`].trim(),
+          points: Number(row.points) || 1
+        }))
+
+      if (validQuestions.length === 0) {
+        throw new Error('Không có câu hỏi hợp lệ trong file')
+      }
+
+      setQuestions(validQuestions)
+      toast({
+        title: "Thành công",
+        description: `Đã tải lên ${validQuestions.length} câu hỏi`
+      })
+
+    } catch (error) {
+      console.error('Lỗi khi xử lý file:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error instanceof Error ? error.message : "Không thể xử lý file"
+      })
+      setSelectedFile(null)
+    }
+  }
+
+  const handleDownloadTemplate = () => {
+    const template = [
+      {
+        content: 'Câu hỏi: 1 + 1 = ?',
+        option1: 'A. 1',
+        option2: 'B. 2',
+        option3: 'C. 3',
+        option4: 'D. 4',
+        correct_option: '2',
+        points: '1'
+      },
+      {
+        content: 'Câu hỏi: 2 x 2 = ?',
+        option1: 'A. 2',
+        option2: 'B. 3',
+        option3: 'C. 4',
+        option4: 'D. 5',
+        correct_option: '3',
+        points: '1'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    ws['!cols'] = [
+      { wch: 40 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 10 }
+    ];
+
+    const notes = [
+      { content: 'Ghi chú:', option1: '', option2: '', option3: '', option4: '', correct_option: '', points: '' },
+      { content: '- Cột correct_option: nhập số thứ tự đáp án đúng (1,2,3,4)', option1: '', option2: '', option3: '', option4: '', correct_option: '', points: '' },
+      { content: '- Cột points: nhập điểm số cho câu hỏi', option1: '', option2: '', option3: '', option4: '', correct_option: '', points: '' }
+    ];
+
+    XLSX.utils.sheet_add_json(ws, notes, { skipHeader: true, origin: -1 });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'mau_cau_hoi_trac_nghiem.xlsx');
   }
 
   if (isLoading) {
@@ -172,26 +377,24 @@ export default function TeacherAssignmentsPage() {
               <TabsContent value="multiple_choice" className="space-y-4">
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="file-upload">Tải lên file Word/PDF theo mẫu</Label>
+                    <Label htmlFor="file-upload">Tải lên file Excel theo mẫu</Label>
                     <div className="grid w-full max-w-sm items-center gap-1.5">
                       <Input 
                         id="file-upload"
                         type="file" 
-                        accept=".docx,.pdf"
-                        onChange={(e) => {
-                          // TODO: Handle file upload
-                        }}
+                        accept=".xlsx,.xls"
+                        onChange={handleFileUpload}
                       />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      File của bạn phải theo đúng format để có thể tự động tạo câu hỏi trắc nghiệm.{' '}
+                      File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
                       <Button 
                         variant="link" 
                         className="h-auto p-0" 
                         onClick={() => setShowTemplateDialog(true)}
                         type="button"
                       >
-                        Xem mẫu
+                        Tải mẫu
                       </Button>
                     </p>
                   </div>
@@ -218,26 +421,39 @@ export default function TeacherAssignmentsPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="class-mc">Lớp học</Label>
-                      <select 
+                      <select
                         id="class-mc"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                        name="class_id"
+                        className="w-full px-3 py-2 border rounded-md"
                         value={formData.classId}
                         onChange={(e) => setFormData({...formData, classId: e.target.value})}
                         required
                       >
                         <option value="">Chọn lớp học</option>
-                        {classes.map((c) => (
+                        {classes.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="dueDate-mc">Hạn nộp</Label>
-                      <Input 
-                        id="dueDate-mc"
+                      <Input
                         type="datetime-local"
+                        id="dueDate-mc"
                         value={formData.dueDate}
                         onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="maxPoints-mc">Điểm tối đa</Label>
+                      <Input
+                        type="number"
+                        id="maxPoints-mc"
+                        min="0"
+                        max="100"
+                        value={formData.maxPoints}
+                        onChange={(e) => setFormData({...formData, maxPoints: e.target.value})}
                         required
                       />
                     </div>
@@ -269,25 +485,26 @@ export default function TeacherAssignmentsPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="class-essay">Lớp học</Label>
-                      <select 
+                      <select
                         id="class-essay"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                        name="class_id"
+                        className="w-full px-3 py-2 border rounded-md"
                         value={formData.classId}
                         onChange={(e) => setFormData({...formData, classId: e.target.value})}
                         required
                       >
                         <option value="">Chọn lớp học</option>
-                        {classes.map((c) => (
+                        {classes.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="maxPoints-essay">Điểm tối đa</Label>
-                      <Input 
+                      <Input
+                        type="number"
                         id="maxPoints-essay"
-                        type="number" 
-                        min="0" 
+                        min="0"
                         max="100"
                         value={formData.maxPoints}
                         onChange={(e) => setFormData({...formData, maxPoints: e.target.value})}
@@ -296,9 +513,9 @@ export default function TeacherAssignmentsPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="dueDate-essay">Hạn nộp</Label>
-                      <Input 
-                        id="dueDate-essay"
+                      <Input
                         type="datetime-local"
+                        id="dueDate-essay"
                         value={formData.dueDate}
                         onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
                         required
@@ -333,37 +550,18 @@ export default function TeacherAssignmentsPage() {
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Format file mẫu</DialogTitle>
+            <DialogTitle>File mẫu (Excel)</DialogTitle>
             <DialogDescription>
-              Để tạo bài tập trắc nghiệm tự động, file của bạn phải tuân theo format sau:
+              Để tạo bài tập trắc nghiệm tự động, file Excel của bạn phải có các cột sau: "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D", "Đáp án đúng".
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-md bg-muted p-4">
-              <pre className="text-sm whitespace-pre-wrap">
-{`Câu 1: Nội dung câu hỏi
-A. Đáp án A
-B. Đáp án B
-C. Đáp án C
-D. Đáp án D
-Đáp án đúng: A
-
-Câu 2: Nội dung câu hỏi
-A. Đáp án A
-B. Đáp án B
-C. Đáp án C
-D. Đáp án D
-Đáp án đúng: C
-
-...`}
-              </pre>
-            </div>
             <p className="text-sm text-muted-foreground">
-              - Mỗi câu hỏi bắt đầu bằng "Câu X:" (X là số thứ tự)<br />
-              - Mỗi đáp án bắt đầu bằng chữ cái in hoa (A, B, C, D) và dấu chấm<br />
-              - Đáp án đúng được chỉ định ở dòng cuối của mỗi câu hỏi<br />
-              - Các câu hỏi cách nhau bởi một dòng trống
+              Bạn có thể tải file mẫu để tham khảo định dạng:
             </p>
+            <Button variant="link" className="h-auto p-0" onClick={handleDownloadTemplate}>
+              Tải file mẫu Excel
+            </Button>
           </div>
           <DialogFooter>
             <Button onClick={() => setShowTemplateDialog(false)}>Đóng</Button>
@@ -400,11 +598,11 @@ D. Đáp án D
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium">{assignment.title}</h4>
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      assignment.status === 'published'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                      assignment.type === 'multiple_choice'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-purple-100 text-purple-700'
                     }`}>
-                      {assignment.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
+                      {assignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{assignment.subject} - {assignment.className}</p>
