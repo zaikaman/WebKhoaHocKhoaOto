@@ -81,6 +81,9 @@ export default function TeacherLecturesPage() {
           <p className="text-muted-foreground">Quản lý tất cả bài giảng của bạn</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="default" onClick={() => router.push("/dashboard/teacher/lectures/create")}>
+            Tạo bài giảng
+          </Button>
           <Button onClick={() => router.back()}>
             Quay lại
           </Button>
