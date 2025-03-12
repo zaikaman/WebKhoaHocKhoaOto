@@ -258,7 +258,7 @@ export default function ExamQuestionPage() {
       const newQuestions = validQuestions.map((row: any) => {
         const question = {
           exam_id: examId || '',
-          type: 'multiple_choice',
+          type: 'multiple_choice' as const,
           content: row.content.trim(),
           points: Number(row.points) || 1,
           options: JSON.stringify([
@@ -267,9 +267,7 @@ export default function ExamQuestionPage() {
             row.option3.trim(),
             row.option4.trim()
           ]),
-          correct_answer: row[`option${row.correct_option}`].trim(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          correct_answer: row[`option${row.correct_option}`].trim()
         }
         console.log('Đã chuyển đổi câu hỏi:', question)
         return question
