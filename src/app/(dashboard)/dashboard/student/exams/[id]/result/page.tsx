@@ -22,8 +22,10 @@ interface ExamResult {
   submission: {
     id: string
     answers: Record<string, string>
-    score: number
+    score: number | null
     submitted_at: string
+    graded_at: string | null
+    feedback: string | null
   }
   questions: Array<{
     id: string
@@ -31,7 +33,7 @@ interface ExamResult {
     type: string
     points: number
     options: string[]
-    correct_answer: string
+    correct_answer: string | null
   }>
 }
 
@@ -55,24 +57,23 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Lấy thông tin bài thi và bài làm
+      // Lấy thông tin bài thi với join tables
       const { data: examData, error: examError } = await supabase
         .from('exams')
         .select(`
-          id,
-          title,
-          total_points,
-          class:classes (
-            name,
-            subject:subjects (
-              name
-            )
+          *,
+          class:classes!inner(
+            *,
+            subject:subjects!inner(*)
           )
         `)
         .eq('id', params.id)
         .single()
 
-      if (examError) throw examError
+      if (examError) {
+        console.error('Exam Error:', examError)
+        throw examError
+      }
 
       // Lấy bài làm của sinh viên
       const { data: submissionData, error: submissionError } = await supabase
@@ -82,7 +83,10 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
         .eq('student_id', currentUser.profile.id)
         .single()
 
-      if (submissionError) throw submissionError
+      if (submissionError) {
+        console.error('Submission Error:', submissionError)
+        throw submissionError
+      }
 
       // Lấy danh sách câu hỏi
       const { data: questionsData, error: questionsError } = await supabase
@@ -91,12 +95,49 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
         .eq('exam_id', params.id)
         .order('created_at', { ascending: true })
 
-      if (questionsError) throw questionsError
+      if (questionsError) {
+        console.error('Questions Error:', questionsError)
+        throw questionsError
+      }
+
+      console.log('Exam Data:', examData)
+      console.log('Class Data:', examData.class)
+
+      // Chuyển đổi dữ liệu để khớp với interface
+      const formattedExam = {
+        id: examData.id,
+        title: examData.title,
+        total_points: examData.total_points,
+        class: {
+          name: examData.class?.name || '',
+          subject: {
+            name: examData.class?.subject?.name || ''
+          }
+        }
+      }
+
+      const formattedSubmission = {
+        id: submissionData.id,
+        answers: submissionData.answers || {},
+        score: submissionData.score,
+        submitted_at: submissionData.submitted_at,
+        graded_at: submissionData.graded_at,
+        feedback: submissionData.feedback
+      }
+
+      const formattedQuestions = questionsData?.map(q => ({
+        id: q.id,
+        content: q.content,
+        type: q.type,
+        points: q.points,
+        options: Array.isArray(q.options) ? q.options : [],
+        correct_answer: q.correct_answer
+      })) || []
 
       setResult({
-        exam: examData,
-        submission: submissionData,
-        questions: questionsData
+        exam: formattedExam,
+        submission: formattedSubmission,
+        questions: formattedQuestions
       })
 
     } catch (error) {
@@ -104,7 +145,7 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể tải kết quả bài kiểm tra"
+        description: "Không thể tải kết quả bài thi"
       })
       router.push('/dashboard/student/exams')
     } finally {
