@@ -237,13 +237,13 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
           <CardContent className="space-y-4">
             {assignment.description && (
               <div>
-                <Label>Mô tả</Label>
+                <Label htmlFor="description">Mô tả</Label>
                 <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
               </div>
             )}
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <Label>Hạn nộp</Label>
+                <Label htmlFor="due-date">Hạn nộp</Label>
                 <p className="text-sm text-muted-foreground mt-1">
                   {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
                     year: 'numeric',
@@ -255,11 +255,11 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
                 </p>
               </div>
               <div>
-                <Label>Điểm tối đa</Label>
+                <Label htmlFor="max-points">Điểm tối đa</Label>
                 <p className="text-sm text-muted-foreground mt-1">{assignment.total_points}</p>
               </div>
               <div>
-                <Label>Trạng thái</Label>
+                <Label htmlFor="status">Trạng thái</Label>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isOverdue ? 'Đã hết hạn' : 'Còn hạn'}
                 </p>
@@ -267,7 +267,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
             </div>
             {assignment.file_url && (
               <div>
-                <Label>Tệp đính kèm</Label>
+                <Label htmlFor="attachment">Tệp đính kèm</Label>
                 <Button 
                   variant="outline" 
                   className="mt-1 w-full"

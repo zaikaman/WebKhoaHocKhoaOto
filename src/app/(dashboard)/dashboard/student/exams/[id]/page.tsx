@@ -297,7 +297,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Câu hỏi</Label>
+                  <Label htmlFor={`question-${question.id}`}>Câu hỏi</Label>
                   <div className="text-sm">{question.content}</div>
                 </div>
 
