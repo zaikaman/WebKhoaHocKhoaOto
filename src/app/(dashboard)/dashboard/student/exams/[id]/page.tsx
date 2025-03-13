@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -302,21 +301,30 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {question.type === 'multiple_choice' && question.options ? (
-                  <RadioGroup
-                    value={answers[question.id]}
-                    name={`question-${question.id}`}
-                    onValueChange={(value) => setAnswers(prev => ({
-                      ...prev,
-                      [question.id]: value
-                    }))}
-                  >
+                  <div className="space-y-3">
                     {question.options.map((option, optionIndex) => (
-                      <div key={optionIndex} className="flex items-center space-x-2">
-                        <RadioGroupItem value={option} id={`${question.id}-${optionIndex}`} />
-                        <Label htmlFor={`${question.id}-${optionIndex}`}>{option}</Label>
+                      <div key={optionIndex} className="flex items-center space-x-3">
+                        <input
+                          type="radio"
+                          id={`${question.id}-${optionIndex}`}
+                          name={`question-${question.id}`}
+                          value={option}
+                          checked={answers[question.id] === option}
+                          onChange={(e) => setAnswers(prev => ({
+                            ...prev,
+                            [question.id]: e.target.value
+                          }))}
+                          className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+                        />
+                        <label 
+                          htmlFor={`${question.id}-${optionIndex}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {option}
+                        </label>
                       </div>
                     ))}
-                  </RadioGroup>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <Label htmlFor={question.id}>Câu trả lời</Label>
