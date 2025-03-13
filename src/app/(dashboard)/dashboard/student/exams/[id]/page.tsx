@@ -303,8 +303,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
                 {question.type === 'multiple_choice' && question.options ? (
                   <RadioGroup
-                    defaultValue={answers[question.id]}
-                    onChange={(value: string) => setAnswers(prev => ({
+                    value={answers[question.id]}
+                    name={`question-${question.id}`}
+                    onValueChange={(value) => setAnswers(prev => ({
                       ...prev,
                       [question.id]: value
                     }))}
