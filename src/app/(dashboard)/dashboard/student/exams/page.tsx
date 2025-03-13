@@ -58,7 +58,7 @@ export default function ExamsPage() {
       // Lấy danh sách lớp học của sinh viên
       const classes = await getStudentClasses(currentUser.profile.id)
       
-      // Lấy danh sách bài kiểm tra từ các lớp học
+      // Lấy danh sách bài kiểm tra từ các lớp học và submissions
       const { data: examsData, error } = await supabase
         .from('exams')
         .select(`
@@ -66,19 +66,29 @@ export default function ExamsPage() {
           class:classes(
             name,
             subject:subjects(name)
-          ),
-          submission:exam_submissions(
-            id,
-            score,
-            submitted_at,
-            graded_at
           )
         `)
         .in('class_id', classes.map(c => c.id))
         .order('start_time', { ascending: false })
 
       if (error) throw error
-      setExams(examsData)
+
+      // Lấy submissions của sinh viên
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from('exam_submissions')
+        .select('*')
+        .eq('student_id', currentUser.profile.id)
+        .in('exam_id', examsData.map(e => e.id))
+
+      if (submissionsError) throw submissionsError
+
+      // Kết hợp thông tin bài thi và submission
+      const examsWithSubmissions = examsData.map(exam => ({
+        ...exam,
+        submission: submissionsData?.find(s => s.exam_id === exam.id) || null
+      }))
+
+      setExams(examsWithSubmissions)
 
     } catch (error) {
       console.error('Lỗi khi tải danh sách bài kiểm tra:', error)
@@ -97,26 +107,31 @@ export default function ExamsPage() {
     const startTime = new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000)
     const endTime = new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000)
 
+    // Nếu đã có bài nộp
     if (exam.submission?.submitted_at) {
-      if (exam.submission.graded_at) {
+      if (exam.submission.score !== null) {
         return {
           label: `Đã chấm: ${exam.submission.score}/${exam.total_points}`,
           color: 'bg-green-100 text-green-800',
-          canTakeExam: false
+          canTakeExam: false,
+          canViewResult: true
         }
       }
       return {
         label: 'Đã nộp bài',
         color: 'bg-blue-100 text-blue-800',
-        canTakeExam: false
+        canTakeExam: false,
+        canViewResult: true
       }
     }
 
+    // Nếu chưa có bài nộp
     if (now < startTime) {
       return {
         label: 'Sắp diễn ra',
         color: 'bg-yellow-100 text-yellow-800',
-        canTakeExam: false
+        canTakeExam: false,
+        canViewResult: false
       }
     }
 
@@ -124,14 +139,16 @@ export default function ExamsPage() {
       return {
         label: 'Đang diễn ra',
         color: 'bg-red-100 text-red-800',
-        canTakeExam: true
+        canTakeExam: true,
+        canViewResult: false
       }
     }
 
     return {
       label: 'Đã kết thúc',
       color: 'bg-gray-100 text-gray-800',
-      canTakeExam: false
+      canTakeExam: false,
+      canViewResult: false
     }
   }
 
@@ -210,13 +227,13 @@ export default function ExamsPage() {
                       >
                         Vào thi
                       </Button>
-                    ) : exam.submission ? (
+                    ) : status.canViewResult ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
+                        onClick={() => router.push(`/dashboard/student/exams/${exam.id}/result`)}
                       >
-                        Xem chi tiết
+                        Xem kết quả
                       </Button>
                     ) : null}
                   </td>

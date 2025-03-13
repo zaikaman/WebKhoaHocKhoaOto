@@ -156,14 +156,34 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       }
 
       // Lấy danh sách câu hỏi
+      console.log('Exam ID:', params.id)
       const { data: questionsData, error: questionsError } = await supabase
         .from('exam_questions')
-        .select('*')
+        .select(`
+          id,
+          content,
+          type,
+          points,
+          options,
+          correct_answer,
+          created_at
+        `)
         .eq('exam_id', params.id)
         .order('created_at', { ascending: true })
 
-      if (questionsError) throw questionsError
-      setQuestions(questionsData)
+      if (questionsError) {
+        console.error('Lỗi khi lấy câu hỏi:', questionsError)
+        throw questionsError
+      }
+
+      // Kiểm tra và xử lý dữ liệu câu hỏi
+      if (!questionsData || questionsData.length === 0) {
+        console.log('Không có câu hỏi cho bài kiểm tra này')
+      } else {
+        console.log('Số lượng câu hỏi:', questionsData.length)
+      }
+
+      setQuestions(questionsData || [])
 
       // Tính thời gian còn lại
       const timeLeft = Math.floor((endTime.getTime() - now.getTime()) / 1000)
@@ -186,33 +206,88 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     try {
       setIsSubmitting(true)
       const currentUser = await getCurrentUser()
+      console.log('Current User:', currentUser)
       
       if (!currentUser) {
+        console.log('No current user')
         router.push('/login')
         return
       }
 
+      // Kiểm tra xem đã trả lời hết câu hỏi chưa
+      const unansweredQuestions = questions.filter(q => !answers[q.id])
+      console.log('Unanswered questions:', unansweredQuestions.length)
+      
+      if (unansweredQuestions.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Chưa hoàn thành",
+          description: `Bạn chưa trả lời ${unansweredQuestions.length} câu hỏi`
+        })
+        setShowConfirmDialog(false)
+        return
+      }
+
+      console.log('Preparing submission data:', {
+        exam_id: params.id,
+        student_id: currentUser.profile.id,
+        answers: answers
+      })
+
+      // Kiểm tra xem answers có phải là object rỗng không
+      if (Object.keys(answers).length === 0) {
+        console.log('No answers provided')
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Bạn chưa trả lời câu hỏi nào"
+        })
+        return
+      }
+
+      // Kiểm tra xem bài thi có phải là 100% trắc nghiệm không
+      const hasEssayQuestion = questions.some(q => q.type === 'essay')
+      
+      // Tính điểm nếu là bài trắc nghiệm
+      let score = null
+      if (!hasEssayQuestion) {
+        score = questions.reduce((total, question) => {
+          const isCorrect = answers[question.id] === question.correct_answer
+          return total + (isCorrect ? question.points : 0)
+        }, 0)
+      }
+
       // Tạo bài làm mới
-      const { error: createError } = await supabase
+      const { data: submissionData, error: createError } = await supabase
         .from('exam_submissions')
         .insert([{
           exam_id: params.id,
           student_id: currentUser.profile.id,
           answers,
-          submitted_at: new Date().toISOString()
+          score,
+          submitted_at: new Date().toISOString(),
+          graded_at: !hasEssayQuestion ? new Date().toISOString() : null
         }])
+        .select()
+        .single()
 
-      if (createError) throw createError
+      if (createError) {
+        console.error('Create Error:', createError)
+        throw createError
+      }
 
+      console.log('Submission successful:', submissionData)
       toast({
         title: "Thành công",
-        description: "Đã nộp bài kiểm tra"
+        description: !hasEssayQuestion 
+          ? `Đã nộp và chấm bài kiểm tra. Điểm của bạn: ${score}/${exam?.total_points}`
+          : "Đã nộp bài kiểm tra"
       })
 
       router.push('/dashboard/student/exams')
 
     } catch (error) {
-      console.error('Lỗi khi nộp bài:', error)
+      console.error('Submit Error Details:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
@@ -238,11 +313,28 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
-  if (!exam || !questions.length) {
+  if (!exam) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Không tìm thấy bài kiểm tra</h2>
+          <Button 
+            className="mt-4" 
+            onClick={() => router.push('/dashboard/student/exams')}
+          >
+            Quay lại
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!questions.length) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold">Bài kiểm tra chưa có câu hỏi</h2>
+          <p className="mt-2 text-muted-foreground">Vui lòng liên hệ giảng viên để biết thêm chi tiết.</p>
           <Button 
             className="mt-4" 
             onClick={() => router.push('/dashboard/student/exams')}
@@ -296,34 +388,44 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor={`question-${question.id}`}>Câu hỏi</Label>
+                  <Label>Câu hỏi</Label>
                   <div className="text-sm">{question.content}</div>
                 </div>
 
                 {question.type === 'multiple_choice' && question.options ? (
                   <div className="space-y-3">
-                    {question.options.map((option, optionIndex) => (
-                      <div key={optionIndex} className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          id={`${question.id}-${optionIndex}`}
-                          name={`question-${question.id}`}
-                          value={option}
-                          checked={answers[question.id] === option}
-                          onChange={(e) => setAnswers(prev => ({
-                            ...prev,
-                            [question.id]: e.target.value
-                          }))}
-                          className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
-                        />
-                        <label 
-                          htmlFor={`${question.id}-${optionIndex}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {option}
-                        </label>
-                      </div>
-                    ))}
+                    {(() => {
+                      try {
+                        const options = typeof question.options === 'string' 
+                          ? JSON.parse(question.options) 
+                          : question.options;
+                        return options.map((option, optionIndex) => (
+                          <div key={optionIndex} className="flex items-center space-x-3">
+                            <input
+                              type="radio"
+                              id={`${question.id}-${optionIndex}`}
+                              name={`question-${question.id}`}
+                              value={option}
+                              checked={answers[question.id] === option}
+                              onChange={(e) => setAnswers(prev => ({
+                                ...prev,
+                                [question.id]: e.target.value
+                              }))}
+                              className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+                            />
+                            <label 
+                              htmlFor={`${question.id}-${optionIndex}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {option}
+                            </label>
+                          </div>
+                        ));
+                      } catch (error) {
+                        console.error('Lỗi khi parse options:', error);
+                        return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>;
+                      }
+                    })()}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -372,4 +474,4 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       </Dialog>
     </div>
   )
-} 
+}
