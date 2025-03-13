@@ -55,7 +55,7 @@ export default function AssignmentsPage() {
       // Lấy danh sách lớp học của sinh viên
       const classes = await getStudentClasses(currentUser.profile.id)
       
-      // Lấy danh sách bài tập từ các lớp học
+      // Lấy danh sách bài tập từ các lớp học và submissions
       const { data: assignmentsData, error } = await supabase
         .from('assignments')
         .select(`
@@ -63,19 +63,29 @@ export default function AssignmentsPage() {
           class:classes(
             name,
             subject:subjects(name)
-          ),
-          submission:assignment_submissions(
-            id,
-            score,
-            submitted_at,
-            graded_at
           )
         `)
         .in('class_id', classes.map(c => c.id))
         .order('due_date', { ascending: false })
 
       if (error) throw error
-      setAssignments(assignmentsData)
+
+      // Lấy submissions của sinh viên
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from('assignment_submissions')
+        .select('*')
+        .eq('student_id', currentUser.profile.id)
+        .in('assignment_id', assignmentsData.map(a => a.id))
+
+      if (submissionsError) throw submissionsError
+
+      // Kết hợp thông tin bài tập và submission
+      const assignmentsWithSubmissions = assignmentsData.map(assignment => ({
+        ...assignment,
+        submission: submissionsData?.find(s => s.assignment_id === assignment.id) || null
+      }))
+
+      setAssignments(assignmentsWithSubmissions)
 
     } catch (error) {
       console.error('Lỗi khi tải danh sách bài tập:', error)
@@ -90,23 +100,42 @@ export default function AssignmentsPage() {
   }
 
   function getSubmissionStatus(assignment: Assignment) {
-    if (!assignment.submission) {
+    const now = new Date()
+    const dueDate = new Date(assignment.due_date)
+
+    // Nếu đã có bài nộp
+    if (assignment.submission?.submitted_at) {
+      if (assignment.submission.graded_at) {
+        return {
+          label: `Đã chấm: ${assignment.submission.score}/${assignment.total_points}`,
+          color: 'bg-green-100 text-green-800',
+          canSubmit: false,
+          canViewResult: true
+        }
+      }
       return {
-        label: 'Chưa nộp',
-        color: 'bg-yellow-100 text-yellow-800'
+        label: 'Đã nộp - Chờ chấm',
+        color: 'bg-blue-100 text-blue-800',
+        canSubmit: false,
+        canViewResult: true
       }
     }
 
-    if (assignment.submission.graded_at) {
+    // Nếu chưa có bài nộp
+    if (now > dueDate) {
       return {
-        label: `Đã chấm: ${assignment.submission.score}/${assignment.total_points}`,
-        color: 'bg-green-100 text-green-800'
+        label: 'Quá hạn',
+        color: 'bg-red-100 text-red-800',
+        canSubmit: false,
+        canViewResult: false
       }
     }
 
     return {
-      label: 'Đã nộp',
-      color: 'bg-blue-100 text-blue-800'
+      label: 'Chưa nộp',
+      color: 'bg-yellow-100 text-yellow-800',
+      canSubmit: true,
+      canViewResult: false
     }
   }
 
@@ -162,13 +191,22 @@ export default function AssignmentsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push(`/dashboard/assignments/${assignment.id}`)}
-                    >
-                      {assignment.submission ? 'Xem chi tiết' : 'Nộp bài'}
-                    </Button>
+                    {status.canViewResult ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/assignments/${assignment.id}/result`)}
+                      >
+                        Xem kết quả
+                      </Button>
+                    ) : status.canSubmit ? (
+                      <Button
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/assignments/${assignment.id}`)}
+                      >
+                        Nộp bài
+                      </Button>
+                    ) : null}
                   </td>
                 </tr>
               )

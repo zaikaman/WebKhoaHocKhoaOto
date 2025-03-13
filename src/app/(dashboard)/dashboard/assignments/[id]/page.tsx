@@ -4,16 +4,18 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, supabase } from "@/lib/supabase"
+import { Input } from "@/components/ui/input"
 
 interface Assignment {
   id: string
   title: string
   description: string | null
+  type: 'multiple_choice' | 'essay'
   due_date: string
   total_points: number
   file_url: string | null
@@ -29,7 +31,6 @@ interface AssignmentSubmission {
   id: string
   content: string | null
   file_url: string | null
-  score: number | null
   submitted_at: string | null
   graded_at: string | null
   feedback: string | null
@@ -40,9 +41,10 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [submission, setSubmission] = useState<AssignmentSubmission | null>(null)
-  const [content, setContent] = useState("")
+  const [content, setContent] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
   useEffect(() => {
@@ -80,7 +82,21 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
       if (assignmentError) throw assignmentError
       setAssignment(assignmentData)
 
-      // Lấy bài nộp của sinh viên nếu có
+      // Kiểm tra hạn nộp
+      const now = new Date()
+      const dueDate = new Date(assignmentData.due_date)
+
+      if (now > dueDate) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Đã quá hạn nộp bài"
+        })
+        router.push('/dashboard/assignments')
+        return
+      }
+
+      // Lấy bài làm của sinh viên nếu có
       const { data: submissionData, error: submissionError } = await supabase
         .from('assignment_submissions')
         .select('*')
@@ -94,7 +110,8 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
 
       if (submissionData) {
         setSubmission(submissionData)
-        setContent(submissionData.content || '')
+        router.push('/dashboard/assignments')
+        return
       }
 
     } catch (error) {
@@ -120,64 +137,60 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
         return
       }
 
+      // Kiểm tra nội dung bài nộp
+      if (!content && !file) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng nhập nội dung hoặc đính kèm file"
+        })
+        return
+      }
+
       let fileUrl = null
       if (file) {
         // Upload file nếu có
         const fileExt = file.name.split('.').pop()
-        const fileName = `${Math.random()}.${fileExt}`
-        const filePath = `assignment-submissions/${fileName}`
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `assignments/${params.id}/${currentUser.profile.id}/${fileName}`
 
         const { error: uploadError } = await supabase.storage
-          .from('assignments')
+          .from('submissions')
           .upload(filePath, file)
 
         if (uploadError) throw uploadError
 
         const { data: { publicUrl } } = supabase.storage
-          .from('assignments')
+          .from('submissions')
           .getPublicUrl(filePath)
 
         fileUrl = publicUrl
       }
 
-      if (submission) {
-        // Cập nhật bài nộp
-        const { error: updateError } = await supabase
-          .from('assignment_submissions')
-          .update({
-            content,
-            file_url: fileUrl || submission.file_url,
-            submitted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', submission.id)
+      // Tạo bài nộp mới
+      const { data: submissionData, error: createError } = await supabase
+        .from('assignment_submissions')
+        .insert([{
+          assignment_id: params.id,
+          student_id: currentUser.profile.id,
+          content: content || null,
+          file_url: fileUrl,
+          submitted_at: new Date().toISOString()
+        }])
+        .select()
+        .single()
 
-        if (updateError) throw updateError
-      } else {
-        // Tạo bài nộp mới
-        const { error: createError } = await supabase
-          .from('assignment_submissions')
-          .insert([{
-            assignment_id: params.id,
-            student_id: currentUser.profile.id,
-            content,
-            file_url: fileUrl,
-            submitted_at: new Date().toISOString()
-          }])
-
-        if (createError) throw createError
-      }
+      if (createError) throw createError
 
       toast({
         title: "Thành công",
         description: "Đã nộp bài tập"
       })
 
-      // Tải lại thông tin bài nộp
-      loadAssignment()
+      router.push('/dashboard/assignments')
 
     } catch (error) {
-      console.error('Lỗi khi nộp bài:', error)
+      console.error('Submit Error:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
@@ -185,6 +198,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
       })
     } finally {
       setIsSubmitting(false)
+      setShowConfirmDialog(false)
     }
   }
 
@@ -212,172 +226,104 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
     )
   }
 
-  const isOverdue = new Date() > new Date(assignment.due_date)
-  const canSubmit = !isOverdue && (!submission?.graded_at)
-
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">{assignment.title}</h2>
-          <p className="text-muted-foreground mt-2">
-            {assignment.class.subject.name} - {assignment.class.name}
-          </p>
+      <div className="sticky top-0 z-50 bg-background border-b">
+        <div className="container py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2>
+              <p className="text-muted-foreground">
+                {assignment.class.subject.name} - {assignment.class.name}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}
+              </div>
+              <Button
+                disabled={isSubmitting}
+                onClick={() => setShowConfirmDialog(true)}
+              >
+                Nộp bài
+              </Button>
+            </div>
+          </div>
         </div>
-        <Button variant="outline" onClick={() => router.push('/dashboard/assignments')}>
-          Quay lại
-        </Button>
       </div>
 
-      <div className="grid gap-6">
+      <div className="container pb-8">
+        {assignment.description && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Mô tả bài tập</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose max-w-none">
+                {assignment.description}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
-            <CardTitle>Thông tin bài tập</CardTitle>
+            <CardTitle>Nội dung bài làm</CardTitle>
+            <CardDescription>
+              Bạn có thể nhập nội dung trực tiếp hoặc đính kèm file
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {assignment.description && (
-              <div>
-                <Label htmlFor="description">Mô tả</Label>
-                <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
-              </div>
-            )}
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <Label htmlFor="due-date">Hạn nộp</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="max-points">Điểm tối đa</Label>
-                <p className="text-sm text-muted-foreground mt-1">{assignment.total_points}</p>
-              </div>
-              <div>
-                <Label htmlFor="status">Trạng thái</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {isOverdue ? 'Đã hết hạn' : 'Còn hạn'}
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label>Nội dung</Label>
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Nhập nội dung bài làm của bạn"
+                rows={10}
+              />
             </div>
-            {assignment.file_url && (
-              <div>
-                <Label htmlFor="attachment">Tệp đính kèm</Label>
-                <Button 
-                  variant="outline" 
-                  className="mt-1 w-full"
-                  asChild
-                >
-                  <a 
-                    href={assignment.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                  >
-                    Tải xuống tệp đính kèm
-                  </a>
-                </Button>
-              </div>
-            )}
+
+            <div className="space-y-2">
+              <Label>File đính kèm</Label>
+              <Input
+                type="file"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                accept=".pdf,.doc,.docx,.txt"
+              />
+              <p className="text-sm text-muted-foreground">
+                Hỗ trợ file: PDF, DOC, DOCX, TXT
+              </p>
+            </div>
           </CardContent>
         </Card>
-
-        {submission && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Bài đã nộp</CardTitle>
-              <CardDescription>
-                Nộp lúc: {new Date(submission.submitted_at!).toLocaleDateString('vi-VN', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {submission.graded_at ? (
-                <>
-                  <div>
-                    <Label htmlFor="score">Điểm số</Label>
-                    <p className="text-lg font-semibold mt-1">
-                      {submission.score}/{assignment.total_points}
-                    </p>
-                  </div>
-                  {submission.feedback && (
-                    <div>
-                      <Label htmlFor="feedback">Nhận xét</Label>
-                      <p className="text-sm text-muted-foreground mt-1">{submission.feedback}</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Chưa chấm điểm</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {canSubmit && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Nộp bài</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="content">Nội dung</Label>
-                <Textarea
-                  id="content"
-                  placeholder="Nhập nội dung bài làm..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  rows={5}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="file">Tệp đính kèm</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
-                {submission?.file_url && !file && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-sm text-muted-foreground">Tệp hiện tại:</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      asChild
-                    >
-                      <a 
-                        href={submission.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                      >
-                        Tải xuống
-                      </a>
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <Button 
-                className="w-full"
-                disabled={isSubmitting}
-                onClick={handleSubmit}
-              >
-                {isSubmitting ? 'Đang xử lý...' : (submission ? 'Nộp lại' : 'Nộp bài')}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
+
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận nộp bài</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn nộp bài? Sau khi nộp bài, bạn sẽ không thể chỉnh sửa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+              disabled={isSubmitting}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Đang xử lý...' : 'Nộp bài'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
