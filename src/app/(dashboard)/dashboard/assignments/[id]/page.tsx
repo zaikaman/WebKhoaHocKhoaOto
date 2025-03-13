@@ -275,8 +275,9 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Nội dung</Label>
+              <Label htmlFor="content">Nội dung</Label>
               <Textarea
+                id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Nhập nội dung bài làm của bạn"
@@ -285,8 +286,9 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
             </div>
 
             <div className="space-y-2">
-              <Label>File đính kèm</Label>
+              <Label htmlFor="file">File đính kèm</Label>
               <Input
+                id="file"
                 type="file"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                 accept=".pdf,.doc,.docx,.txt"
