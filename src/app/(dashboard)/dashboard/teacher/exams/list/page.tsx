@@ -58,19 +58,45 @@ export default function TeacherExamsListPage() {
       const allExams: Exam[] = []
       for (const classItem of classes) {
         const exams = await getClassExams(classItem.id)
-        allExams.push(...exams.map(e => ({
-          id: e.id,
-          title: e.title,
-          subject: classItem.subject.name,
-          className: classItem.name,
-          start_time: e.start_time,
-          end_time: e.end_time,
-          duration: e.duration,
-          totalStudents: 0, // TODO: Implement later
-          submittedCount: 0, // TODO: Implement later
-          averageScore: null, // TODO: Implement later
-          status: e.status
-        })))
+        allExams.push(...exams.map(e => {
+          const now = new Date()
+          const startTime = new Date(e.start_time)
+          const endTime = new Date(e.end_time)
+          
+          let status: 'upcoming' | 'in-progress' | 'completed' = 'upcoming'
+          if (now >= endTime) {
+            status = 'completed'
+          } else if (now >= startTime && now < endTime) {
+            status = 'in-progress'
+          }
+
+          // Cập nhật trạng thái trong database nếu khác với trạng thái hiện tại
+          if (status !== e.status) {
+            supabase
+              .from('exams')
+              .update({ status })
+              .eq('id', e.id)
+              .then(({ error }) => {
+                if (error) {
+                  console.error('Lỗi khi cập nhật trạng thái:', error)
+                }
+              })
+          }
+
+          return {
+            id: e.id,
+            title: e.title,
+            subject: classItem.subject.name,
+            className: classItem.name,
+            start_time: e.start_time,
+            end_time: e.end_time,
+            duration: e.duration,
+            totalStudents: 0, // TODO: Implement later
+            submittedCount: 0, // TODO: Implement later
+            averageScore: null, // TODO: Implement later
+            status
+          }
+        }))
       }
 
       // Sắp xếp theo thời gian mới nhất

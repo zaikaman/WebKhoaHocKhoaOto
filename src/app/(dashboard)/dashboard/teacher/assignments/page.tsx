@@ -321,6 +321,42 @@ export default function TeacherAssignmentsPage() {
     XLSX.writeFile(wb, 'mau_cau_hoi_trac_nghiem.xlsx');
   }
 
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (!assignmentId) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không tìm thấy ID bài tập để xóa"
+      })
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', assignmentId)
+
+      if (error) throw error
+
+      toast({
+        title: "Thành công",
+        description: "Đã xóa bài tập"
+      })
+      loadData()
+    } catch (error) {
+      console.error('Error deleting assignment:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể xóa bài tập"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[200px]">
@@ -625,11 +661,27 @@ export default function TeacherAssignmentsPage() {
                 <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
                   Đóng
                 </Button>
-                <Button onClick={() => {
+                <Button variant="outline" onClick={() => {
                   setShowDetailDialog(false)
-                  router.push(`/dashboard/teacher/assignments/${selectedAssignment.id}`)
+                  if (selectedAssignment) {
+                    setFormData({
+                      title: selectedAssignment.title,
+                      description: selectedAssignment.description || '',
+                      classId: '', // TODO: Need to get class ID
+                      dueDate: new Date(selectedAssignment.dueDate).toISOString().slice(0, 16),
+                      maxPoints: selectedAssignment.maxPoints.toString(),
+                      type: selectedAssignment.type
+                    })
+                    setShowCreateDialog(true)
+                  }
                 }}>
-                  Chấm bài
+                  Chỉnh sửa
+                </Button>
+                <Button variant="destructive" onClick={() => {
+                  setShowDetailDialog(false)
+                  handleDeleteAssignment(selectedAssignment.id)
+                }}>
+                  Xóa
                 </Button>
               </div>
             </div>
