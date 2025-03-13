@@ -176,6 +176,7 @@ export type ClassDetails = {
     title: string
     description: string | null
     file_url: string | null
+    file_type: string
     created_at: string
   }[]
   assignments: {
@@ -687,9 +688,11 @@ export async function createSubject(subjectData: Omit<Subject, 'id' | 'created_a
 export async function createEnrollment(data: {
   student_id: string
   full_name: string
-  class_id: string
+  class_id: string // class_id ở đây thực chất là class_code
 }) {
   try {
+    console.log('Bắt đầu tạo enrollment với dữ liệu:', data)
+
     // Kiểm tra xem sinh viên đã tồn tại chưa
     const { data: existingProfile, error: profileError } = await supabase
       .from('profiles')
@@ -698,30 +701,76 @@ export async function createEnrollment(data: {
       .single()
 
     if (profileError) {
+      console.error('Lỗi khi kiểm tra profile:', {
+        error: profileError,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        code: profileError.code
+      })
       return { success: false, message: 'Không tìm thấy sinh viên trong hệ thống' }
     }
+
+    console.log('Tìm thấy profile:', existingProfile)
+
+    // Lấy thông tin lớp học từ mã lớp
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('id')
+      .eq('code', data.class_id)
+      .single()
+
+    if (classError) {
+      console.error('Lỗi khi tìm lớp học:', {
+        error: classError,
+        message: classError.message,
+        details: classError.details,
+        hint: classError.hint,
+        code: classError.code
+      })
+      return { success: false, message: 'Không tìm thấy lớp học với mã này' }
+    }
+
+    if (!classData) {
+      return { success: false, message: 'Không tìm thấy lớp học với mã này' }
+    }
+
+    console.log('Tìm thấy lớp học:', classData)
 
     // Kiểm tra xem sinh viên đã đăng ký lớp này chưa
     const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
       .from('enrollments')
       .select('id, status')
-      .eq('class_id', data.class_id)
+      .eq('class_id', classData.id)
       .eq('student_id', existingProfile.id)
       .single()
 
     if (enrollmentCheckError && enrollmentCheckError.code !== 'PGRST116') {
+      console.error('Lỗi khi kiểm tra enrollment:', {
+        error: enrollmentCheckError,
+        message: enrollmentCheckError.message,
+        details: enrollmentCheckError.details,
+        hint: enrollmentCheckError.hint,
+        code: enrollmentCheckError.code
+      })
       return { success: false, message: 'Lỗi khi kiểm tra đăng ký' }
     }
 
+    console.log('Kết quả kiểm tra enrollment:', existingEnrollment)
+
     if (existingEnrollment?.status === 'enrolled') {
+      console.log('Sinh viên đã đăng ký lớp này')
       return { success: false, message: 'Sinh viên đã đăng ký lớp học này' }
     }
 
     // Kiểm tra quyền truy cập
     const { data: session } = await supabase.auth.getSession()
     if (!session?.session?.access_token) {
+      console.error('Không có session hoặc access token')
       return { success: false, message: 'Không có quyền thực hiện thao tác này' }
     }
+
+    console.log('Session hợp lệ:', session)
 
     if (existingEnrollment) {
       // Cập nhật enrollment hiện có
@@ -734,14 +783,23 @@ export async function createEnrollment(data: {
         .eq('id', existingEnrollment.id)
 
       if (updateError) {
+        console.error('Lỗi khi cập nhật enrollment:', {
+          error: updateError,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint,
+          code: updateError.code
+        })
         return { success: false, message: 'Không thể cập nhật đăng ký' }
       }
+
+      console.log('Đã cập nhật enrollment thành công')
     } else {
       // Tạo enrollment mới
       const { error: createError } = await supabase
         .from('enrollments')
         .insert([{
-          class_id: data.class_id,
+          class_id: classData.id,
           student_id: existingProfile.id,
           status: 'enrolled',
           created_at: new Date().toISOString(),
@@ -749,12 +807,26 @@ export async function createEnrollment(data: {
         }])
 
       if (createError) {
+        console.error('Lỗi khi tạo enrollment mới:', {
+          error: createError,
+          message: createError.message,
+          details: createError.details,
+          hint: createError.hint,
+          code: createError.code
+        })
         return { success: false, message: 'Không thể tạo đăng ký mới' }
       }
+
+      console.log('Đã tạo enrollment mới thành công')
     }
 
     return { success: true, message: 'Thêm sinh viên thành công' }
   } catch (error: any) {
+    console.error('Lỗi không xác định:', {
+      error,
+      message: error.message,
+      stack: error.stack
+    })
     return { 
       success: false, 
       message: error.message || 'Không thể thêm sinh viên vào lớp học'
