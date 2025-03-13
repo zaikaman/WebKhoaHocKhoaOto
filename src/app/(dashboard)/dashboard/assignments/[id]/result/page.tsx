@@ -57,24 +57,23 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
         return
       }
 
-      // Lấy thông tin bài tập
+      // Lấy thông tin bài tập với join tables
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('assignments')
         .select(`
-          id,
-          title,
-          total_points,
-          class:classes!inner (
-            name,
-            subject:subjects!inner (
-              name
-            )
+          *,
+          class:classes!inner(
+            *,
+            subject:subjects!inner(*)
           )
         `)
         .eq('id', params.id)
         .single()
 
-      if (assignmentError) throw assignmentError
+      if (assignmentError) {
+        console.error('Assignment Error:', assignmentError)
+        throw assignmentError
+      }
 
       // Lấy bài làm của sinh viên
       const { data: submissionData, error: submissionError } = await supabase
@@ -84,7 +83,10 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
         .eq('student_id', currentUser.profile.id)
         .single()
 
-      if (submissionError) throw submissionError
+      if (submissionError) {
+        console.error('Submission Error:', submissionError)
+        throw submissionError
+      }
 
       // Lấy danh sách câu hỏi
       const { data: questionsData, error: questionsError } = await supabase
@@ -93,7 +95,13 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
         .eq('assignment_id', params.id)
         .order('created_at', { ascending: true })
 
-      if (questionsError) throw questionsError
+      if (questionsError) {
+        console.error('Questions Error:', questionsError)
+        throw questionsError
+      }
+
+      console.log('Assignment Data:', assignmentData)
+      console.log('Class Data:', assignmentData.class)
 
       // Chuyển đổi dữ liệu để khớp với interface
       const formattedAssignment = {
@@ -101,9 +109,9 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
         title: assignmentData.title,
         total_points: assignmentData.total_points,
         class: {
-          name: assignmentData.class.name,
+          name: assignmentData.class?.name || '',
           subject: {
-            name: assignmentData.class.subject.name
+            name: assignmentData.class?.subject?.name || ''
           }
         }
       }
@@ -117,14 +125,14 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
         feedback: submissionData.feedback
       }
 
-      const formattedQuestions = questionsData.map(q => ({
+      const formattedQuestions = questionsData?.map(q => ({
         id: q.id,
         content: q.content,
         type: q.type,
         points: q.points,
-        options: q.options || [],
+        options: Array.isArray(q.options) ? q.options : [],
         correct_answer: q.correct_answer
-      }))
+      })) || []
 
       setResult({
         assignment: formattedAssignment,
