@@ -113,8 +113,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       // Kiểm tra thời gian làm bài
       const now = new Date()
-      const startTime = new Date(examData.start_time)
-      const endTime = new Date(examData.end_time)
+      const startTime = new Date(new Date(examData.start_time).getTime() - 7 * 60 * 60 * 1000)
+      const endTime = new Date(new Date(examData.end_time).getTime() - 7 * 60 * 60 * 1000)
 
       if (now < startTime) {
         toast({

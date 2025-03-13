@@ -128,9 +128,10 @@ export default function TeacherExamsListPage() {
       if (exam) {
         setEditTitle(exam.title)
         
-        // Format datetime-local string (YYYY-MM-DDTHH:mm)
-        setEditStartTime(new Date(exam.start_time).toLocaleString('sv').replace(' ', 'T').slice(0, 16))
-        setEditEndTime(new Date(exam.end_time).toLocaleString('sv').replace(' ', 'T').slice(0, 16))
+        const adjustedStartTime = new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000);
+        const adjustedEndTime = new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000);
+        setEditStartTime(adjustedStartTime.toLocaleString('sv', { timeZone: 'UTC' }).replace(' ', 'T').slice(0, 16));
+        setEditEndTime(adjustedEndTime.toLocaleString('sv', { timeZone: 'UTC' }).replace(' ', 'T').slice(0, 16));
         setEditDuration(exam.duration.toString())
         setIsEditTitleDialogOpen(true)
       }
@@ -294,14 +295,14 @@ export default function TeacherExamsListPage() {
                     <div>
                       <p className="text-muted-foreground">Thời gian thi</p>
                       <p className="font-medium">
-                        {new Date(exam.start_time).toLocaleString('vi-VN', { 
+                        {new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN', { 
                           year: 'numeric',
                           month: '2-digit',
                           day: '2-digit',
                           hour: '2-digit',
                           minute: '2-digit',
                           hour12: true
-                        })} - {new Date(exam.end_time).toLocaleString('vi-VN', {
+                        })} - {new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN', {
                           year: 'numeric',
                           month: '2-digit',
                           day: '2-digit',

@@ -94,8 +94,8 @@ export default function ExamsPage() {
 
   function getExamStatus(exam: Exam) {
     const now = new Date()
-    const startTime = new Date(exam.start_time)
-    const endTime = new Date(exam.end_time)
+    const startTime = new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000)
+    const endTime = new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000)
 
     if (exam.submission?.submitted_at) {
       if (exam.submission.graded_at) {
@@ -192,7 +192,8 @@ export default function ExamsPage() {
                       month: '2-digit',
                       day: '2-digit',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
+                      timeZone: 'UTC'
                     })}
                   </td>
                   <td className="py-3 px-4">{exam.duration} phút</td>
