@@ -64,9 +64,9 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
           id,
           title,
           total_points,
-          class:classes (
+          class:classes!inner (
             name,
-            subject:subjects (
+            subject:subjects!inner (
               name
             )
           )
@@ -95,10 +95,41 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
 
       if (questionsError) throw questionsError
 
+      // Chuyển đổi dữ liệu để khớp với interface
+      const formattedAssignment = {
+        id: assignmentData.id,
+        title: assignmentData.title,
+        total_points: assignmentData.total_points,
+        class: {
+          name: assignmentData.class.name,
+          subject: {
+            name: assignmentData.class.subject.name
+          }
+        }
+      }
+
+      const formattedSubmission = {
+        id: submissionData.id,
+        answers: submissionData.answers || {},
+        score: submissionData.score,
+        submitted_at: submissionData.submitted_at,
+        graded_at: submissionData.graded_at,
+        feedback: submissionData.feedback
+      }
+
+      const formattedQuestions = questionsData.map(q => ({
+        id: q.id,
+        content: q.content,
+        type: q.type,
+        points: q.points,
+        options: q.options || [],
+        correct_answer: q.correct_answer
+      }))
+
       setResult({
-        assignment: assignmentData,
-        submission: submissionData,
-        questions: questionsData
+        assignment: formattedAssignment,
+        submission: formattedSubmission,
+        questions: formattedQuestions
       })
 
     } catch (error) {
