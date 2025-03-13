@@ -305,14 +305,14 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
               {submission.graded_at ? (
                 <>
                   <div>
-                    <Label>Điểm số</Label>
+                    <Label htmlFor="score">Điểm số</Label>
                     <p className="text-lg font-semibold mt-1">
                       {submission.score}/{assignment.total_points}
                     </p>
                   </div>
                   {submission.feedback && (
                     <div>
-                      <Label>Nhận xét</Label>
+                      <Label htmlFor="feedback">Nhận xét</Label>
                       <p className="text-sm text-muted-foreground mt-1">{submission.feedback}</p>
                     </div>
                   )}
