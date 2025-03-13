@@ -45,6 +45,8 @@ export default function TeacherAssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [classes, setClasses] = useState<Array<{id: string, name: string}>>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [questions, setQuestions] = useState<Array<{
@@ -569,6 +571,72 @@ export default function TeacherAssignmentsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog xem chi tiết bài tập */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Chi tiết bài tập</DialogTitle>
+          </DialogHeader>
+          {selectedAssignment && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">{selectedAssignment.title}</h3>
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  selectedAssignment.type === 'multiple_choice'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-purple-100 text-purple-700'
+                }`}>
+                  {selectedAssignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="detail-description">Mô tả</Label>
+                <p id="detail-description" className="text-sm text-muted-foreground">{selectedAssignment.description || 'Không có mô tả'}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="detail-class">Thông tin lớp học</Label>
+                <p id="detail-class" className="text-sm text-muted-foreground">{selectedAssignment.subject} - {selectedAssignment.className}</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="detail-points">Điểm tối đa</Label>
+                  <p id="detail-points" className="text-sm font-medium mt-1">{selectedAssignment.maxPoints} điểm</p>
+                </div>
+                <div>
+                  <Label htmlFor="detail-due-date">Hạn nộp</Label>
+                  <p id="detail-due-date" className="text-sm font-medium mt-1">{new Date(selectedAssignment.dueDate).toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric'
+                  })}</p>
+                </div>
+                <div>
+                  <Label htmlFor="detail-submissions">Số bài đã nộp</Label>
+                  <p id="detail-submissions" className="text-sm font-medium mt-1">{selectedAssignment.submittedCount}</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+                  Đóng
+                </Button>
+                <Button onClick={() => {
+                  setShowDetailDialog(false)
+                  router.push(`/dashboard/teacher/assignments/${selectedAssignment.id}`)
+                }}>
+                  Chấm bài
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Danh sách bài tập */}
       <div className="rounded-md border">
         <div className="divide-y">
@@ -621,7 +689,14 @@ export default function TeacherAssignmentsPage() {
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}`)}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setSelectedAssignment(assignment)
+                    setShowDetailDialog(true)
+                  }}
+                >
                   Chi tiết
                 </Button>
               </div>

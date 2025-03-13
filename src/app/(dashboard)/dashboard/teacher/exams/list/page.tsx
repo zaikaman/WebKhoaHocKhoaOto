@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam } from "@/lib/supabase"
+import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam, supabase } from "@/lib/supabase"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 type Exam = {
   id: string
   title: string
   subject: string
   className: string
-  date: string
+  start_time: string
+  end_time: string
   duration: number
   totalStudents: number
   submittedCount: number
@@ -26,7 +29,12 @@ export default function TeacherExamsListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [exams, setExams] = useState<Exam[]>([])
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isEditTitleDialogOpen, setIsEditTitleDialogOpen] = useState(false)
   const [currentExamId, setCurrentExamId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editStartTime, setEditStartTime] = useState('')
+  const [editEndTime, setEditEndTime] = useState('')
+  const [editDuration, setEditDuration] = useState('')
 
   useEffect(() => {
     loadExams()
@@ -55,7 +63,8 @@ export default function TeacherExamsListPage() {
           title: e.title,
           subject: classItem.subject.name,
           className: classItem.name,
-          date: e.start_time,
+          start_time: e.start_time,
+          end_time: e.end_time,
           duration: e.duration,
           totalStudents: 0, // TODO: Implement later
           submittedCount: 0, // TODO: Implement later
@@ -65,7 +74,7 @@ export default function TeacherExamsListPage() {
       }
 
       // Sắp xếp theo thời gian mới nhất
-      allExams.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      allExams.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
       setExams(allExams)
 
     } catch (error) {
@@ -85,12 +94,67 @@ export default function TeacherExamsListPage() {
     setIsEditDialogOpen(true)
   }
 
-  const handleEditChoice = (choice: 'title' | 'question') => {
+  const handleEditChoice = (choice: 'info' | 'question') => {
     setIsEditDialogOpen(false)
-    if (choice === 'title') {
-      router.push(`/dashboard/teacher/exams/${currentExamId}`)
+    if (choice === 'info') {
+      const exam = exams.find(e => e.id === currentExamId)
+      if (exam) {
+        setEditTitle(exam.title)
+        
+        // Format datetime-local string (YYYY-MM-DDTHH:mm)
+        setEditStartTime(new Date(exam.start_time).toLocaleString('sv').replace(' ', 'T').slice(0, 16))
+        setEditEndTime(new Date(exam.end_time).toLocaleString('sv').replace(' ', 'T').slice(0, 16))
+        setEditDuration(exam.duration.toString())
+        setIsEditTitleDialogOpen(true)
+      }
     } else {
       router.push(`/dashboard/teacher/exams/examQuestion?examId=${currentExamId}`)
+    }
+  }
+
+  const handleUpdateInfo = async () => {
+    if (!currentExamId || !editTitle.trim() || !editStartTime || !editEndTime || !editDuration) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ thông tin"
+      })
+      return
+    }
+
+    try {
+      // Chuyển đổi thời gian local thành UTC
+      const startTimeUTC = new Date(editStartTime).toISOString();
+      const endTimeUTC = new Date(editEndTime).toISOString();
+
+      const { error } = await supabase
+        .from('exams')
+        .update({ 
+          title: editTitle.trim(),
+          start_time: startTimeUTC,
+          end_time: endTimeUTC,
+          duration: parseInt(editDuration)
+        })
+        .eq('id', currentExamId)
+
+      if (error) throw error
+
+      toast({
+        title: "Thành công",
+        description: "Đã cập nhật thông tin bài kiểm tra"
+      })
+      
+      setIsEditTitleDialogOpen(false)
+      loadExams()
+    } catch (error) {
+      console.error('Lỗi khi cập nhật thông tin:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể cập nhật thông tin bài kiểm tra"
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -201,12 +265,28 @@ export default function TeacherExamsListPage() {
                   <p className="text-sm text-muted-foreground mt-1">{exam.subject} - {exam.className}</p>
                   <div className="grid grid-cols-5 gap-4 mt-2 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Thời gian</p>
-                      <p className="font-medium">{exam.duration} phút</p>
+                      <p className="text-muted-foreground">Thời gian thi</p>
+                      <p className="font-medium">
+                        {new Date(exam.start_time).toLocaleString('vi-VN', { 
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })} - {new Date(exam.end_time).toLocaleString('vi-VN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Ngày thi</p>
-                      <p className="font-medium">{new Date(exam.date).toLocaleDateString('vi-VN')}</p>
+                      <p className="text-muted-foreground">Thời gian làm bài</p>
+                      <p className="font-medium">{exam.duration} phút</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Tổng số SV</p>
@@ -246,9 +326,64 @@ export default function TeacherExamsListPage() {
             <DialogTitle>Chọn hành động chỉnh sửa</DialogTitle>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => handleEditChoice('title')}>Chỉnh sửa tiêu đề</Button>
+            <Button onClick={() => handleEditChoice('info')}>Chỉnh sửa thông tin</Button>
             <Button onClick={() => handleEditChoice('question')}>Chỉnh sửa câu hỏi</Button>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditTitleDialogOpen} onOpenChange={setIsEditTitleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin bài kiểm tra</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Tiêu đề</Label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Nhập tiêu đề"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-start-time">Thời gian bắt đầu</Label>
+              <Input
+                id="edit-start-time"
+                type="datetime-local"
+                value={editStartTime}
+                onChange={(e) => setEditStartTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-end-time">Thời gian kết thúc</Label>
+              <Input
+                id="edit-end-time"
+                type="datetime-local"
+                value={editEndTime}
+                onChange={(e) => setEditEndTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-duration">Thời gian làm bài (phút)</Label>
+              <Input
+                id="edit-duration"
+                type="number"
+                min="1"
+                value={editDuration}
+                onChange={(e) => setEditDuration(e.target.value)}
+                placeholder="Nhập thời gian làm bài"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditTitleDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleUpdateInfo} disabled={isLoading}>
+              {isLoading ? "Đang cập nhật..." : "Cập nhật"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
