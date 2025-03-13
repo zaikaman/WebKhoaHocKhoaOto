@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^4.0.0",
     "@monaco-editor/react": "^4.7.0",
     "@prisma/client": "^6.3.1",
@@ -36,7 +37,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.54.2",
-    "tailwind-merge": "^3.0.1",
+    "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2"

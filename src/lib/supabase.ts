@@ -763,52 +763,20 @@ export async function createEnrollment(data: {
 }
 
 export async function getStudentClasses(studentId: string) {
-  try {
-    console.log('StudentId nhận vào:', studentId)
+  const { data, error } = await supabase
+    .from('classes')
+    .select(`
+      *,
+      subject:subjects(*),
+      teacher:profiles!teacher_id(*),
+      enrollments!inner(*)
+    `)
+    .eq('enrollments.student_id', studentId)
+    .eq('enrollments.status', 'enrolled')
+    .order('created_at', { ascending: false })
 
-    // Bước 1: Lấy danh sách class_id từ bảng enrollments
-    const { data: enrollments, error: enrollmentError } = await supabase
-      .from('enrollments')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('status', 'enrolled')
-
-    if (enrollmentError) throw enrollmentError
-
-    if (!enrollments || enrollments.length === 0) {
-      console.log('Không tìm thấy enrollment nào')
-      return []
-    }
-
-    // Lấy danh sách class_id
-    const classIds = enrollments.map(e => e.class_id)
-
-    // Bước 2: Lấy thông tin các lớp học từ bảng classes
-    const { data: classes, error: classError } = await supabase
-      .from('classes')
-      .select(`
-        *,
-        teacher:profiles!teacher_id (
-          id,
-          full_name
-        ),
-        subjects:subjects!subject_id (
-          id,
-          name,
-          code,
-          credits
-        )
-      `)
-      .filter('id', 'in', `(${classIds.join(',')})`)
-
-    if (classError) throw classError
-
-    return classes || []
-
-  } catch (error) {
-    console.error('Lỗi chi tiết:', error)
-    throw error
-  }
+  if (error) throw error
+  return data
 }
 
 // Hàm xóa sinh viên khỏi lớp học
@@ -1103,4 +1071,103 @@ export async function updateExamQuestion(question: ExamQuestion) {
 
   if (error) throw error;
   return data;
+}
+
+// Hàm thống kê cho sinh viên
+export async function getStudentStats(studentId: string) {
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', studentId)
+    .eq('status', 'enrolled')
+
+  if (enrollmentError) throw enrollmentError
+
+  const classIds = enrollments.map(e => e.class_id)
+
+  // Lấy số lượng bài tập đang chờ
+  const { data: pendingAssignments, error: assignmentError } = await supabase
+    .from('assignments')
+    .select(`
+      id,
+      assignment_submissions!left(
+        id,
+        student_id
+      )
+    `)
+    .in('class_id', classIds)
+    .gt('due_date', new Date().toISOString())
+    .is('assignment_submissions.id', null)
+
+  if (assignmentError) throw assignmentError
+
+  // Lấy điểm trung bình
+  const { data: submissions, error: submissionError } = await supabase
+    .from('assignment_submissions')
+    .select('score')
+    .eq('student_id', studentId)
+    .not('score', 'is', null)
+
+  if (submissionError) throw submissionError
+
+  const averageScore = submissions.length > 0
+    ? submissions.reduce((acc, sub) => acc + (sub.score || 0), 0) / submissions.length
+    : null
+
+  return {
+    totalClasses: classIds.length,
+    pendingAssignments: pendingAssignments.filter(a => !a.assignment_submissions?.length).length,
+    averageScore
+  }
+}
+
+// Lấy bài tập sắp đến hạn của sinh viên
+export async function getStudentUpcomingAssignments(studentId: string) {
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', studentId)
+    .eq('status', 'enrolled')
+
+  if (enrollmentError) throw enrollmentError
+
+  const classIds = enrollments.map(e => e.class_id)
+
+  const { data, error } = await supabase
+    .from('assignments')
+    .select(`
+      *,
+      class:classes(
+        name,
+        subject:subjects(name)
+      )
+    `)
+    .in('class_id', classIds)
+    .gt('due_date', new Date().toISOString())
+    .order('due_date', { ascending: true })
+    .limit(5)
+
+  if (error) throw error
+  return data
+}
+
+export async function getStudentUpcomingExams(studentId: string) {
+  const { data, error } = await supabase
+    .from('exams')
+    .select(`
+      *,
+      class:classes(
+        name,
+        subject:subjects(
+          name
+        )
+      )
+    `)
+    .eq('status', 'upcoming')
+    .gte('start_time', new Date().toISOString())
+    .order('start_time', { ascending: true })
+    .limit(5)
+
+  if (error) throw error
+  return data
 }

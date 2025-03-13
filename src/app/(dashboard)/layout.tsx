@@ -316,10 +316,10 @@ export default function DashboardLayout({
                 </Link>
 
                 <Link
-                  href="/dashboard/grades"
+                  href="/dashboard/student/exams"
                   className={cn(
                     "block px-4 py-2 rounded transition-colors",
-                    pathname === "/dashboard/grades" 
+                    pathname === "/dashboard/student/exams" 
                       ? "bg-gray-800 text-white" 
                       : "hover:bg-gray-800"
                   )}
@@ -337,10 +337,10 @@ export default function DashboardLayout({
                       strokeLinejoin="round"
                       className="w-4 h-4 mr-2"
                     >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
+                      <path d="M9 11l3 3L22 4" />
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
-                    Điểm số
+                    Bài kiểm tra
                   </div>
                 </Link>
               </>
