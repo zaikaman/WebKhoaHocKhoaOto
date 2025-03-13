@@ -330,12 +330,17 @@ export default function TeacherExamsListPage() {
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => handleEdit(exam.id)}>
-                  Chỉnh sửa
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleDeleteExam(exam.id)}>
-                  Xóa
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(exam.id)}>
+                    Chỉnh sửa
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => router.push(`/dashboard/teacher/exams/${exam.id}/submissions`)}>
+                    Bài nộp
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteExam(exam.id)}>
+                    Xóa
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

@@ -683,6 +683,9 @@ export default function TeacherAssignmentsPage() {
                 }}>
                   Xóa
                 </Button>
+                <Button onClick={() => router.push(`/dashboard/teacher/assignments/${selectedAssignment.id}/submissions`)}>
+                  Xem bài nộp
+                </Button>
               </div>
             </div>
           )}
@@ -741,16 +744,25 @@ export default function TeacherAssignmentsPage() {
                     </div>
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setSelectedAssignment(assignment)
-                    setShowDetailDialog(true)
-                  }}
-                >
-                  Chi tiết
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setSelectedAssignment(assignment)
+                      setShowDetailDialog(true)
+                    }}
+                  >
+                    Chi tiết
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions`)}
+                  >
+                    Bài nộp
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

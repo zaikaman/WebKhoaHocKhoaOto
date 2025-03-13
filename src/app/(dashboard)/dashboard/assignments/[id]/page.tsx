@@ -377,31 +377,130 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
                 ))}
               </div>
             ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="content">Nội dung</Label>
-                  <Textarea
-                    id="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Nhập nội dung bài làm của bạn"
-                    rows={10}
-                  />
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Nội dung bài làm</CardTitle>
+                      <CardDescription>
+                        Nhập trực tiếp nội dung bài làm của bạn
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <Textarea
+                          id="content"
+                          value={content}
+                          onChange={(e) => setContent(e.target.value)}
+                          placeholder="Nhập nội dung bài làm của bạn vào đây..."
+                          className="min-h-[300px] resize-none"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Bạn có thể định dạng văn bản bằng cách sử dụng Markdown
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">File đính kèm</CardTitle>
+                      <CardDescription>
+                        Tải lên file bài làm của bạn
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid w-full max-w-sm items-center gap-1.5">
+                          <Label htmlFor="file">Chọn file</Label>
+                          <Input
+                            id="file"
+                            type="file"
+                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                            accept=".pdf,.doc,.docx,.txt"
+                            className="cursor-pointer"
+                          />
+                        </div>
+                        
+                        {file && (
+                          <div className="rounded-lg border p-4">
+                            <div className="flex items-center gap-4">
+                              <div className="flex-1 truncate">
+                                <p className="text-sm font-medium">{file.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setFile(null)}
+                              >
+                                Xóa
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="rounded-lg border border-dashed p-4">
+                          <div className="flex flex-col items-center gap-2 text-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="text-muted-foreground"
+                            >
+                              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                              <path d="M12 12v9" />
+                              <path d="m8 17 4-4 4 4" />
+                            </svg>
+                            <div className="text-sm text-muted-foreground">
+                              <p>Hỗ trợ các định dạng: PDF, DOC, DOCX, TXT</p>
+                              <p>Kích thước tối đa: 10MB</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="file">File đính kèm</Label>
-                  <Input
-                    id="file"
-                    type="file"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    accept=".pdf,.doc,.docx,.txt"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Hỗ trợ file: PDF, DOC, DOCX, TXT
-                  </p>
+                <div className="rounded-lg border p-4 bg-muted/50">
+                  <div className="flex items-start gap-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-blue-500 mt-1"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium">Lưu ý khi nộp bài</h4>
+                      <ul className="mt-2 text-sm text-muted-foreground list-disc list-inside space-y-1">
+                        <li>Bạn có thể nộp cả nội dung trực tiếp và file đính kèm</li>
+                        <li>Đảm bảo nội dung bài làm của bạn rõ ràng và dễ đọc</li>
+                        <li>Kiểm tra kỹ nội dung trước khi nộp bài</li>
+                        <li>Sau khi nộp bài, bạn sẽ không thể chỉnh sửa</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>

@@ -9,12 +9,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, supabase } from "@/lib/supabase"
+import { v4 as uuidv4 } from 'uuid'
+import { Input } from "@/components/ui/input"
 
 interface Exam {
   id: string
   title: string
   description: string | null
-  type: 'quiz' | 'midterm' | 'final'
+  type: 'quiz' | 'midterm' | 'final' | 'essay'
   duration: number
   total_points: number
   start_time: string
@@ -57,6 +59,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [submission, setSubmission] = useState<ExamSubmission | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
 
   useEffect(() => {
     loadExam()
@@ -202,23 +207,74 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Kích thước file không được vượt quá 5MB"
+        })
+        return
+      }
+      setSelectedFile(file)
+    }
+  }
+
+  async function uploadFile() {
+    if (!selectedFile) return null
+
+    try {
+      setIsUploading(true)
+      const fileExt = selectedFile.name.split('.').pop()
+      const fileName = `${uuidv4()}.${fileExt}`
+      const filePath = `exam-submissions/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('files')
+        .upload(filePath, selectedFile)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('files')
+        .getPublicUrl(filePath)
+
+      setUploadedFileUrl(publicUrl)
+      return publicUrl
+    } catch (error) {
+      console.error('Lỗi khi upload file:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể upload file"
+      })
+      return null
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   async function handleSubmit() {
     try {
       setIsSubmitting(true)
       const currentUser = await getCurrentUser()
-      console.log('Current User:', currentUser)
       
       if (!currentUser) {
-        console.log('No current user')
         router.push('/login')
         return
       }
 
+      let fileUrl = null
+      if (exam?.type === 'essay' && selectedFile) {
+        fileUrl = await uploadFile()
+      }
+
       // Kiểm tra xem đã trả lời hết câu hỏi chưa
       const unansweredQuestions = questions.filter(q => !answers[q.id])
-      console.log('Unanswered questions:', unansweredQuestions.length)
       
-      if (unansweredQuestions.length > 0) {
+      if (unansweredQuestions.length > 0 && exam?.type !== 'essay') {
         toast({
           variant: "destructive",
           title: "Chưa hoàn thành",
@@ -228,35 +284,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      console.log('Preparing submission data:', {
-        exam_id: params.id,
-        student_id: currentUser.profile.id,
-        answers: answers
-      })
-
-      // Kiểm tra xem answers có phải là object rỗng không
-      if (Object.keys(answers).length === 0) {
-        console.log('No answers provided')
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Bạn chưa trả lời câu hỏi nào"
-        })
-        return
-      }
-
-      // Kiểm tra xem bài thi có phải là 100% trắc nghiệm không
-      const hasEssayQuestion = questions.some(q => q.type === 'essay')
-      
-      // Tính điểm nếu là bài trắc nghiệm
-      let score = null
-      if (!hasEssayQuestion) {
-        score = questions.reduce((total, question) => {
-          const isCorrect = answers[question.id] === question.correct_answer
-          return total + (isCorrect ? question.points : 0)
-        }, 0)
-      }
-
       // Tạo bài làm mới
       const { data: submissionData, error: createError } = await supabase
         .from('exam_submissions')
@@ -264,24 +291,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           exam_id: params.id,
           student_id: currentUser.profile.id,
           answers,
-          score,
-          submitted_at: new Date().toISOString(),
-          graded_at: !hasEssayQuestion ? new Date().toISOString() : null
+          file_url: fileUrl,
+          submitted_at: new Date().toISOString()
         }])
         .select()
         .single()
 
-      if (createError) {
-        console.error('Create Error:', createError)
-        throw createError
-      }
+      if (createError) throw createError
 
-      console.log('Submission successful:', submissionData)
       toast({
         title: "Thành công",
-        description: !hasEssayQuestion 
-          ? `Đã nộp và chấm bài kiểm tra. Điểm của bạn: ${score}/${exam?.total_points}`
-          : "Đã nộp bài kiểm tra"
+        description: "Đã nộp bài kiểm tra"
       })
 
       router.push('/dashboard/student/exams')
@@ -349,7 +369,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-8">
       <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container py-4">
+        <div className="container max-w-screen-2xl py-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{exam.title}</h2>
@@ -374,76 +394,140 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="container pb-8">
+      <div className="container max-w-screen-2xl pb-8">
         <div className="grid gap-6">
-          {questions.map((question, index) => (
-            <Card key={question.id}>
+          {exam?.type === 'essay' ? (
+            <Card>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>Câu {index + 1}</CardTitle>
-                    <CardDescription>Điểm: {question.points}</CardDescription>
-                  </div>
-                </div>
+                <CardTitle>Bài làm tự luận</CardTitle>
+                <CardDescription>Nhập nội dung bài làm hoặc đính kèm file</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor={`question-${question.id}`}>Câu hỏi</Label>
-                  <div className="text-sm">{question.content}</div>
+                  <Label htmlFor="content">Nội dung bài làm</Label>
+                  <Textarea
+                    id="content"
+                    value={answers['content'] || ''}
+                    onChange={(e) => setAnswers(prev => ({
+                      ...prev,
+                      content: e.target.value
+                    }))}
+                    placeholder="Nhập nội dung bài làm của bạn..."
+                    className="min-h-[200px]"
+                  />
                 </div>
 
-                {question.type === 'multiple_choice' && question.options ? (
-                  <div className="space-y-3">
-                    {(() => {
-                      try {
-                        const options: string[] = typeof question.options === 'string' 
-                          ? JSON.parse(question.options) 
-                          : question.options || [];
-                        return options.map((option: string, optionIndex: number) => (
-                          <div key={optionIndex} className="flex items-center space-x-3">
-                            <input
-                              type="radio"
-                              id={`${question.id}-${optionIndex}`}
-                              name={`question-${question.id}`}
-                              value={option}
-                              checked={answers[question.id] === option}
-                              onChange={(e) => setAnswers(prev => ({
-                                ...prev,
-                                [question.id]: e.target.value
-                              }))}
-                              className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
-                            />
-                            <label 
-                              htmlFor={`${question.id}-${optionIndex}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {option}
-                            </label>
-                          </div>
-                        ));
-                      } catch (error) {
-                        console.error('Lỗi khi parse options:', error);
-                        return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>;
-                      }
-                    })()}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor={`answer-${question.id}`}>Câu trả lời</Label>
-                    <Textarea
-                      id={`answer-${question.id}`}
-                      value={answers[question.id] || ''}
-                      onChange={(e) => setAnswers(prev => ({
-                        ...prev,
-                        [question.id]: e.target.value
-                      }))}
-                      rows={5}
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="file">File đính kèm (không bắt buộc)</Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.txt"
+                    disabled={isUploading}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Định dạng hỗ trợ: PDF, DOC, DOCX, TXT. Kích thước tối đa: 5MB
+                  </p>
+                  {selectedFile && (
+                    <div className="text-sm text-muted-foreground">
+                      File đã chọn: {selectedFile.name}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            questions.map((question, index) => (
+              <Card key={question.id} className="w-full">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle>Câu {index + 1}</CardTitle>
+                      <CardDescription>Điểm: {question.points}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`question-${question.id}`}>Câu hỏi</Label>
+                    <div className="text-sm">{question.content}</div>
+                  </div>
+
+                  {question.type === 'multiple_choice' ? (
+                    <div className="space-y-3 w-full">
+                      {(() => {
+                        try {
+                          const options: string[] = typeof question.options === 'string' 
+                            ? JSON.parse(question.options) 
+                            : question.options || [];
+                          return options.map((option: string, optionIndex: number) => (
+                            <div key={optionIndex} className="flex items-center space-x-3">
+                              <input
+                                type="radio"
+                                id={`${question.id}-${optionIndex}`}
+                                name={`question-${question.id}`}
+                                value={option}
+                                checked={answers[question.id] === option}
+                                onChange={(e) => setAnswers(prev => ({
+                                  ...prev,
+                                  [question.id]: e.target.value
+                                }))}
+                                className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+                              />
+                              <label 
+                                htmlFor={`${question.id}-${optionIndex}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {option}
+                              </label>
+                            </div>
+                          ));
+                        } catch (error) {
+                          console.error('Lỗi khi parse options:', error);
+                          return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>;
+                        }
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="space-y-4 w-full">
+                      <Textarea
+                        value={answers[question.id] || ''}
+                        onChange={(e) => setAnswers(prev => ({
+                          ...prev,
+                          [question.id]: e.target.value
+                        }))}
+                        placeholder="Nhập câu trả lời của bạn vào đây..."
+                        className="min-h-[200px] text-base w-full"
+                      />
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mt-0.5"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4" />
+                          <path d="M12 8h.01" />
+                        </svg>
+                        <div>
+                          <p>Bạn có thể sử dụng Markdown để định dạng văn bản</p>
+                          <p>Ví dụ: **in đậm**, *in nghiêng*, - danh sách</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
 
