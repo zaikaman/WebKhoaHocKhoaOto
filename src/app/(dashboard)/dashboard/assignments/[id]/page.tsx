@@ -25,15 +25,24 @@ interface Assignment {
       name: string
     }
   }
+  questions?: Array<{
+    id: string
+    content: string
+    points: number
+    options: string[]
+    correct_answer: string
+  }>
 }
 
 interface AssignmentSubmission {
   id: string
   content: string | null
   file_url: string | null
+  answers?: Record<string, string>
   submitted_at: string | null
   graded_at: string | null
   feedback: string | null
+  score: number | null
 }
 
 export default function AssignmentDetailPage({ params }: { params: { id: string } }) {
@@ -46,6 +55,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
   const [submission, setSubmission] = useState<AssignmentSubmission | null>(null)
   const [content, setContent] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
 
   useEffect(() => {
     loadAssignment()
@@ -74,6 +84,13 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
           class:classes(
             name,
             subject:subjects(name)
+          ),
+          questions:assignment_questions(
+            id,
+            content,
+            points,
+            options,
+            correct_answer
           )
         `)
         .eq('id', params.id)
@@ -110,6 +127,9 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
 
       if (submissionData) {
         setSubmission(submissionData)
+        if (submissionData.answers) {
+          setAnswers(submissionData.answers)
+        }
         router.push('/dashboard/assignments')
         return
       }
@@ -137,55 +157,92 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
         return
       }
 
-      // Kiểm tra nội dung bài nộp
-      if (!content && !file) {
+      if (assignment?.type === 'multiple_choice') {
+        // Kiểm tra xem đã trả lời hết câu hỏi chưa
+        const unansweredQuestions = assignment.questions?.filter(q => !answers[q.id]) || []
+        if (unansweredQuestions.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "Chưa hoàn thành",
+            description: `Bạn chưa trả lời ${unansweredQuestions.length} câu hỏi`
+          })
+          return
+        }
+
+        // Tính điểm cho bài trắc nghiệm
+        const score = assignment.questions?.reduce((total, question) => {
+          const isCorrect = answers[question.id] === question.correct_answer
+          return total + (isCorrect ? question.points : 0)
+        }, 0) || 0
+
+        // Nộp bài trắc nghiệm
+        const { error: submitError } = await supabase
+          .from('assignment_submissions')
+          .insert([{
+            assignment_id: params.id,
+            student_id: currentUser.profile.id,
+            answers,
+            score,
+            submitted_at: new Date().toISOString(),
+            graded_at: new Date().toISOString()
+          }])
+
+        if (submitError) throw submitError
+
         toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Vui lòng nhập nội dung hoặc đính kèm file"
+          title: "Thành công",
+          description: `Đã nộp bài kiểm tra. Điểm của bạn: ${score}/${assignment.total_points}`
         })
-        return
+
+      } else {
+        // Kiểm tra nội dung bài nộp cho bài tự luận
+        if (!content && !file) {
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: "Vui lòng nhập nội dung hoặc đính kèm file"
+          })
+          return
+        }
+
+        let fileUrl = null
+        if (file) {
+          // Upload file nếu có
+          const fileExt = file.name.split('.').pop()
+          const fileName = `${Date.now()}.${fileExt}`
+          const filePath = `assignments/${params.id}/${currentUser.profile.id}/${fileName}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('submissions')
+            .upload(filePath, file)
+
+          if (uploadError) throw uploadError
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('submissions')
+            .getPublicUrl(filePath)
+
+          fileUrl = publicUrl
+        }
+
+        // Nộp bài tự luận
+        const { error: submitError } = await supabase
+          .from('assignment_submissions')
+          .insert([{
+            assignment_id: params.id,
+            student_id: currentUser.profile.id,
+            content: content || null,
+            file_url: fileUrl,
+            submitted_at: new Date().toISOString()
+          }])
+
+        if (submitError) throw submitError
+
+        toast({
+          title: "Thành công",
+          description: "Đã nộp bài tập"
+        })
       }
-
-      let fileUrl = null
-      if (file) {
-        // Upload file nếu có
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Date.now()}.${fileExt}`
-        const filePath = `assignments/${params.id}/${currentUser.profile.id}/${fileName}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('submissions')
-          .upload(filePath, file)
-
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('submissions')
-          .getPublicUrl(filePath)
-
-        fileUrl = publicUrl
-      }
-
-      // Tạo bài nộp mới
-      const { data: submissionData, error: createError } = await supabase
-        .from('assignment_submissions')
-        .insert([{
-          assignment_id: params.id,
-          student_id: currentUser.profile.id,
-          content: content || null,
-          file_url: fileUrl,
-          submitted_at: new Date().toISOString()
-        }])
-        .select()
-        .single()
-
-      if (createError) throw createError
-
-      toast({
-        title: "Thành công",
-        description: "Đã nộp bài tập"
-      })
 
       router.push('/dashboard/assignments')
 
@@ -270,33 +327,82 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
           <CardHeader>
             <CardTitle>Nội dung bài làm</CardTitle>
             <CardDescription>
-              Bạn có thể nhập nội dung trực tiếp hoặc đính kèm file
+              {assignment.type === 'multiple_choice' 
+                ? 'Vui lòng chọn đáp án đúng cho mỗi câu hỏi'
+                : 'Bạn có thể nhập nội dung trực tiếp hoặc đính kèm file'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="content">Nội dung</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Nhập nội dung bài làm của bạn"
-                rows={10}
-              />
-            </div>
+            {assignment.type === 'multiple_choice' ? (
+              <div className="space-y-6">
+                {assignment.questions?.map((question, index) => (
+                  <div key={question.id} className="space-y-4">
+                    <div className="font-medium">Câu {index + 1}: {question.content}</div>
+                    <div className="space-y-3">
+                      {(() => {
+                        try {
+                          const options = typeof question.options === 'string' 
+                            ? JSON.parse(question.options) 
+                            : question.options || [];
+                          
+                          return options.map((option: string, optionIndex: number) => (
+                            <div key={optionIndex} className="flex items-center space-x-3">
+                              <input
+                                type="radio"
+                                id={`${question.id}-${optionIndex}`}
+                                name={`question-${question.id}`}
+                                value={option}
+                                checked={answers[question.id] === option}
+                                onChange={(e) => setAnswers(prev => ({
+                                  ...prev,
+                                  [question.id]: e.target.value
+                                }))}
+                                className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+                              />
+                              <label 
+                                htmlFor={`${question.id}-${optionIndex}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {option}
+                              </label>
+                            </div>
+                          ));
+                        } catch (error) {
+                          console.error('Lỗi khi parse options:', error);
+                          return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="content">Nội dung</Label>
+                  <Textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Nhập nội dung bài làm của bạn"
+                    rows={10}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="file">File đính kèm</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                accept=".pdf,.doc,.docx,.txt"
-              />
-              <p className="text-sm text-muted-foreground">
-                Hỗ trợ file: PDF, DOC, DOCX, TXT
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="file">File đính kèm</Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    accept=".pdf,.doc,.docx,.txt"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Hỗ trợ file: PDF, DOC, DOCX, TXT
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
