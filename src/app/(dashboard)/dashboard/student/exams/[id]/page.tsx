@@ -396,10 +396,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   <div className="space-y-3">
                     {(() => {
                       try {
-                        const options = typeof question.options === 'string' 
+                        const options: string[] = typeof question.options === 'string' 
                           ? JSON.parse(question.options) 
-                          : question.options;
-                        return options.map((option, optionIndex) => (
+                          : question.options || [];
+                        return options.map((option: string, optionIndex: number) => (
                           <div key={optionIndex} className="flex items-center space-x-3">
                             <input
                               type="radio"
