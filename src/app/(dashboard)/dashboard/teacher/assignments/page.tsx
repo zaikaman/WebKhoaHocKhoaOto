@@ -643,13 +643,9 @@ export default function TeacherAssignmentsPage() {
                 </div>
                 <div>
                   <Label htmlFor="detail-due-date">Hạn nộp</Label>
-                  <p id="detail-due-date" className="text-sm font-medium mt-1">{new Date(selectedAssignment.dueDate).toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: 'numeric',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: 'numeric'
-                  })}</p>
+                  <p id="detail-due-date" className="text-sm font-medium mt-1">
+                    {new Date(selectedAssignment.dueDate).toISOString().replace('T', ' ').substring(0, 19)}
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="detail-submissions">Số bài đã nộp</Label>
@@ -736,7 +732,9 @@ export default function TeacherAssignmentsPage() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Hạn nộp</p>
-                      <p className="font-medium">{new Date(assignment.dueDate).toLocaleDateString('vi-VN')}</p>
+                      <p className="font-medium">
+                        {new Date(assignment.dueDate).toISOString().replace('T', ' ').substring(0, 19)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Đã nộp</p>
