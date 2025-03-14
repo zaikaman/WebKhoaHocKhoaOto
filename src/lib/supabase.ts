@@ -1243,3 +1243,13 @@ export async function getStudentUpcomingExams(studentId: string) {
   if (error) throw error
   return data
 }
+
+// Hàm cập nhật mật khẩu
+export async function updateUserPassword(newPassword: string) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword
+  })
+  
+  if (error) throw error
+  return data
+}
