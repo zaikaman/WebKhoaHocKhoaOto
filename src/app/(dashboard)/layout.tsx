@@ -108,9 +108,7 @@ export default function DashboardLayout({
                 href="/dashboard"
                 className={cn(
                   "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                  pathname === "/dashboard" 
-                    ? "text-black font-semibold" 
-                    : "text-black hover:text-black",
+                     "text-black font-medium",
                   "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                 )}
               >
@@ -123,9 +121,7 @@ export default function DashboardLayout({
                     href="/dashboard/teacher/classes"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/teacher/classes" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                      "text-black font-medium",
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -135,9 +131,7 @@ export default function DashboardLayout({
                     href="/dashboard/teacher/lectures"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/teacher/lectures" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                       "text-black font-medium",
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -147,9 +141,7 @@ export default function DashboardLayout({
                     href="/dashboard/teacher/assignments"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/teacher/assignments" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                      "text-black font-medium" ,
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -159,9 +151,7 @@ export default function DashboardLayout({
                     href="/dashboard/teacher/exams/list"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/teacher/exams/list" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                      "text-black font-medium" ,
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -171,9 +161,7 @@ export default function DashboardLayout({
                     href="/dashboard/teacher/subjects"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/teacher/subjects" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                       "text-black font-medium" ,
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -188,9 +176,7 @@ export default function DashboardLayout({
                     href="/dashboard/student/courses"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/student/courses" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                     "text-black font-medium" ,
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -200,9 +186,7 @@ export default function DashboardLayout({
                     href="/dashboard/assignments"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/assignments" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                      "text-black font-medium" ,
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
@@ -212,9 +196,7 @@ export default function DashboardLayout({
                     href="/dashboard/student/exams"
                     className={cn(
                       "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      pathname === "/dashboard/student/exams" 
-                        ? "text-black font-semibold" 
-                        : "text-black hover:text-black",
+                    "text-black font-medium" ,
                       "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
                     )}
                   >
