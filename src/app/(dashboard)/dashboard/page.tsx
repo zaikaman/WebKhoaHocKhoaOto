@@ -246,7 +246,7 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">Bài tập sắp đến hạn</h3>
-          <Button variant="outline" onClick={() => router.push('/dashboard/student/assignments')}>
+          <Button variant="outline" onClick={() => router.push('/dashboard/assignments')}>
             Xem tất cả
           </Button>
         </div>

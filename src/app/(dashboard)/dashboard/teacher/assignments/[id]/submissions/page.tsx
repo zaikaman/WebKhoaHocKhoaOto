@@ -277,11 +277,11 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
       </div>
 
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chấm điểm bài làm</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             {assignment.type === 'multiple_choice' ? (
               <>
                 {assignment.questions?.map((question, index) => (
@@ -312,73 +312,158 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                 ))}
               </>
             ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Bài làm của sinh viên</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {selectedSubmission?.content && (
-                      <div>
-                        <Label htmlFor="submission-content">Nội dung:</Label>
-                        <div className="mt-2 p-4 rounded-lg bg-muted whitespace-pre-wrap">
-                          {selectedSubmission.content}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Bài làm của sinh viên</CardTitle>
+                      <CardDescription>
+                        Nộp lúc: {selectedSubmission && new Date(selectedSubmission.submitted_at).toLocaleString('vi-VN')}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {selectedSubmission?.content && (
+                          <div>
+                            <Label htmlFor="submission-content">Nội dung bài làm:</Label>
+                            <div className="mt-2 p-4 rounded-lg bg-muted/50 border text-sm whitespace-pre-wrap">
+                              {selectedSubmission.content}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {selectedSubmission?.file_url && (
+                          <div>
+                            <Label htmlFor="submission-file">File đính kèm:</Label>
+                            <div className="mt-2">
+                              <a
+                                href={selectedSubmission.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                  <polyline points="7 10 12 15 17 10" />
+                                  <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Tải xuống file bài làm
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Chấm điểm</CardTitle>
+                      <CardDescription>
+                        Nhập điểm và nhận xét cho bài làm
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="score">Điểm số</Label>
+                          <div className="relative">
+                            <Input
+                              id="score"
+                              type="number"
+                              min="0"
+                              max={assignment.total_points}
+                              value={gradeData.score}
+                              onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
+                              placeholder={`Nhập điểm`}
+                              className="pr-16"
+                            />
+                            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground">
+                              / {assignment.total_points}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="feedback">Nhận xét</Label>
+                          <Textarea
+                            id="feedback"
+                            value={gradeData.feedback}
+                            onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
+                            placeholder="Nhập nhận xét chi tiết về bài làm..."
+                            className="min-h-[200px]"
+                          />
                         </div>
                       </div>
-                    )}
-                    
-                    {selectedSubmission?.file_url && (
-                      <div>
-                        <Label htmlFor="submission-file">File đính kèm:</Label>
-                        <div className="mt-2">
-                          <a
-                            href={selectedSubmission.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-2 text-sm text-primary hover:underline"
-                          >
-                            Tải xuống file
-                          </a>
-                        </div>
-                      </div>
-                    )}
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex justify-end gap-4">
+                    <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
+                      Hủy
+                    </Button>
+                    <Button onClick={handleGradeSubmit}>
+                      Lưu điểm
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="score">Điểm số</Label>
-              <Input
-                id="score"
-                type="number"
-                min="0"
-                max={assignment.total_points}
-                value={gradeData.score}
-                onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
-                placeholder={`Nhập điểm (tối đa ${assignment.total_points})`}
-              />
-            </div>
+            {assignment.type === 'multiple_choice' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Chấm điểm</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="score">Điểm số</Label>
+                        <div className="relative">
+                          <Input
+                            id="score"
+                            type="number"
+                            min="0"
+                            max={assignment.total_points}
+                            value={gradeData.score}
+                            onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
+                            placeholder={`Nhập điểm`}
+                            className="pr-16"
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground">
+                            / {assignment.total_points}
+                          </div>
+                        </div>
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="feedback">Nhận xét</Label>
-              <Textarea
-                id="feedback"
-                value={gradeData.feedback}
-                onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
-                placeholder="Nhập nhận xét cho bài làm..."
-                rows={4}
-              />
-            </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="feedback">Nhận xét</Label>
+                        <Textarea
+                          id="feedback"
+                          value={gradeData.feedback}
+                          onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
+                          placeholder="Nhập nhận xét cho bài làm..."
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="flex justify-end gap-4">
+                  <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
+                    Hủy
+                  </Button>
+                  <Button onClick={handleGradeSubmit}>
+                    Lưu điểm
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleGradeSubmit}>
-              Lưu điểm
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
