@@ -368,7 +368,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                     <CardContent>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="score">Điểm số</Label>
+                          <Label htmlFor="score">Điểm số ( tối đa 100 điểm) </Label>
                           <div className="relative">
                             <Input
                               id="score"
@@ -377,23 +377,26 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                               max={assignment.total_points}
                               value={gradeData.score}
                               onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
-                              placeholder={`Nhập điểm`}
-                              className="pr-16"
+                              placeholder={`Nhập điểm (tối đa ${assignment.total_points} điểm)...`}
+                              className="text-lg font-medium pr-16"
                             />
-                            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-sm text-muted-foreground">
-                              / {assignment.total_points}
-                            </div>
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="feedback">Nhận xét</Label>
+                        <div className="space-y-3 col-span-2">
+                          <div className="flex items-center gap-2">
+                            <p className="text-base font-medium">Nhận xét</p>
+                            <span className="text-sm text-muted-foreground">
+                              (Nhập nhận xét chi tiết về bài làm)
+                            </span>
+                          </div>
                           <Textarea
                             id="feedback"
                             value={gradeData.feedback}
                             onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
-                            placeholder="Nhập nhận xét chi tiết về bài làm..."
-                            className="min-h-[200px]"
+                            placeholder="Nhập nhận xét về điểm mạnh, điểm yếu và góp ý cải thiện..."
+                            rows={6}
+                            className="resize-none text-base w-full"
                           />
                         </div>
                       </div>
