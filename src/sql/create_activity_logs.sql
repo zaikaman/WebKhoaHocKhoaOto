@@ -1,8 +1,12 @@
--- SQL để tạo bảng activity_logs trong Supabase
--- Sử dụng SQL này trong SQL Editor của Supabase nếu bạn cần tạo bảng thủ công
+-- SQL để tạo bảng activity_logs trong Supabase với id tự động tăng
+-- Sử dụng SQL này trong SQL Editor của Supabase
 
+-- Tạo sequence cho id tự động tăng (nếu chưa có)
+CREATE SEQUENCE IF NOT EXISTS activity_logs_id_seq;
+
+-- Tạo bảng với id tự động tăng
 CREATE TABLE IF NOT EXISTS activity_logs (
-  id TEXT PRIMARY KEY,
+  id INT8 PRIMARY KEY DEFAULT nextval('activity_logs_id_seq'),
   activity_type TEXT NOT NULL,
   details TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -25,10 +29,8 @@ CREATE INDEX activity_logs_type_idx ON activity_logs(activity_type);
 CREATE INDEX activity_logs_updated_at_idx ON activity_logs(updated_at);
 
 -- Chèn bản ghi đầu tiên
-INSERT INTO activity_logs (id, activity_type, details)
-VALUES ('ping-record', 'ping', 'Initial setup ping')
-ON CONFLICT (id) DO UPDATE
-SET updated_at = NOW(), details = 'Ping record updated';
+INSERT INTO activity_logs (activity_type, details)
+VALUES ('ping', 'Initial setup ping');
 
 -- Thông báo hoàn tất
 SELECT 'Activity logs table created successfully' as message; 

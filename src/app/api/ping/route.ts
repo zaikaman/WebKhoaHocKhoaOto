@@ -11,18 +11,15 @@ export async function GET() {
   try {
     const timestamp = new Date().toISOString();
     
-    // Tạo hoặc cập nhật bản ghi ping trong bảng activity_logs
-    const { error } = await supabase
+    // Tạo bản ghi ping mới trong bảng activity_logs
+    // Không cung cấp id vì đó là số tự động tăng
+    const { data, error } = await supabase
       .from('activity_logs')
-      .upsert({
-        id: 'ping-record', // Sử dụng ID cố định để upsert
+      .insert({
         activity_type: 'ping',
         details: 'Automatic ping to keep database active',
-        created_at: timestamp,
-        updated_at: timestamp,
-      }, {
-        onConflict: 'id',
-      });
+      })
+      .select();
 
     if (error) {
       console.error('Ping error:', error);
@@ -35,7 +32,8 @@ export async function GET() {
     return NextResponse.json({ 
       success: true, 
       message: 'Database pinged successfully', 
-      timestamp
+      timestamp,
+      data
     });
   } catch (error) {
     console.error('Unexpected error:', error);

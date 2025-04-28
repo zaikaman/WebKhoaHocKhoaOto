@@ -16,22 +16,37 @@ Chúng tôi đã tạo một hệ thống tự động ping để giữ cho Supa
 
 ### 1. Tạo bảng `activity_logs` trong Supabase
 
+Bạn cần tạo bảng `activity_logs` trong Supabase. Cấu trúc bảng như sau:
+
+- `id`: INT8 (số nguyên) - Primary Key, tự động tăng
+- `activity_type`: TEXT - Không null
+- `details`: TEXT
+- `created_at`: TIMESTAMP WITH TIME ZONE - Mặc định là NOW()
+- `updated_at`: TIMESTAMP WITH TIME ZONE - Mặc định là NOW()
+
 Bạn có hai cách để tạo bảng này:
 
-#### Cách 1: Sử dụng API tự động
+#### Cách 1: Tạo bảng tự động từ giao diện Supabase
 
-Truy cập URL sau để thiết lập tự động:
-```
-https://your-website.com/api/setup-ping
-```
+1. Đăng nhập vào Supabase Dashboard
+2. Truy cập Table Editor
+3. Tạo bảng mới tên `activity_logs` với cấu trúc như trên
+4. Đảm bảo cột `id` là kiểu INT8 và được cấu hình là định danh tự động tăng
 
-#### Cách 2: Tạo thủ công trong Supabase
+#### Cách 2: Tạo thủ công bằng SQL
 
 1. Đăng nhập vào Supabase Dashboard
 2. Chọn SQL Editor
 3. Dán nội dung từ file `src/sql/create_activity_logs.sql` và chạy
 
-### 2. Thiết lập Vercel Cron Job
+### 2. Kiểm tra thiết lập
+
+Sau khi tạo bảng, truy cập URL sau để kiểm tra thiết lập:
+```
+https://your-website.com/api/setup-ping
+```
+
+### 3. Thiết lập Vercel Cron Job
 
 Vercel Hobby (free tier) hỗ trợ Cron Jobs. Chúng tôi đã tự động thiết lập cron job trong file `vercel.json` để gọi API ping mỗi 7 ngày.
 
@@ -41,7 +56,7 @@ Vercel Hobby (free tier) hỗ trợ Cron Jobs. Chúng tôi đã tự động thi
 3. Vào mục "Settings" > "Cron Jobs"
 4. Xác nhận cron job `/api/ping` đã được thiết lập
 
-### 3. Kiểm tra thủ công
+### 4. Kiểm tra thủ công
 
 Truy cập URL sau để kiểm tra hệ thống ping hoạt động đúng:
 ```
@@ -54,8 +69,8 @@ Nếu mọi thứ hoạt động đúng, bạn sẽ nhận được phản hồi
 
 Mỗi khi cron job kích hoạt (7 ngày một lần), hệ thống sẽ:
 1. Gọi API `/api/ping`
-2. API này cập nhật bản ghi trong bảng `activity_logs`
-3. Hoạt động cập nhật này giữ cho Supabase tiếp tục hoạt động
+2. API này tạo một bản ghi mới trong bảng `activity_logs`
+3. Hoạt động thêm dữ liệu này giữ cho Supabase tiếp tục hoạt động
 
 ## Giải pháp thay thế
 
@@ -68,5 +83,6 @@ Nếu bạn không muốn sử dụng Vercel Cron Jobs, bạn có thể sử d�
 ## Lưu ý
 
 - Hệ thống này sử dụng bảng `activity_logs` chuyên dụng, không ảnh hưởng đến dữ liệu ứng dụng chính
-- Mỗi lần ping chỉ cập nhật một bản ghi duy nhất, không gây tăng dữ liệu đáng kể
+- Mỗi lần ping sẽ tạo thêm một bản ghi trong bảng `activity_logs`
+- Để tránh bảng quá lớn, bạn có thể thêm lịch tự động xóa các bản ghi cũ
 - Cron job được cài đặt mỗi 7 ngày, nhưng bạn có thể điều chỉnh tần suất trong `vercel.json` 
