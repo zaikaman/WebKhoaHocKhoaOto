@@ -232,95 +232,92 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {classData.assignments.map((assignment) => (
-              <div 
-                key={assignment.id}
-                className="rounded-lg border bg-card text-card-foreground shadow-sm"
-              >
-                <div className="p-6 space-y-4">
-                  <div>
-                    <h4 className="font-semibold">{assignment.title}</h4>
-                    {assignment.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {assignment.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Hạn nộp: {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </div>
-                  <Button 
-                    variant="secondary"
-                    onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}
-                  >
-                    Xem chi tiết
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div className="rounded-md border">
+            <div className="p-4">
+              <Button onClick={() => router.push('/dashboard/assignments')}>
+                Đến trang Bài tập
+              </Button>
+            </div>
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
+                  <th className="py-3 px-4 text-left font-medium">Mô tả</th>
+                  <th className="py-3 px-4 text-left font-medium">Hạn nộp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classData.assignments.map((assignment) => (
+                  <tr key={assignment.id} className="border-t">
+                    <td className="py-3 px-4">{assignment.title}</td>
+                    <td className="py-3 px-4">{assignment.description || 'Không có mô tả'}</td>
+                    <td className="py-3 px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN')}</td>
+                  </tr>
+                ))}
 
-            {classData.assignments.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <div className="text-muted-foreground">Chưa có bài tập nào</div>
-              </div>
-            )}
+                {classData.assignments.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-8 text-center text-muted-foreground">
+                      Chưa có bài tập nào
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </TabsContent>
 
         <TabsContent value="exams" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {classData.exams.map((exam) => (
-              <div 
-                key={exam.id}
-                className="rounded-lg border bg-card text-card-foreground shadow-sm"
-              >
-                <div className="p-6 space-y-4">
-                  <div>
-                    <h4 className="font-semibold">{exam.title}</h4>
-                    {exam.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {exam.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>Thời gian: {new Date(exam.start_time).toLocaleDateString('vi-VN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</p>
-                    <p>Thời lượng: {exam.duration} phút</p>
-                    <p>Trạng thái: {
-                      exam.status === 'upcoming' ? 'Sắp diễn ra' :
-                      exam.status === 'in-progress' ? 'Đang diễn ra' :
-                      'Đã kết thúc'
-                    }</p>
-                  </div>
-                  {exam.status === 'in-progress' && (
-                    <Button 
-                      onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
-                    >
-                      Vào thi
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="rounded-md border">
+            <div className="p-4">
+              <Button onClick={() => router.push('/dashboard/student/exams')}>
+                Đến trang Bài kiểm tra
+              </Button>
+            </div>
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
+                  <th className="py-3 px-4 text-left font-medium">Mô tả</th>
+                  <th className="py-3 px-4 text-left font-medium">Thời gian</th>
+                  <th className="py-3 px-4 text-left font-medium">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classData.exams.map((exam) => (
+                  <tr key={exam.id} className="border-t">
+                    <td className="py-3 px-4">{exam.title}</td>
+                    <td className="py-3 px-4">{exam.description?.replace(/<\/?p>/g, '') || 'Không có mô tả'}</td>
+                    <td className="py-3 px-4">
+                      {new Date(exam.start_time).toLocaleString('vi-VN')}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        exam.status === 'upcoming'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : exam.status === 'in-progress'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {exam.status === 'upcoming'
+                          ? 'Sắp diễn ra'
+                          : exam.status === 'in-progress'
+                          ? 'Đang diễn ra'
+                          : 'Đã kết thúc'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
 
-            {classData.exams.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <div className="text-muted-foreground">Chưa có bài kiểm tra nào</div>
-              </div>
-            )}
+                {classData.exams.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                      Chưa có bài kiểm tra nào
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </TabsContent>
       </Tabs>
