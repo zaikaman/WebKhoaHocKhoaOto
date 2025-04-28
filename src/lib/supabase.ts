@@ -323,21 +323,57 @@ export async function getCurrentUser() {
 
 // Hàm xử lý lớp học
 export async function getTeacherClasses(teacherId: string) {
-  const { data, error } = await supabase
-    .from('classes')
-    .select(`
-      *,
-      subject:subjects(*),
-      enrollments:enrollments(count),
-      lectures:lectures(count),
-      exams:exams(count),
-      assignments:assignments(count)
-    `)
-    .eq('teacher_id', teacherId)
-    .order('created_at', { ascending: false })
+  try {
+    // Lấy danh sách lớp học
+    const { data: classes, error: classError } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        subject:subjects(*)
+      `)
+      .eq('teacher_id', teacherId)
+      .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data
+    if (classError) throw classError
+    if (!classes || classes.length === 0) return []
+
+    // Lấy số lượng enrollment, assignment, exam cho mỗi lớp
+    const classesWithCounts = await Promise.all(
+      classes.map(async (classItem) => {
+        const [
+          { count: enrollmentsCount },
+          { count: assignmentsCount },
+          { count: examsCount }
+        ] = await Promise.all([
+          supabase
+            .from('enrollments')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', classItem.id)
+            .eq('status', 'enrolled'),
+          supabase
+            .from('assignments')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', classItem.id),
+          supabase
+            .from('exams')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', classItem.id)
+        ])
+
+        return {
+          ...classItem,
+          enrollments: { count: enrollmentsCount },
+          assignments: { count: assignmentsCount },
+          exams: { count: examsCount }
+        }
+      })
+    )
+
+    return classesWithCounts
+  } catch (error) {
+    console.error('Lỗi trong getTeacherClasses:', error)
+    throw error
+  }
 }
 
 export async function createClass(classData: Omit<Class, 'id' | 'created_at' | 'updated_at'>) {
