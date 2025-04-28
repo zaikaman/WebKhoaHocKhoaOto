@@ -40,6 +40,8 @@ const { id } = params
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [isStudentInfoDialogOpen, setIsStudentInfoDialogOpen] = useState(false)
 
   useEffect(() => {
     loadClassData()
@@ -276,6 +278,12 @@ const { id } = params
   //   }
   // }
 
+  // Thêm hàm xử lý khi nhấn nút Thông tin
+  const handleShowStudentInfo = (student: Student) => {
+    setSelectedStudent(student)
+    setIsStudentInfoDialogOpen(true)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -383,11 +391,7 @@ const { id } = params
                       <td className="py-3 px-4">{student.student_id}</td>
                       <td className="py-3 px-4">{student.full_name}</td>
                       <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm" onClick={() => {toast({
-                                                                        variant: "destructive",
-                                                                        title: "Lỗi",
-                                                                        description: "Chức năng đang xây dựng"
-                                                                      })}}>Thông tin</Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleShowStudentInfo(student)}>Thông tin</Button>
                         <Button variant="ghost" size="sm" onClick={() => {
                           console.log(student.id)
                           handleRemoveStudent(student.id)
@@ -461,7 +465,9 @@ const { id } = params
         <TabsContent value="assignments">
           <div className="rounded-md border">
             <div className="p-4">
-              <Button>Thêm bài tập</Button>
+              <Button onClick={() => router.push('/dashboard/teacher/assignments')}>
+                Đến trang Bài tập
+              </Button>
             </div>
             <table className="w-full">
               <thead className="bg-muted">
@@ -469,7 +475,6 @@ const { id } = params
                   <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
                   <th className="py-3 px-4 text-left font-medium">Hạn nộp</th>
                   <th className="py-3 px-4 text-left font-medium">Trạng thái</th>
-                  <th className="py-3 px-4 text-left font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -486,9 +491,6 @@ const { id } = params
                         {new Date(assignment.due_date) > new Date() ? 'Đang mở' : 'Đã đóng'}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">Xem chi tiết</Button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -500,7 +502,9 @@ const { id } = params
         <TabsContent value="exams">
           <div className="rounded-md border">
             <div className="p-4">
-              <Button>Thêm bài kiểm tra</Button>
+              <Button onClick={() => router.push('/dashboard/teacher/exams/list')}>
+                Đến trang Kiểm tra
+              </Button>
             </div>
             <table className="w-full">
               <thead className="bg-muted">
@@ -508,7 +512,6 @@ const { id } = params
                   <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
                   <th className="py-3 px-4 text-left font-medium">Thời gian</th>
                   <th className="py-3 px-4 text-left font-medium">Trạng thái</th>
-                  <th className="py-3 px-4 text-left font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -531,9 +534,6 @@ const { id } = params
                           : 'Đã kết thúc'}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">Xem chi tiết</Button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -541,6 +541,63 @@ const { id } = params
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog thông tin sinh viên */}
+      <Dialog open={isStudentInfoDialogOpen} onOpenChange={setIsStudentInfoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thông tin sinh viên</DialogTitle>
+            <DialogDescription>
+              Chi tiết thông tin sinh viên trong lớp học
+            </DialogDescription>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Mã số sinh viên</h3>
+                  <p className="mt-1 text-base">{selectedStudent.student_id}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Họ và tên</h3>
+                  <p className="mt-1 text-base">{selectedStudent.full_name}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Email</h3>
+                  <p className="mt-1 text-base">{selectedStudent.email || 'Chưa cập nhật'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Mã lớp</h3>
+                  <p className="mt-1 text-base">{selectedStudent.class_code || 'Chưa cập nhật'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Trạng thái</h3>
+                  <p className="mt-1 text-base">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      selectedStudent.status === 'active' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {selectedStudent.status === 'active' ? 'Đang hoạt động' : 'Không hoạt động'}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Ngày tạo</h3>
+                  <p className="mt-1 text-base">
+                    {new Date(selectedStudent.created_at).toLocaleDateString('vi-VN')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsStudentInfoDialogOpen(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
