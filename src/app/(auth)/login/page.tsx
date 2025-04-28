@@ -174,12 +174,19 @@ export default function LoginPage() {
               Liên hệ với quản trị viên khoa để được cấp tài khoản truy cập hệ thống.
             </p>
             <p className="px-8 text-center text-sm text-muted-foreground">
-              <Link
-                href="/forgot-password"
+              <a
+                href="#"
                 className="underline underline-offset-4 hover:text-primary"
+                onClick={e => {
+                  e.preventDefault();
+                  toast({
+                    title: "Quên mật khẩu",
+                    description: "Hãy liên hệ với quản trị viên để được reset mật khẩu.",
+                  });
+                }}
               >
                 Quên mật khẩu?
-              </Link>
+              </a>
             </p>
           </div>
         </div>

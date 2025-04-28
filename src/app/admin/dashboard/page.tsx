@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase"
+import { supabase, adminSupabase } from "@/lib/supabase"
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,7 @@ export default function AdminDashboardPage() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
 
   // Tải danh sách tài khoản
   useEffect(() => {
@@ -248,149 +249,170 @@ export default function AdminDashboardPage() {
     }
   }
 
+  // Hàm reset mật khẩu
+  const handleResetPassword = async () => {
+    if (selectedAccount) {
+      try {
+        setIsLoading(true)
+        const newPassword = "password123" // Mật khẩu mặc định mới
+
+        // Reset mật khẩu trực tiếp bằng service role
+        const { error } = await adminSupabase.auth.admin.updateUserById(
+          selectedAccount.id,
+          { password: newPassword }
+        )
+
+        if (error) {
+          console.error('Chi tiết lỗi:', error)
+          throw new Error(`Lỗi khi reset mật khẩu: ${error.message}`)
+        }
+
+        toast({ 
+          title: "Thành công",
+          description: "Reset mật khẩu thành công. Mật khẩu mới là: password123"
+        })
+        setIsResetDialogOpen(false)
+        setSelectedAccount(null)
+      } catch (error) {
+        console.error('Lỗi khi reset mật khẩu:', error)
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: error instanceof Error ? error.message : "Có lỗi xảy ra khi reset mật khẩu"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold">Quản lý hệ thống</h1>
-            </div>
-            <div className="flex items-center">
-              <Button variant="ghost" onClick={handleLogout}>
-                Đăng xuất
-              </Button>
-            </div>
-          </div>
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Quản lý tài khoản</h1>
+        <div className="space-x-4">
+          <Button onClick={() => {
+            setSelectedAccount(null)
+            setIsDialogOpen(true)
+          }}>
+            Thêm tài khoản
+          </Button>
+          <Button variant="outline" onClick={handleLogout}>
+            Đăng xuất
+          </Button>
         </div>
-      </nav>
+      </div>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Quản lý tài khoản</h2>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64 px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <Button onClick={() => {
-                setSelectedAccount(null)
-                setIsDialogOpen(true)
-              }}>
-                Thêm tài khoản mới
-              </Button>
-            </div>
-          </div>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo mã số hoặc họ tên..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-2 border rounded-md"
+        />
+      </div>
 
-          {/* Bảng danh sách tài khoản */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mã số
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Họ và tên
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vai trò
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Lớp
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng thái
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {displayedAccounts.map((account) => (
-                  <tr key={account.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {account.student_id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.full_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.role === "student" ? "Sinh viên" : "Giảng viên"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.class_code || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        account.status === "active" 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {account.status === "active" ? "Hoạt động" : "Vô hiệu"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          className="text-primary hover:text-primary/80"
-                          onClick={() => {
-                            setSelectedAccount(account)
-                            setIsDialogOpen(true)
-                          }}
-                        >
-                          Chỉnh sửa
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="text-red-600 hover:text-red-800"
-                          onClick={() => {
-                            setSelectedAccount(account)
-                            setIsDeleteDialogOpen(true)
-                          }}
-                        >
-                          Xóa
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Mã số
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Họ tên
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Vai trò
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Lớp
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {displayedAccounts.map((account) => (
+              <tr key={account.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {account.student_id}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {account.full_name}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    account.role === 'student' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {account.role === 'student' ? 'Sinh viên' : 'Giảng viên'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {account.class_code || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedAccount(account)
+                      setIsDialogOpen(true)
+                    }}
+                  >
+                    Sửa
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedAccount(account)
+                      setIsResetDialogOpen(true)
+                    }}
+                  >
+                    Reset MK
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedAccount(account)
+                      setIsDeleteDialogOpen(true)
+                    }}
+                  >
+                    Xóa
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-          {/* Phân trang */}
-          <div className="mt-4 flex justify-between items-center">
-            <div className="text-sm text-gray-700">
-              Hiển thị {startIndex + 1} đến {Math.min(endIndex, filteredAccounts.length)} trong số {filteredAccounts.length} kết quả
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Trước
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Sau
-              </Button>
-            </div>
-          </div>
-        </div>
-      </main>
+      {/* Phân trang */}
+      <div className="mt-4 flex justify-center space-x-2">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Trước
+        </Button>
+        <span className="px-4 py-2 rounded-md bg-gray-100">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+        >
+          Sau
+        </Button>
+      </div>
 
       {/* Dialog thêm/sửa tài khoản */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -481,6 +503,27 @@ export default function AdminDashboardPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
               Xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog xác nhận reset mật khẩu */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận reset mật khẩu</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn reset mật khẩu cho tài khoản {selectedAccount?.student_id}?
+              Mật khẩu mới sẽ là: password123
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="button" onClick={handleResetPassword} disabled={isLoading}>
+              Xác nhận
             </Button>
           </DialogFooter>
         </DialogContent>
