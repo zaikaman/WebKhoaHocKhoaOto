@@ -6,7 +6,7 @@
 
 ### Đăng nhập
 - Sử dụng **mã số sinh viên** làm tên đăng nhập.
-- Mật khẩu được cấp ban đầu, có thể thay đổi sau khi đăng nhập.
+- Mật khẩu được cấp ban đầu là password123, có thể thay đổi sau khi đăng nhập.
 
 ### Trang Dashboard
 - Xem tổng quan về:
@@ -43,6 +43,7 @@
 ### Đăng nhập
 - Sử dụng tài khoản có định dạng **gvXXX** (ví dụ: gv001).
 - Có quyền truy cập vào trang quản lý dành cho giảng viên.
+- Mật khẩu được cấp ban đầu là password123, có thể thay đổi sau khi đăng nhập.
 
 ### Quản lý **Lớp học**
 - Tạo và quản lý các lớp học
@@ -73,7 +74,7 @@
 
 ### Đăng nhập Admin
 - Truy cập trang `/admin/login`
-- Sử dụng tài khoản admin được cấp
+- Sử dụng tài khoản admin được cấp (tài khoản: admin, mật khẩu: password)
 
 ### Quản lý **Tài khoản**
 - Tạo mới tài khoản cho:
