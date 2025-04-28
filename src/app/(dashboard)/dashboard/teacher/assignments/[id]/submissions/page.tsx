@@ -277,7 +277,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
       </div>
 
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chấm điểm bài làm</DialogTitle>
           </DialogHeader>
