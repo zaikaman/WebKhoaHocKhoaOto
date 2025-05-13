@@ -10,7 +10,7 @@ Chúng tôi đã tạo một hệ thống tự động ping để giữ cho Supa
 
 1. API endpoint để thực hiện ping
 2. Bảng `activity_logs` để lưu thông tin ping
-3. Cron job để tự động gọi API ping mỗi 7 ngày
+3. Cron job để tự động gọi API ping mỗi ngày
 
 ## Cách thiết lập
 
@@ -48,7 +48,7 @@ https://your-website.com/api/setup-ping
 
 ### 3. Thiết lập Vercel Cron Job
 
-Vercel Hobby (free tier) hỗ trợ Cron Jobs. Chúng tôi đã tự động thiết lập cron job trong file `vercel.json` để gọi API ping mỗi 7 ngày.
+Vercel Hobby (free tier) hỗ trợ Cron Jobs. Chúng tôi đã tự động thiết lập cron job trong file `vercel.json` để gọi API ping mỗi ngày vào lúc 00:00.
 
 Để kiểm tra cron job đã được cài đặt:
 1. Đăng nhập vào Vercel Dashboard
@@ -67,7 +67,7 @@ Nếu mọi thứ hoạt động đúng, bạn sẽ nhận được phản hồi
 
 ## Cách hoạt động
 
-Mỗi khi cron job kích hoạt (7 ngày một lần), hệ thống sẽ:
+Mỗi khi cron job kích hoạt (mỗi ngày vào lúc 00:00), hệ thống sẽ:
 1. Gọi API `/api/ping`
 2. API này tạo một bản ghi mới trong bảng `activity_logs`
 3. Hoạt động thêm dữ liệu này giữ cho Supabase tiếp tục hoạt động
@@ -85,4 +85,4 @@ Nếu bạn không muốn sử dụng Vercel Cron Jobs, bạn có thể sử d�
 - Hệ thống này sử dụng bảng `activity_logs` chuyên dụng, không ảnh hưởng đến dữ liệu ứng dụng chính
 - Mỗi lần ping sẽ tạo thêm một bản ghi trong bảng `activity_logs`
 - Để tránh bảng quá lớn, bạn có thể thêm lịch tự động xóa các bản ghi cũ
-- Cron job được cài đặt mỗi 7 ngày, nhưng bạn có thể điều chỉnh tần suất trong `vercel.json` 
+- Cron job được cài đặt chạy mỗi ngày vào lúc 00:00, nhưng bạn có thể điều chỉnh tần suất trong `vercel.json` 
