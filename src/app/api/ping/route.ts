@@ -7,6 +7,10 @@ import { supabase } from "@/lib/supabase";
  * Sử dụng Uptime Robot hoặc công cụ tương tự để gọi endpoint này định kỳ (ví dụ: mỗi ngày)
  */
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const timestamp = new Date().toISOString();
@@ -25,7 +29,12 @@ export async function GET() {
       console.error('Ping error:', error);
       return NextResponse.json(
         { success: false, message: 'Failed to ping database', error: error.message },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+          }
+        }
       );
     }
 
@@ -34,12 +43,21 @@ export async function GET() {
       message: 'Database pinged successfully', 
       timestamp,
       data
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      }
     });
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error', error: String(error) },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        }
+      }
     );
   }
 } 
