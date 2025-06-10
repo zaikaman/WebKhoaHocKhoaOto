@@ -24,13 +24,21 @@ type Lecture = {
   id: string
   title: string
   description: string
-  subject: string
-  uploadDate: string
-  downloadCount: number
-  fileUrl: string
-  className: string
+  file_url: string
   file_type: string
   file_size: number
+  second_file: {
+    url: string
+    type: string
+    size: number
+  } | null
+  created_at: string
+  class: {
+    name: string
+    subject: {
+      name: string
+    }
+  }
 }
 
 export default function TeacherLecturesPage() {
@@ -40,6 +48,7 @@ export default function TeacherLecturesPage() {
   const [lectures, setLectures] = useState<Lecture[]>([])
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null)
+  const [currentFileIndex, setCurrentFileIndex] = useState(0)
 
   useEffect(() => {
     loadLectures()
@@ -63,22 +72,29 @@ export default function TeacherLecturesPage() {
       const allLectures: Lecture[] = []
       for (const classItem of classes) {
         const lectures = await getClassLectures(classItem.id)
-        allLectures.push(...lectures.map(l => ({
-          id: l.id,
-          title: l.title,
-          description: l.description || '',
-          subject: classItem.subject.name,
-          uploadDate: l.created_at,
-          downloadCount: l.download_count,
-          fileUrl: l.file_url,
-          className: classItem.name,
-          file_type: l.file_type,
-          file_size: l.file_size
-        })))
+        allLectures.push(...lectures.map(l => {
+          const secondFile = parseSecondFileInfo(l.description || '')
+          return {
+            id: l.id,
+            title: l.title,
+            description: l.description?.split('\n\nFile thứ hai:')[0] || '',
+            file_url: l.file_url,
+            file_type: l.file_type,
+            file_size: l.file_size,
+            second_file: secondFile,
+            created_at: l.created_at,
+            class: {
+              name: classItem.name,
+              subject: {
+                name: classItem.subject.name
+              }
+            }
+          }
+        }))
       }
 
       // Sắp xếp theo thời gian mới nhất
-      allLectures.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
+      allLectures.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       setLectures(allLectures)
 
     } catch (error) {
@@ -95,21 +111,33 @@ export default function TeacherLecturesPage() {
 
   async function handleDeleteLecture(lectureId: string) {
     try {
-      const { error } = await deleteLecture(lectureId);
-      if (error) throw error;
-      setLectures(lectures.filter(l => l.id !== lectureId));
+      await deleteLecture(lectureId)
       toast({
         title: "Thành công",
-        description: "Bài giảng đã được xóa thành công"
-      });
+        description: "Đã xóa bài giảng"
+      })
+      loadLectures()
     } catch (error) {
-      console.error('Lỗi khi xóa bài giảng:', error);
+      console.error('Lỗi khi xóa bài giảng:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
         description: "Không thể xóa bài giảng"
-      });
+      })
     }
+  }
+
+  // Thêm hàm helper để parse thông tin file thứ hai từ description
+  function parseSecondFileInfo(description: string) {
+    const secondFileMatch = description.match(/File thứ hai:\nURL: (.*?)\nLoại: (.*?)\nKích thước: (\d+) bytes/)
+    if (secondFileMatch) {
+      return {
+        url: secondFileMatch[1],
+        type: secondFileMatch[2],
+        size: parseInt(secondFileMatch[3])
+      }
+    }
+    return null
   }
 
   return (
@@ -141,7 +169,9 @@ export default function TeacherLecturesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="font-semibold line-clamp-2">{lecture.title}</h4>
-                  <p className="text-sm text-muted-foreground">{lecture.subject} - {lecture.className}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {lecture.class.name} - {lecture.class.subject.name}
+                  </p>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -167,6 +197,7 @@ export default function TeacherLecturesPage() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => {
                       setSelectedLecture(lecture)
+                      setCurrentFileIndex(0)
                       setIsDetailDialogOpen(true)
                     }}>
                       Xem chi tiết
@@ -209,9 +240,9 @@ export default function TeacherLecturesPage() {
                     <line x1="8" x2="8" y1="2" y2="6" />
                     <line x1="3" x2="21" y1="10" y2="10" />
                   </svg>
-                  {new Date(lecture.uploadDate).toLocaleDateString('vi-VN')}
+                  {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                 </div>
-                {/* <div className="flex items-center text-sm text-muted-foreground">
+                <div className="flex items-center text-sm text-muted-foreground">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -228,8 +259,8 @@ export default function TeacherLecturesPage() {
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" x2="12" y1="15" y2="3" />
                   </svg>
-                  {lecture.downloadCount} lượt tải
-                </div> */}
+                  {lecture.second_file ? '2 file' : '1 file'}
+                </div>
               </div>
             </div>
           </div>
@@ -247,7 +278,7 @@ export default function TeacherLecturesPage() {
           <DialogHeader>
             <DialogTitle>{selectedLecture?.title}</DialogTitle>
             <DialogDescription>
-              {selectedLecture?.subject} - {selectedLecture?.className}
+              {selectedLecture?.class.name} - {selectedLecture?.class.subject.name}
             </DialogDescription>
           </DialogHeader>
           
@@ -262,82 +293,82 @@ export default function TeacherLecturesPage() {
             </div>
 
             <div className="bg-muted/50 p-4 rounded-lg">
-              <h4 className="text-sm font-semibold uppercase tracking-wide text-primary mb-2">
-                Thông tin bài giảng
-              </h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Loại bài giảng</p>
-                  <p className="font-medium break-all">
-                    {selectedLecture?.file_type === 'video' ? 'Link video' :
-                     selectedLecture?.file_type === 'application/pdf' ? 'PDF' :
-                     selectedLecture?.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'DOCX' :
-                     selectedLecture?.file_type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ? 'PPTX' :
-                     selectedLecture?.file_type}
-                  </p>
-                </div>
-                {selectedLecture?.file_type !== 'video' && (
-                  <div>
-                    <p className="text-muted-foreground">Kích thước</p>
-                    <p className="font-medium">{selectedLecture?.file_size}KB</p>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-primary">
+                  File bài giảng
+                </h4>
+                {selectedLecture?.second_file && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant={currentFileIndex === 0 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentFileIndex(0)}
+                    >
+                      File 1
+                    </Button>
+                    <Button
+                      variant={currentFileIndex === 1 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentFileIndex(1)}
+                    >
+                      File 2
+                    </Button>
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-4">
                 <div>
-                  <p className="text-muted-foreground">Ngày tải lên</p>
-                  <p className="font-medium">
-                    {selectedLecture && new Date(selectedLecture.uploadDate).toLocaleDateString('vi-VN')}
+                  <p className="text-muted-foreground">Loại file</p>
+                  <p className="font-medium break-all">
+                    {currentFileIndex === 0 ? selectedLecture?.file_type : selectedLecture?.second_file?.type}
                   </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Kích thước</p>
+                  <p className="font-medium">
+                    {currentFileIndex === 0 ? selectedLecture?.file_size : selectedLecture?.second_file?.size} KB
+                  </p>
+                </div>
+                <div className="flex items-center justify-between bg-background p-3 rounded-lg">
+                  <div className="flex-1 mr-4">
+                    <input
+                      type="text"
+                      readOnly
+                      value={currentFileIndex === 0 ? selectedLecture?.file_url : selectedLecture?.second_file?.url}
+                      className="w-full text-sm text-muted-foreground bg-transparent border-none focus:outline-none overflow-x-auto"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = currentFileIndex === 0 ? selectedLecture?.file_url : selectedLecture?.second_file?.url;
+                        if (url) {
+                          navigator.clipboard.writeText(url);
+                          toast({
+                            title: "Đã sao chép",
+                            description: "Link bài giảng đã được sao chép vào clipboard"
+                          });
+                        }
+                      }}
+                    >
+                      Sao chép
+                    </Button>
+                    <Button asChild variant="outline">
+                      <a
+                        href={currentFileIndex === 0 ? selectedLecture?.file_url : selectedLecture?.second_file?.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Tải xuống
+                      </a>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {selectedLecture?.fileUrl && (
-              <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
-                <div className="flex-1 mr-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-primary">
-                    {selectedLecture.file_type === 'video' ? 'Link video' : 'Tải xuống'}
-                  </h4>
-                  {selectedLecture.file_type === 'video' ? (
-                    <input 
-                      type="text"
-                      readOnly
-                      value={selectedLecture.fileUrl}
-                      className="w-full text-sm text-muted-foreground mt-1 bg-transparent border-none focus:outline-none overflow-x-auto"
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Nhấn nút bên để tải file
-                    </p>
-                  )}
-                </div>
-                {selectedLecture.file_type === 'video' ? (
-                  <Button 
-                    variant="outline" 
-                    className="hover:bg-primary hover:text-white transition-colors"
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedLecture.fileUrl);
-                      toast({
-                        title: "Đã sao chép",
-                        description: "Đã sao chép link video vào clipboard"
-                      });
-                    }}
-                  >
-                    Sao chép
-                  </Button>
-                ) : (
-                  <Button asChild variant="outline" className="hover:bg-primary hover:text-white transition-colors">
-                    <a
-                      href={selectedLecture.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2"
-                    >
-                      Tải xuống
-                    </a>
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
           <DialogFooter>

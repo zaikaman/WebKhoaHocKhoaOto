@@ -142,15 +142,9 @@ export default function CreateLecturePage() {
           const secondFile = selectedFiles[1]
           const secondFileUrl = await uploadLectureFile(secondFile.file)
           
-          // Tạo bài giảng thứ hai
-          await createLecture({
-            title: `${formData.get('title')} (File 2)`,
-            description: formData.get('description') as string,
-            class_id: formData.get('class_id') as string,
-            file_url: secondFileUrl.url,
-            file_type: secondFileUrl.file_type,
-            file_size: secondFileUrl.file_size
-          })
+          // Thêm thông tin file thứ hai vào description
+          const secondFileInfo = `\n\nFile thứ hai:\nURL: ${secondFileUrl.url}\nLoại: ${secondFileUrl.file_type}\nKích thước: ${secondFileUrl.file_size} bytes`
+          lectureData.description = lectureData.description + secondFileInfo
         }
       }
       
