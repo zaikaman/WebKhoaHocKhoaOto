@@ -6,16 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
-import { getTeacherClasses, createLecture, getCurrentUser } from '@/lib/supabase'
+import { createLecture, getTeacherClasses, uploadLectureFile, getCurrentUser } from '@/lib/supabase'
 import { FileUpIcon, XIcon } from "lucide-react"
-
-type Class = {
-  id: string;
-  name: string;
-  subject: {
-    name: string;
-  };
-}
 
 type FileWithPreview = {
   file: File;
@@ -27,17 +19,17 @@ type FileWithPreview = {
 export default function CreateLecturePage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [classes, setClasses] = useState<Class[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
   const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url')
   const [fileUrl, setFileUrl] = useState('')
+  const [classes, setClasses] = useState<any[]>([])
 
   useEffect(() => {
-    loadTeacherClasses()
+    loadClasses()
   }, [])
 
-  async function loadTeacherClasses() {
+  async function loadClasses() {
     try {
       const currentUser = await getCurrentUser()
       if (!currentUser) {
@@ -66,37 +58,22 @@ export default function CreateLecturePage() {
         type: file.type
       }))
       
-      // Kiểm tra số lượng file
+      // Chỉ cho phép chọn tối đa 2 file
       if (selectedFiles.length + newFiles.length > 2) {
         toast({
           variant: 'destructive',
           title: 'Lỗi',
-          description: 'Chỉ được upload tối đa 2 file'
+          description: 'Chỉ được chọn tối đa 2 file'
         })
         return
       }
 
-      setSelectedFiles(prev => [...prev, ...newFiles])
+      setSelectedFiles(prev => [...prev, ...newFiles].slice(0, 2))
     }
   }
 
   const handleRemoveFile = (index: number) => {
-    setSelectedFiles(prev => {
-      const newFiles = [...prev]
-      URL.revokeObjectURL(newFiles[index].preview)
-      newFiles.splice(index, 1)
-      return newFiles
-    })
-  }
-
-  // Hàm giả lập upload file, trong thực tế nên sử dụng Supabase Storage hoặc API upload file
-  async function uploadLectureFile(file: File): Promise<{ url: string, file_type: string, file_size: number }> {
-    // Ở đây ta dùng URL.createObjectURL làm ví dụ, nhưng nên thay bằng upload thực tế
-    return {
-      url: URL.createObjectURL(file),
-      file_type: file.type,
-      file_size: file.size
-    };
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   async function handleCreateLecture(event: React.FormEvent<HTMLFormElement>) {
@@ -118,53 +95,53 @@ export default function CreateLecturePage() {
         lectureData = {
           ...lectureData,
           file_url: fileUrl,
-          file_type: 'video',
+          file_type: 'url',
           file_size: 0
         }
       } else {
         if (selectedFiles.length === 0) {
-          throw new Error('Vui lòng chọn ít nhất 1 file')
+          throw new Error('Vui lòng chọn ít nhất một file')
         }
 
         // Upload file đầu tiên
         const firstFile = selectedFiles[0]
         const uploadedFileUrl = await uploadLectureFile(firstFile.file)
-        
-        lectureData = {
-          ...lectureData,
-          file_url: uploadedFileUrl.url,
-          file_type: uploadedFileUrl.file_type,
-          file_size: uploadedFileUrl.file_size
-        }
+        let fileUrl = uploadedFileUrl.url
+        let fileType = uploadedFileUrl.file_type
+        let fileSize = uploadedFileUrl.file_size
 
-        // Upload file thứ hai nếu có
+        // Nếu có file thứ hai, upload và nối URL
         if (selectedFiles.length > 1) {
           const secondFile = selectedFiles[1]
           const secondFileUrl = await uploadLectureFile(secondFile.file)
-          
-          // Thêm thông tin file thứ hai vào description
-          const secondFileInfo = `\n\nFile thứ hai:\nURL: ${secondFileUrl.url}\nLoại: ${secondFileUrl.file_type}\nKích thước: ${secondFileUrl.file_size} bytes`
-          lectureData.description = lectureData.description + secondFileInfo
+          fileUrl = `${fileUrl}|||${secondFileUrl.url}`
+          fileType = `${fileType}|||${secondFileUrl.file_type}`
+          fileSize = fileSize + secondFileUrl.file_size
+        }
+
+        lectureData = {
+          ...lectureData,
+          file_url: fileUrl,
+          file_type: fileType,
+          file_size: fileSize
         }
       }
       
-      const lecture = await createLecture(lectureData);
-      if (!lecture) throw new Error('Không thể tạo bài giảng');
-
+      await createLecture(lectureData)
       toast({
         title: 'Thành công',
         description: 'Đã tạo bài giảng mới'
-      });
-      router.push('/dashboard/teacher/lectures');
+      })
+      router.push('/dashboard/teacher/lectures')
     } catch (error) {
-      console.error('Lỗi khi tạo bài giảng:', error);
+      console.error('Lỗi khi tạo bài giảng:', error)
       toast({
         variant: 'destructive',
         title: 'Lỗi',
         description: error instanceof Error ? error.message : 'Không thể tạo bài giảng'
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
@@ -173,7 +150,7 @@ export default function CreateLecturePage() {
       <div className="bg-white rounded-lg shadow-sm px-6 pb-6 md:px-8 md:pb-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold tracking-tight">Tạo bài giảng mới</h2>
-          <p className="text-muted-foreground mt-2">Điền thông tin bài giảng bên dưới</p>
+          <p className="text-muted-foreground mt-2">Nhập thông tin bài giảng bên dưới</p>
         </div>
 
         <form onSubmit={handleCreateLecture} className="space-y-6">
@@ -193,14 +170,13 @@ export default function CreateLecturePage() {
               <option value="">Chọn lớp học</option>
               {classes.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.name} - {c.subject.name}
+                  {c.code} - {c.subject.name}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="space-y-4 pt-4 border-t">
-            <label className="text-sm font-medium block">Chọn phương thức cung cấp bài giảng</label>
             <div className="flex items-center gap-6">
               <label className="inline-flex items-center">
                 <input
@@ -241,7 +217,7 @@ export default function CreateLecturePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Upload file bài giảng (tối đa 2 file)</label>
+              <label className="text-sm font-medium">Upload file bài giảng</label>
               <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
                 <div className="flex flex-col items-center justify-center space-y-4">
                   <FileUpIcon className="h-12 w-12 text-blue-500" />
@@ -257,7 +233,6 @@ export default function CreateLecturePage() {
                     name="lecture_files"
                     accept=".pdf,.doc,.docx,.ppt,.pptx"
                     onChange={handleFileChange}
-                    multiple
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                 </div>

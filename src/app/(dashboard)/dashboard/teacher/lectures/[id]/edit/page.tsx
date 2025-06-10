@@ -23,7 +23,6 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
   const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url')
   const [fileUrl, setFileUrl] = useState('')
-  const [currentFileIndex, setCurrentFileIndex] = useState(0)
   const [lecture, setLecture] = useState<any>(null)
 
   useEffect(() => {
@@ -37,28 +36,27 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
         throw new Error('Không tìm thấy bài giảng')
       }
 
-      // Parse thông tin file thứ hai từ description
-      const secondFileMatch = lectureData.description?.match(/File thứ hai:\nURL: (.*?)\nLoại: (.*?)\nKích thước: (\d+) bytes/)
-      const secondFile = secondFileMatch ? {
-        url: secondFileMatch[1],
-        type: secondFileMatch[2],
-        size: parseInt(secondFileMatch[3])
-      } : null
+      // Parse thông tin file từ file_url
+      const fileUrls = lectureData.file_url?.split('|||') || []
+      const fileTypes = lectureData.file_type?.split('|||') || []
 
-      // Tách description thành phần chính và phần file thứ hai
-      const mainDescription = lectureData.description?.split('\n\nFile thứ hai:')[0] || ''
-
-      setLecture({
-        ...lectureData,
-        description: mainDescription,
-        second_file: secondFile
-      })
-
-      // Set phương thức upload dựa vào loại file
-      setUploadMethod(lectureData.file_type === 'video' ? 'url' : 'upload')
-      if (lectureData.file_type === 'video') {
-        setFileUrl(lectureData.file_url)
+      if (fileUrls.length > 0) {
+        if (fileTypes[0] === 'url') {
+          setUploadMethod('url')
+          setFileUrl(fileUrls[0])
+        } else {
+          setUploadMethod('upload')
+          // Tạo FileWithPreview giả cho các file đã upload
+          setSelectedFiles(fileUrls.map((url: string, index: number) => ({
+            file: new File([], `file${index + 1}`),
+            preview: url,
+            size: 0,
+            type: fileTypes[index] || ''
+          })))
+        }
       }
+
+      setLecture(lectureData)
     } catch (error) {
       console.error('Lỗi khi tải bài giảng:', error)
       toast({
@@ -116,7 +114,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
         lectureData = {
           ...lectureData,
           file_url: fileUrl,
-          file_type: 'video',
+          file_type: 'url',
           file_size: 0
         }
       } else {
@@ -128,34 +126,24 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
         const newFile = selectedFiles[0]
         const uploadedFileUrl = await uploadLectureFile(newFile.file)
         
-        lectureData = {
-          ...lectureData,
-          file_url: uploadedFileUrl.url,
-          file_type: uploadedFileUrl.file_type,
-          file_size: uploadedFileUrl.file_size
+        // Nếu có file thứ hai, giữ nguyên file thứ hai
+        if (lecture.file_url.includes('|||')) {
+          const secondFileUrl = lecture.file_url.split('|||')[1]
+          const secondFileType = lecture.file_type.split('|||')[1]
+          lectureData = {
+            ...lectureData,
+            file_url: `${uploadedFileUrl.url}|||${secondFileUrl}`,
+            file_type: `${uploadedFileUrl.file_type}|||${secondFileType}`,
+            file_size: uploadedFileUrl.file_size + (lecture.file_size - parseInt(lecture.file_url.split('|||')[0].split('/').pop()?.split('.')[1] || '0'))
+          }
+        } else {
+          lectureData = {
+            ...lectureData,
+            file_url: uploadedFileUrl.url,
+            file_type: uploadedFileUrl.file_type,
+            file_size: uploadedFileUrl.file_size
+          }
         }
-      }
-
-      // Nếu đang sửa file thứ hai và có file thứ hai
-      if (currentFileIndex === 1 && lecture.second_file) {
-        // Thêm thông tin file thứ hai vào description
-        const secondFileInfo = `\n\nFile thứ hai:\nURL: ${lecture.second_file.url}\nLoại: ${lecture.second_file.type}\nKích thước: ${lecture.second_file.size} bytes`
-        lectureData.description = lectureData.description + secondFileInfo
-      }
-      // Nếu đang sửa file thứ hai và không có file thứ hai
-      else if (currentFileIndex === 1 && !lecture.second_file) {
-        if (selectedFiles.length === 0) {
-          throw new Error('Vui lòng chọn file thứ hai')
-        }
-        const newFile = selectedFiles[0]
-        const uploadedFileUrl = await uploadLectureFile(newFile.file)
-        const secondFileInfo = `\n\nFile thứ hai:\nURL: ${uploadedFileUrl.url}\nLoại: ${uploadedFileUrl.file_type}\nKích thước: ${uploadedFileUrl.file_size} bytes`
-        lectureData.description = lectureData.description + secondFileInfo
-      }
-      // Nếu đang sửa file thứ nhất và có file thứ hai
-      else if (currentFileIndex === 0 && lecture.second_file) {
-        const secondFileInfo = `\n\nFile thứ hai:\nURL: ${lecture.second_file.url}\nLoại: ${lecture.second_file.type}\nKích thước: ${lecture.second_file.size} bytes`
-        lectureData.description = lectureData.description + secondFileInfo
       }
       
       await updateLecture(params.id, lectureData)
@@ -204,30 +192,6 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           </div>
 
           <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium block">Chọn file để chỉnh sửa</label>
-              {lecture.second_file && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant={currentFileIndex === 0 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentFileIndex(0)}
-                  >
-                    File 1
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={currentFileIndex === 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentFileIndex(1)}
-                  >
-                    File 2
-                  </Button>
-                </div>
-              )}
-            </div>
-
             <div className="flex items-center gap-6">
               <label className="inline-flex items-center">
                 <input
@@ -316,17 +280,12 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
                 </div>
               )}
 
-              {currentFileIndex === 0 && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">File hiện tại: {lecture.file_url.split('/').pop()}</p>
-                </div>
-              )}
-
-              {currentFileIndex === 1 && lecture.second_file && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">File hiện tại: {lecture.second_file.url.split('/').pop()}</p>
-                </div>
-              )}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">File hiện tại: {lecture.file_url.split('|||')[0].split('/').pop()}</p>
+                {lecture.file_url.includes('|||') && (
+                  <p className="text-sm text-gray-600 mt-2">File thứ hai: {lecture.file_url.split('|||')[1].split('/').pop()}</p>
+                )}
+              </div>
             </div>
           )}
 

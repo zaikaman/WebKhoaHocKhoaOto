@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { FileIcon } from "lucide-react"
 
 type Lecture = {
   id: string
@@ -140,6 +141,26 @@ export default function TeacherLecturesPage() {
     return null
   }
 
+  function isYouTubeUrl(url: string): boolean {
+    const youtubePattern = /^https?:\/\/(?:www\.)?youtube\.com\/.*$/;
+    return youtubePattern.test(url);
+  }
+
+  function getYouTubeEmbedUrl(url: string): string {
+    const videoId = url.split('v=')[1] || url.split('/').pop();
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+
+  function formatFileSize(size: number): string {
+    if (size < 1024) {
+      return size + ' bytes';
+    } else if (size < 1024 * 1024) {
+      return (size / 1024).toFixed(2) + ' KB';
+    } else {
+      return (size / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -242,25 +263,12 @@ export default function TeacherLecturesPage() {
                   </svg>
                   {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-4 h-4 mr-2"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" x2="12" y1="15" y2="3" />
-                  </svg>
-                  {lecture.second_file ? '2 file' : '1 file'}
-                </div>
+                {lecture.file_url && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileIcon className="h-4 w-4" />
+                    <span>{lecture.file_url.split('|||').length} file</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -292,83 +300,60 @@ export default function TeacherLecturesPage() {
               </p>
             </div>
 
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-primary">
-                  File bài giảng
-                </h4>
-                {selectedLecture?.second_file && (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={currentFileIndex === 0 ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentFileIndex(0)}
-                    >
-                      File 1
-                    </Button>
-                    <Button
-                      variant={currentFileIndex === 1 ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentFileIndex(1)}
-                    >
-                      File 2
-                    </Button>
-                  </div>
-                )}
-              </div>
-
+            {selectedLecture?.file_url && (
               <div className="space-y-4">
-                <div>
-                  <p className="text-muted-foreground">Loại file</p>
-                  <p className="font-medium break-all">
-                    {currentFileIndex === 0 ? selectedLecture?.file_type : selectedLecture?.second_file?.type}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Kích thước</p>
-                  <p className="font-medium">
-                    {currentFileIndex === 0 ? selectedLecture?.file_size : selectedLecture?.second_file?.size} KB
-                  </p>
-                </div>
-                <div className="flex items-center justify-between bg-background p-3 rounded-lg">
-                  <div className="flex-1 mr-4">
-                    <input
-                      type="text"
-                      readOnly
-                      value={currentFileIndex === 0 ? selectedLecture?.file_url : selectedLecture?.second_file?.url}
-                      className="w-full text-sm text-muted-foreground bg-transparent border-none focus:outline-none overflow-x-auto"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = currentFileIndex === 0 ? selectedLecture?.file_url : selectedLecture?.second_file?.url;
-                        if (url) {
-                          navigator.clipboard.writeText(url);
-                          toast({
-                            title: "Đã sao chép",
-                            description: "Link bài giảng đã được sao chép vào clipboard"
-                          });
-                        }
-                      }}
-                    >
-                      Sao chép
-                    </Button>
-                    <Button asChild variant="outline">
-                      <a
-                        href={currentFileIndex === 0 ? selectedLecture?.file_url : selectedLecture?.second_file?.url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Tài liệu bài giảng</h3>
+                  <div className="flex items-center gap-2">
+                    {selectedLecture.file_url.split('|||').map((url: string, index: number) => (
+                      <Button
+                        key={index}
+                        variant={currentFileIndex === index ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentFileIndex(index)}
                       >
-                        Tải xuống
-                      </a>
-                    </Button>
+                        File {index + 1}
+                      </Button>
+                    ))}
                   </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {selectedLecture.file_url.split('|||').map((url: string, index: number) => (
+                    <div key={index} className={currentFileIndex === index ? 'block' : 'hidden'}>
+                      {isYouTubeUrl(url) ? (
+                        <div className="aspect-video">
+                          <iframe
+                            src={getYouTubeEmbedUrl(url)}
+                            className="w-full h-full rounded-lg"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <FileIcon className="h-8 w-8 text-blue-500" />
+                            <div>
+                              <p className="font-medium">{url.split('/').pop()}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatFileSize(selectedLecture.file_size / (selectedLecture.file_url.split('|||').length || 1))}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(url, '_blank')}
+                          >
+                            Tải xuống
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter>
