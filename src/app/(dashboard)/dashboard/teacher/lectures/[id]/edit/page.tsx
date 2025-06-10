@@ -24,6 +24,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
   const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url')
   const [fileUrl, setFileUrl] = useState('')
   const [lecture, setLecture] = useState<any>(null)
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0)
 
   useEffect(() => {
     loadLecture()
@@ -126,17 +127,24 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
         const newFile = selectedFiles[0]
         const uploadedFileUrl = await uploadLectureFile(newFile.file)
         
-        // Nếu có file thứ hai, giữ nguyên file thứ hai
+        // Nếu có nhiều file, thay thế file được chọn
         if (lecture.file_url.includes('|||')) {
-          const secondFileUrl = lecture.file_url.split('|||')[1]
-          const secondFileType = lecture.file_type.split('|||')[1]
+          const fileUrls = lecture.file_url.split('|||')
+          const fileTypes = lecture.file_type.split('|||')
+          
+          // Thay thế file được chọn bằng file mới
+          fileUrls[selectedFileIndex] = uploadedFileUrl.url
+          fileTypes[selectedFileIndex] = uploadedFileUrl.file_type
+          
+          // Cập nhật dữ liệu
           lectureData = {
             ...lectureData,
-            file_url: `${uploadedFileUrl.url}|||${secondFileUrl}`,
-            file_type: `${uploadedFileUrl.file_type}|||${secondFileType}`,
-            file_size: uploadedFileUrl.file_size + (lecture.file_size - parseInt(lecture.file_url.split('|||')[0].split('/').pop()?.split('.')[1] || '0'))
+            file_url: fileUrls.join('|||'),
+            file_type: fileTypes.join('|||'),
+            file_size: uploadedFileUrl.file_size
           }
         } else {
+          // Nếu chỉ có 1 file
           lectureData = {
             ...lectureData,
             file_url: uploadedFileUrl.url,
@@ -146,6 +154,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
         }
       }
       
+      console.log('Updating lecture with data:', lectureData)
       await updateLecture(params.id, lectureData)
       toast({
         title: 'Thành công',
@@ -233,6 +242,30 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           ) : (
             <div className="space-y-2">
               <label className="text-sm font-medium">Upload file bài giảng</label>
+              
+              {/* Hiển thị danh sách file hiện có */}
+              {lecture.file_url.includes('|||') && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-sm font-medium mb-2">File hiện có:</h3>
+                  <div className="flex gap-2">
+                    {lecture.file_url.split('|||').map((url: string, index: number) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setSelectedFileIndex(index)}
+                        className={`px-3 py-1 rounded-md text-sm ${
+                          selectedFileIndex === index
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-200 hover:bg-gray-300'
+                        }`}
+                      >
+                        File {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
                 <div className="flex flex-col items-center justify-center space-y-4">
                   <FileUpIcon className="h-12 w-12 text-blue-500" />
@@ -281,10 +314,9 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
               )}
 
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">File hiện tại: {lecture.file_url.split('|||')[0].split('/').pop()}</p>
-                {lecture.file_url.includes('|||') && (
-                  <p className="text-sm text-gray-600 mt-2">File thứ hai: {lecture.file_url.split('|||')[1].split('/').pop()}</p>
-                )}
+                <p className="text-sm text-gray-600">
+                  File đang chọn: {lecture.file_url.split('|||')[selectedFileIndex].split('/').pop()}
+                </p>
               </div>
             </div>
           )}
