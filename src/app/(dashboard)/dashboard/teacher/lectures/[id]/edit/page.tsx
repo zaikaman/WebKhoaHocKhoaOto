@@ -1,27 +1,30 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { getLecture, updateLecture, uploadLectureFile, deleteLectureFile } from "@/lib/supabase"
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/components/ui/use-toast'
+import { getLecture, updateLecture, uploadLectureFile } from '@/lib/supabase'
 import { FileUpIcon, XIcon } from "lucide-react"
 
-export default function LectureEditPage() {
+type FileWithPreview = {
+  file: File;
+  preview: string;
+  size: number;
+  type: string;
+}
+
+export default function EditLecturePage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const params = useParams()
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
+  const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url')
+  const [fileUrl, setFileUrl] = useState('')
+  const [currentFileIndex, setCurrentFileIndex] = useState(0)
   const [lecture, setLecture] = useState<any>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    file_url: "",
-  })
 
   useEffect(() => {
     loadLecture()
@@ -29,259 +32,312 @@ export default function LectureEditPage() {
 
   async function loadLecture() {
     try {
-      const lectureData = await getLecture(params.id as string)
-      setLecture(lectureData)
-      setFormData({
-        title: lectureData.title,
-        description: lectureData.description || "",
-        file_url: lectureData.file_url || "",
+      const lectureData = await getLecture(params.id)
+      if (!lectureData) {
+        throw new Error('Không tìm thấy bài giảng')
+      }
+
+      // Parse thông tin file thứ hai từ description
+      const secondFileMatch = lectureData.description?.match(/File thứ hai:\nURL: (.*?)\nLoại: (.*?)\nKích thước: (\d+) bytes/)
+      const secondFile = secondFileMatch ? {
+        url: secondFileMatch[1],
+        type: secondFileMatch[2],
+        size: parseInt(secondFileMatch[3])
+      } : null
+
+      // Tách description thành phần chính và phần file thứ hai
+      const mainDescription = lectureData.description?.split('\n\nFile thứ hai:')[0] || ''
+
+      setLecture({
+        ...lectureData,
+        description: mainDescription,
+        second_file: secondFile
       })
+
+      // Set phương thức upload dựa vào loại file
+      setUploadMethod(lectureData.file_type === 'video' ? 'url' : 'upload')
+      if (lectureData.file_type === 'video') {
+        setFileUrl(lectureData.file_url)
+      }
     } catch (error) {
-      console.error("Lỗi khi tải bài giảng:", error)
+      console.error('Lỗi khi tải bài giảng:', error)
       toast({
-        variant: "destructive", 
-        title: "Lỗi",
-        description: "Không thể tải thông tin bài giảng"
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không thể tải thông tin bài giảng'
       })
-    } finally {
-      setIsLoading(false)
+      router.push('/dashboard/teacher/lectures')
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      if (file.size > 100 * 1024 * 1024) {
+    const files = event.target.files
+    if (files) {
+      const newFiles = Array.from(files).map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        size: file.size,
+        type: file.type
+      }))
+      
+      // Chỉ cho phép chọn 1 file khi đang sửa
+      if (newFiles.length > 1) {
         toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "File không được vượt quá 100MB"
+          variant: 'destructive',
+          title: 'Lỗi',
+          description: 'Chỉ được chọn 1 file để thay thế'
         })
         return
       }
-      setSelectedFile(file)
+
+      setSelectedFiles(newFiles)
     }
   }
 
   const handleRemoveFile = () => {
-    setSelectedFile(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+    setSelectedFiles([])
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
+  async function handleUpdateLecture(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     try {
-      let updatedFileUrl = formData.file_url
+      setIsLoading(true)
+      const formData = new FormData(event.currentTarget)
+      
+      let lectureData: any = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+      }
 
-      if (lecture.file_type === 'video') {
-        // Kiểm tra URL YouTube
-        if (!formData.file_url.includes('youtube.com') && !formData.file_url.includes('youtu.be')) {
-          throw new Error('Chỉ chấp nhận link video từ YouTube')
+      if (uploadMethod === 'url') {
+        if (!fileUrl) {
+          throw new Error('Vui lòng nhập link bài giảng')
         }
-        updatedFileUrl = formData.file_url
+        lectureData = {
+          ...lectureData,
+          file_url: fileUrl,
+          file_type: 'video',
+          file_size: 0
+        }
       } else {
-        // Kiểm tra file mới
-        if (!selectedFile && !formData.file_url) {
-          throw new Error('Vui lòng chọn file')
+        if (selectedFiles.length === 0) {
+          throw new Error('Vui lòng chọn file để thay thế')
         }
+
+        // Upload file mới
+        const newFile = selectedFiles[0]
+        const uploadedFileUrl = await uploadLectureFile(newFile.file)
         
-        if (selectedFile) {
-          // Xóa file cũ nếu có
-          if (formData.file_url) {
-            await deleteLectureFile(formData.file_url)
-          }
-          // Upload file mới
-          updatedFileUrl = await uploadLectureFile(selectedFile)
+        lectureData = {
+          ...lectureData,
+          file_url: uploadedFileUrl.url,
+          file_type: uploadedFileUrl.file_type,
+          file_size: uploadedFileUrl.file_size
         }
       }
 
-      await updateLecture(params.id as string, {
-        title: formData.title,
-        description: formData.description,
-        file_url: updatedFileUrl,
-        ...(selectedFile && {
-          file_type: selectedFile.type,
-          file_size: selectedFile.size
-        })
-      })
-
+      // Nếu đang sửa file thứ hai và có file thứ hai
+      if (currentFileIndex === 1 && lecture.second_file) {
+        // Thêm thông tin file thứ hai vào description
+        const secondFileInfo = `\n\nFile thứ hai:\nURL: ${lecture.second_file.url}\nLoại: ${lecture.second_file.type}\nKích thước: ${lecture.second_file.size} bytes`
+        lectureData.description = lectureData.description + secondFileInfo
+      }
+      // Nếu đang sửa file thứ hai và không có file thứ hai
+      else if (currentFileIndex === 1 && !lecture.second_file) {
+        if (selectedFiles.length === 0) {
+          throw new Error('Vui lòng chọn file thứ hai')
+        }
+        const newFile = selectedFiles[0]
+        const uploadedFileUrl = await uploadLectureFile(newFile.file)
+        const secondFileInfo = `\n\nFile thứ hai:\nURL: ${uploadedFileUrl.url}\nLoại: ${uploadedFileUrl.file_type}\nKích thước: ${uploadedFileUrl.file_size} bytes`
+        lectureData.description = lectureData.description + secondFileInfo
+      }
+      // Nếu đang sửa file thứ nhất và có file thứ hai
+      else if (currentFileIndex === 0 && lecture.second_file) {
+        const secondFileInfo = `\n\nFile thứ hai:\nURL: ${lecture.second_file.url}\nLoại: ${lecture.second_file.type}\nKích thước: ${lecture.second_file.size} bytes`
+        lectureData.description = lectureData.description + secondFileInfo
+      }
+      
+      await updateLecture(params.id, lectureData)
       toast({
-        title: "Thành công",
-        description: "Đã cập nhật bài giảng"
+        title: 'Thành công',
+        description: 'Đã cập nhật bài giảng'
       })
-
-      router.back()
-    } catch (error: any) {
+      router.push('/dashboard/teacher/lectures')
+    } catch (error) {
+      console.error('Lỗi khi cập nhật bài giảng:', error)
       toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: error.message || "Không thể cập nhật bài giảng"
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể cập nhật bài giảng'
       })
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg font-medium">Đang tải...</div>
-      </div>
-    )
-  }
-
   if (!lecture) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg font-medium">Không tìm thấy bài giảng</div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   return (
-    <div className="w-full px-20 py-0 space-y-2">
-      <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-sm">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Chỉnh sửa bài giảng</h2>
-          <p className="mt-1 text-gray-500">Cập nhật thông tin bài giảng</p>
+    <div className="container mx-auto pb-8 px-4 md:px-6 lg:px-8 max-w-4xl">
+      <div className="bg-white rounded-lg shadow-sm px-6 pb-6 md:px-8 md:pb-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold tracking-tight">Chỉnh sửa bài giảng</h2>
+          <p className="text-muted-foreground mt-2">Cập nhật thông tin bài giảng bên dưới</p>
         </div>
-        <Button variant="outline" onClick={() => router.back()} className="hover:bg-gray-100">
-          Quay lại
-        </Button>
-      </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm space-y-6">
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Tiêu đề
-            </label>
-            <Input
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-              className="w-full"
-            />
+        <form onSubmit={handleUpdateLecture} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Tiêu đề</label>
+            <Input name="title" defaultValue={lecture.title} required className="w-full" />
           </div>
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Mô tả
-            </label>
-            <Textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={4}
-              className="w-full"
-            />
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Mô tả</label>
+            <Textarea name="description" defaultValue={lecture.description} required className="w-full min-h-[120px]" />
           </div>
 
-          {lecture.file_type === 'video' ? (
-            <div>
-              <label htmlFor="file_url" className="block text-sm font-medium text-gray-700 mb-1">
-                Link YouTube
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium block">Chọn file để chỉnh sửa</label>
+              {lecture.second_file && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant={currentFileIndex === 0 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentFileIndex(0)}
+                  >
+                    File 1
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={currentFileIndex === 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentFileIndex(1)}
+                  >
+                    File 2
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-6">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  name="uploadMethod"
+                  value="url"
+                  checked={uploadMethod === 'url'}
+                  onChange={() => setUploadMethod('url')}
+                  className="form-radio text-primary"
+                />
+                <span className="ml-2">Nhập link</span>
               </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  name="uploadMethod"
+                  value="upload"
+                  checked={uploadMethod === 'upload'}
+                  onChange={() => setUploadMethod('upload')}
+                  className="form-radio text-primary"
+                />
+                <span className="ml-2">Upload file</span>
+              </label>
+            </div>
+          </div>
+
+          {uploadMethod === 'url' ? (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Link bài giảng</label>
               <Input
-                id="file_url"
                 name="file_url"
-                type="url"
-                value={formData.file_url}
-                onChange={handleInputChange}
-                placeholder="Nhập link video YouTube"
-                pattern="^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+"
-                title="Chỉ chấp nhận link từ YouTube"
+                value={fileUrl}
+                onChange={(e) => setFileUrl(e.target.value)}
+                placeholder="Nhập link video YouTube (youtube.com hoặc youtu.be)"
                 required
                 className="w-full"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Chỉ chấp nhận link video từ YouTube (youtube.com hoặc youtu.be)
-              </p>
             </div>
           ) : (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                File bài giảng ( bài giảng cũ sẽ được ghi đè khi bạn upload file mới ) :
-              </label>
-              {!selectedFile && formData.file_url && (
-                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg mb-3">
-                  <FileUpIcon className="text-blue-500" size={20} />
-                  <span className="text-sm text-blue-700">File hiện tại: <a href={formData.file_url} target="_blank" className="text-blue-700 hover:underline">Ở ĐÂY</a></span>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Upload file bài giảng</label>
+              <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <FileUpIcon className="h-12 w-12 text-blue-500" />
+                  <div className="text-center">
+                    <p className="text-base font-medium text-blue-600">Chọn file để tải lên</p>
+                    <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    name="lecture_files"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {selectedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <FileUpIcon className="w-8 h-8 text-blue-500"/>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{file.file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="text-sm text-red-500 hover:text-red-700"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-              <div className="mt-1">
-                {!selectedFile ? (
-                  <label 
-                    htmlFor="file" 
-                    className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-dashed border-blue-400 rounded-lg appearance-none cursor-pointer hover:border-blue-500 focus:outline-none">
-                    <div className="flex flex-col items-center space-y-2">
-                      <FileUpIcon className="w-6 h-6 text-blue-500"/>
-                      <span className="font-medium text-sm text-gray-600">
-                        Kéo thả file vào đây hoặc click để chọn file
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        (Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX)
-                      </span>
-                    </div>
-                  </label>
-                ) : (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <FileUpIcon className="w-8 h-8 text-blue-500"/>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">{selectedFile.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveFile}
-                        className="text-sm text-red-500 hover:text-red-700"
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <Input
-                  id="file"
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </div>
+
+              {currentFileIndex === 0 && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">File hiện tại: {lecture.file_url.split('/').pop()}</p>
+                </div>
+              )}
+
+              {currentFileIndex === 1 && lecture.second_file && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">File hiện tại: {lecture.second_file.url.split('/').pop()}</p>
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        <Button 
-          type="submit" 
-          disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
-        </Button>
-      </form>
+          <div className="flex justify-end space-x-4 pt-6">
+            <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Đang cập nhật...' : 'Cập nhật bài giảng'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -1044,34 +1044,28 @@ export async function listBuckets() {
   return data
 }
 
-export async function uploadLectureFile(file: File) {
-  // Log bucket list trước khi upload
-  await listBuckets()
-  
+export async function uploadLectureFile(file: File): Promise<{ url: string; file_type: string; file_size: number }> {
   const fileExt = file.name.split('.').pop()
-  const fileName = `${Math.random()}.${fileExt}`
+  const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
   const filePath = `lectures/${fileName}`
-
-  console.log('Uploading to path:', filePath)
 
   const { error: uploadError } = await supabase.storage
     .from('lectures')
     .upload(filePath, file)
 
   if (uploadError) {
-    console.error('Upload error:', uploadError)
-    throw uploadError
+    throw new Error('Không thể tải lên file')
   }
-
-  console.log('Upload successful, getting public URL...')
 
   const { data: { publicUrl } } = supabase.storage
     .from('lectures')
     .getPublicUrl(filePath)
 
-  console.log('Generated public URL:', publicUrl)
-
-  return publicUrl
+  return {
+    url: publicUrl,
+    file_type: file.type,
+    file_size: file.size
+  }
 }
 
 //Hàm lấy chi tiết bài giảng
