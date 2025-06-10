@@ -17,15 +17,21 @@ type Class = {
   };
 }
 
+type FileWithPreview = {
+  file: File;
+  preview: string;
+  size: number;
+  type: string;
+}
+
 export default function CreateLecturePage() {
   const router = useRouter()
   const { toast } = useToast()
   const [classes, setClasses] = useState<Class[]>([])
   const [isLoading, setIsLoading] = useState(false)
-
-  // Thêm state cho phương thức upload và file được chọn
+  const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
   const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileUrl, setFileUrl] = useState('')
 
   useEffect(() => {
     loadTeacherClasses()
@@ -50,6 +56,39 @@ export default function CreateLecturePage() {
     }
   }
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (files) {
+      const newFiles = Array.from(files).map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        size: file.size,
+        type: file.type
+      }))
+      
+      // Kiểm tra số lượng file
+      if (selectedFiles.length + newFiles.length > 2) {
+        toast({
+          variant: 'destructive',
+          title: 'Lỗi',
+          description: 'Chỉ được upload tối đa 2 file'
+        })
+        return
+      }
+
+      setSelectedFiles(prev => [...prev, ...newFiles])
+    }
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => {
+      const newFiles = [...prev]
+      URL.revokeObjectURL(newFiles[index].preview)
+      newFiles.splice(index, 1)
+      return newFiles
+    })
+  }
+
   // Hàm giả lập upload file, trong thực tế nên sử dụng Supabase Storage hoặc API upload file
   async function uploadLectureFile(file: File): Promise<{ url: string, file_type: string, file_size: number }> {
     // Ở đây ta dùng URL.createObjectURL làm ví dụ, nhưng nên thay bằng upload thực tế
@@ -65,32 +104,55 @@ export default function CreateLecturePage() {
     try {
       setIsLoading(true)
       const formData = new FormData(event.currentTarget)
-      let fileData: { url: string, file_type: string, file_size: number };
       
-      if (uploadMethod === 'upload') {
-        if (!selectedFile) {
-          throw new Error('Chưa chọn file để upload');
-        }
-        fileData = await uploadLectureFile(selectedFile);
-      } else {
-        // Nếu chọn nhập URL, lấy giá trị từ input
-        fileData = {
-          url: formData.get('file_url') as string,
-          file_type: 'unknown',
-          file_size: 0
-        };
-      }
-      
-      const lectureData = {
+      let lectureData: any = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         class_id: formData.get('class_id') as string,
-        file_url: fileData.url,
-        file_type: fileData.file_type,
-        file_size: fileData.file_size,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      }
+
+      if (uploadMethod === 'url') {
+        if (!fileUrl) {
+          throw new Error('Vui lòng nhập link bài giảng')
+        }
+        lectureData = {
+          ...lectureData,
+          file_url: fileUrl,
+          file_type: 'video',
+          file_size: 0
+        }
+      } else {
+        if (selectedFiles.length === 0) {
+          throw new Error('Vui lòng chọn ít nhất 1 file')
+        }
+
+        // Upload file đầu tiên
+        const firstFile = selectedFiles[0]
+        const uploadedFileUrl = await uploadLectureFile(firstFile.file)
+        
+        lectureData = {
+          ...lectureData,
+          file_url: uploadedFileUrl.url,
+          file_type: uploadedFileUrl.file_type,
+          file_size: uploadedFileUrl.file_size
+        }
+
+        // Upload file thứ hai nếu có
+        if (selectedFiles.length > 1) {
+          const secondFile = selectedFiles[1]
+          const secondFileUrl = await uploadLectureFile(secondFile.file)
+          
+          // Tạo bài giảng thứ hai
+          await createLecture({
+            title: `${formData.get('title')} (File 2)`,
+            description: formData.get('description') as string,
+            class_id: formData.get('class_id') as string,
+            file_url: secondFileUrl.url,
+            file_type: secondFileUrl.file_type,
+            file_size: secondFileUrl.file_size
+          })
+        }
+      }
       
       const lecture = await createLecture(lectureData);
       if (!lecture) throw new Error('Không thể tạo bài giảng');
@@ -105,7 +167,7 @@ export default function CreateLecturePage() {
       toast({
         variant: 'destructive',
         title: 'Lỗi',
-        description: 'Không thể tạo bài giảng'
+        description: error instanceof Error ? error.message : 'Không thể tạo bài giảng'
       });
     } finally {
       setIsLoading(false);
@@ -144,7 +206,7 @@ export default function CreateLecturePage() {
           </div>
 
           <div className="space-y-4 pt-4 border-t">
-            <label className="text-sm font-medium block">Chọn phương thức cung cấp file bài giảng</label>
+            <label className="text-sm font-medium block">Chọn phương thức cung cấp bài giảng</label>
             <div className="flex items-center gap-6">
               <label className="inline-flex items-center">
                 <input
@@ -155,7 +217,7 @@ export default function CreateLecturePage() {
                   onChange={() => setUploadMethod('url')}
                   className="form-radio text-primary"
                 />
-                <span className="ml-2">Nhập URL</span>
+                <span className="ml-2">Nhập link</span>
               </label>
               <label className="inline-flex items-center">
                 <input
@@ -173,9 +235,11 @@ export default function CreateLecturePage() {
 
           {uploadMethod === 'url' ? (
             <div className="space-y-2">
-              <label className="text-sm font-medium">File bài giảng (URL)</label>
+              <label className="text-sm font-medium">Link bài giảng</label>
               <Input
                 name="file_url"
+                value={fileUrl}
+                onChange={(e) => setFileUrl(e.target.value)}
                 placeholder="Nhập link video YouTube (youtube.com hoặc youtu.be)"
                 required
                 className="w-full"
@@ -183,60 +247,54 @@ export default function CreateLecturePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Upload 1 file bài giảng</label>
+              <label className="text-sm font-medium">Upload file bài giảng (tối đa 2 file)</label>
               <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
-                {!selectedFile ? (
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                    <FileUpIcon className="h-12 w-12 text-blue-500" />
-                    <div className="text-center">
-                      <p className="text-base font-medium text-blue-600">Chọn file để tải lên</p>
-                      <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      name="lecture_file"
-                      accept=".pdf,.doc,.docx,.ppt,.pptx"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setSelectedFile(e.target.files[0]);
-                        }
-                      }}
-                      required
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <FileUpIcon className="h-12 w-12 text-blue-500" />
+                  <div className="text-center">
+                    <p className="text-base font-medium text-blue-600">Chọn file để tải lên</p>
+                    <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX
+                    </p>
                   </div>
-                ) : (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <FileUpIcon className="w-8 h-8 text-blue-500"/>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">{selectedFile.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFile(null);
-                          const fileInput = document.querySelector('input[name="lecture_file"]') as HTMLInputElement;
-                          if (fileInput) {
-                            fileInput.value = '';
-                          }
-                        }}
-                        className="text-sm text-red-500 hover:text-red-700"
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  <input
+                    type="file"
+                    name="lecture_files"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx"
+                    onChange={handleFileChange}
+                    multiple
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
               </div>
+
+              {selectedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <FileUpIcon className="w-8 h-8 text-blue-500"/>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{file.file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(index)}
+                          className="text-sm text-red-500 hover:text-red-700"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
