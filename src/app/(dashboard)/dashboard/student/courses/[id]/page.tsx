@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getCurrentUser, getClassDetailsById } from "@/lib/supabase"
+import { FileIcon } from "lucide-react"
 
 interface Lecture {
   id: string
   title: string
   description: string | null
   file_url: string | null
-  file_type: string
+  file_type: string | null
+  file_size: number | null
   created_at: string
 }
 
@@ -56,6 +58,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [classData, setClassData] = useState<ClassDetails | null>(null)
+  const [activeLectureFileIndex, setActiveLectureFileIndex] = useState<{ [key: string]: number }>({})
 
   useEffect(() => {
     loadClassDetails()
@@ -100,6 +103,14 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       ? url.split('v=')[1]
       : url.split('youtu.be/')[1]
     return `https://www.youtube.com/embed/${videoId}`
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   if (isLoading) {
@@ -171,57 +182,84 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
         <TabsContent value="lectures" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {classData.lectures.map((lecture) => (
-              <div 
-                key={lecture.id}
-                className="rounded-lg border bg-card text-card-foreground shadow-sm"
-              >
-                <div className="p-6 space-y-4">
+            {classData.lectures.map((lecture) => {
+              const fileUrls = lecture.file_url?.split('|||') || []
+              const fileTypes = lecture.file_type?.split('|||') || []
+              const currentFileIdx = activeLectureFileIndex[lecture.id] !== undefined
+                ? activeLectureFileIndex[lecture.id]
+                : 0;
+              const currentFileUrl = fileUrls[currentFileIdx];
+              const currentFileType = fileTypes[currentFileIdx];
+
+              return (
+                <div 
+                  key={lecture.id}
+                  className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-4"
+                >
                   <div>
                     <h4 className="font-semibold">{lecture.title}</h4>
                     {lecture.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {lecture.description}
                       </p>
                     )}
                   </div>
-                  {lecture.file_url && (
-                    <div>
-                      {isYoutubeUrl(lecture.file_url) ? (
+
+                  {fileUrls.length > 1 && (
+                    <div className="flex items-center gap-2 mt-2">
+                      {fileUrls.map((_, index) => (
+                        <Button
+                          key={index}
+                          variant={currentFileIdx === index ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setActiveLectureFileIndex(prev => ({ ...prev, [lecture.id]: index }))}
+                        >
+                          File {index + 1}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentFileUrl ? (
+                    <div className="mt-2">
+                      {isYoutubeUrl(currentFileUrl) ? (
                         <div className="relative pt-[56.25%]">
                           <iframe
                             className="absolute top-0 left-0 w-full h-full rounded-lg"
-                            src={getYoutubeEmbedUrl(lecture.file_url)}
+                            src={getYoutubeEmbedUrl(currentFileUrl)}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                           />
                         </div>
-                      ) : lecture.file_type === 'application/pdf' ? (
+                      ) : currentFileType === 'application/pdf' ? (
                         <iframe
-                          src={lecture.file_url}
+                          src={currentFileUrl}
                           className="w-full h-[400px] rounded-lg"
                         />
                       ) : (
                         <Button asChild variant="secondary" className="w-full hover:bg-primary hover:text-white transition-colors">
                           <a
-                            href={lecture.file_url}
+                            href={currentFileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             download
                             className="flex items-center gap-2"
                           >
+                            <FileIcon className="h-4 w-4" />
                             Tải xuống tài liệu
                           </a>
                         </Button>
                       )}
                     </div>
-                  )}
+                  ) : (fileUrls.length > 0 && (
+                    <div className="text-sm text-muted-foreground mt-2">Không thể hiển thị file này.</div>
+                  ))}
                   <div className="text-sm text-muted-foreground">
                     Ngày đăng: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
 
             {classData.lectures.length === 0 && (
               <div className="col-span-full text-center py-12">
@@ -248,20 +286,20 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               </thead>
               <tbody>
                 {classData.assignments.map((assignment) => (
-                  <tr key={assignment.id} className="border-t">
+                  <tr key={assignment.id} className="border-b last:border-0">
                     <td className="py-3 px-4">{assignment.title}</td>
-                    <td className="py-3 px-4">{assignment.description || 'Không có mô tả'}</td>
-                    <td className="py-3 px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN')}</td>
-                  </tr>
-                ))}
-
-                {classData.assignments.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="py-8 text-center text-muted-foreground">
-                      Chưa có bài tập nào
+                    <td className="py-3 px-4">{assignment.description}</td>
+                    <td className="py-3 px-4">
+                      {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -270,7 +308,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         <TabsContent value="exams" className="space-y-6">
           <div className="rounded-md border">
             <div className="p-4">
-              <Button onClick={() => router.push('/dashboard/student/exams')}>
+              <Button onClick={() => router.push('/dashboard/exams')}>
                 Đến trang Bài kiểm tra
               </Button>
             </div>
@@ -285,37 +323,21 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               </thead>
               <tbody>
                 {classData.exams.map((exam) => (
-                  <tr key={exam.id} className="border-t">
+                  <tr key={exam.id} className="border-b last:border-0">
                     <td className="py-3 px-4">{exam.title}</td>
-                    <td className="py-3 px-4">{exam.description?.replace(/<\/?p>/g, '') || 'Không có mô tả'}</td>
+                    <td className="py-3 px-4">{exam.description}</td>
                     <td className="py-3 px-4">
-                      {new Date(exam.start_time).toLocaleString('vi-VN')}
+                      {new Date(exam.start_time).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })} - {new Date(exam.end_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        exam.status === 'upcoming'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : exam.status === 'in-progress'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {exam.status === 'upcoming'
-                          ? 'Sắp diễn ra'
-                          : exam.status === 'in-progress'
-                          ? 'Đang diễn ra'
-                          : 'Đã kết thúc'}
-                      </span>
-                    </td>
+                    <td className="py-3 px-4">{exam.status === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'}</td>
                   </tr>
                 ))}
-
-                {classData.exams.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      Chưa có bài kiểm tra nào
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

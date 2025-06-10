@@ -183,14 +183,7 @@ export type ClassDetails = {
     code: string
     credits: number
   }
-  lectures: {
-    id: string
-    title: string
-    description: string | null
-    file_url: string | null
-    file_type: string
-    created_at: string
-  }[]
+  lectures: Lecture[]
   assignments: {
     id: string
     title: string
