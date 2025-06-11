@@ -72,7 +72,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         class_id: classId,
         title,
         description,
-        file_url: fileUrl,
+        file_url: fileUrl.url,
         file_type: file.type,
         file_size: file.size
       })
