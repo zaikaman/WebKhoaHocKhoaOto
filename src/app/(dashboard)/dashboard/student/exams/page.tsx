@@ -326,8 +326,83 @@ export default function ExamsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+          <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+        </div>
+
+        {/* Search and Filter Skeleton */}
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <div className="h-10 w-full bg-muted rounded animate-pulse" />
+            </div>
+            <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="h-6 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-6 w-28 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="rounded-lg border">
+          <div className="p-4">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4">
+                    <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <div className="h-4 w-28 bg-muted rounded animate-pulse" />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, index) => (
+                  <tr key={index} className="border-b last:border-0">
+                    <td className="py-3 px-4">
+                      <div className="space-y-2">
+                        <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+                        <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="h-4 w-36 bg-muted rounded animate-pulse" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="h-6 w-24 bg-muted rounded-full animate-pulse" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     )
   }

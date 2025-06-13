@@ -483,8 +483,73 @@ export default function TeacherAssignmentsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-48 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-64 bg-muted rounded animate-pulse mb-1" />
+            <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* Search and Filter Skeleton */}
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <div className="h-10 w-full bg-muted rounded animate-pulse" />
+            </div>
+            <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="h-6 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-6 w-28 bg-muted rounded animate-pulse" />
+            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-6 w-24 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* Assignment List Skeleton */}
+        <div className="rounded-md border">
+          <div className="divide-y">
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="p-4 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+                      <div className="h-5 w-24 bg-muted rounded-full animate-pulse" />
+                    </div>
+                    <div className="h-4 w-64 bg-muted rounded animate-pulse mt-1" />
+                    <div className="grid grid-cols-3 gap-4 mt-2">
+                      <div>
+                        <div className="h-3 w-20 bg-muted rounded animate-pulse mb-1" />
+                        <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="h-3 w-20 bg-muted rounded animate-pulse mb-1" />
+                        <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="h-3 w-20 bg-muted rounded animate-pulse mb-1" />
+                        <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+                    <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

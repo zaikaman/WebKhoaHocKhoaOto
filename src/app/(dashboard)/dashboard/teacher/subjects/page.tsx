@@ -90,8 +90,60 @@ export default function TeacherSubjectsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-48 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+        </div>
+
+        {/* Subjects Table Skeleton */}
+        <div className="rounded-md border">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="py-3 px-4 text-left">
+                  <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                </th>
+                <th className="py-3 px-4 text-left">
+                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                </th>
+                <th className="py-3 px-4 text-left">
+                  <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                </th>
+                <th className="py-3 px-4 text-left">
+                  <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                </th>
+                <th className="py-3 px-4 text-left">
+                  <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, index) => (
+                <tr key={index} className="border-t">
+                  <td className="py-3 px-4">
+                    <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="h-4 w-8 bg-muted rounded animate-pulse" />
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }
@@ -131,7 +183,7 @@ export default function TeacherSubjectsPage() {
       {/* Danh sách môn học */}
       <div className="rounded-md border">
         <table className="w-full">
-          <thead className="bg-muted">
+          <thead className="">
             <tr>
               <th className="py-3 px-4 text-left font-medium">Mã môn học</th>
               <th className="py-3 px-4 text-left font-medium">Tên môn học</th>

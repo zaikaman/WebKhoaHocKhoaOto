@@ -284,6 +284,153 @@ export default function TeacherDashboardPage() {
     </div>
   )
 
+  // if (isLoading) {
+  //   return (
+  //     <div className="space-y-8">
+  //       <div className="flex items-center justify-between">
+  //         <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+  //       </div>
+
+  //       {/* Stats Skeleton */}
+  //       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  //         {[...Array(4)].map((_, index) => (
+  //           <div key={index} className="rounded-xl border bg-card text-card-foreground shadow">
+  //             <div className="p-6">
+  //               <div className="flex items-center gap-4">
+  //                 <div className="p-3 bg-muted rounded-full animate-pulse">
+  //                   <div className="w-6 h-6" />
+  //                 </div>
+  //                 <div>
+  //                   <div className="h-4 w-24 bg-muted rounded animate-pulse mb-2" />
+  //                   <div className="h-8 w-12 bg-muted rounded animate-pulse" />
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         ))}
+  //       </div>
+
+  //       {/* Recent classes */}
+  //       <div className="space-y-4">
+  //         <div className="flex items-center justify-between">
+  //           <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+  //           <div className="h-9 w-24 bg-muted rounded animate-pulse" />
+  //         </div>
+  //         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+  //           {[...Array(3)].map((_, index) => (
+  //             <div key={index} className="rounded-lg border bg-card text-card-foreground shadow-sm">
+  //               <div className="p-6">
+  //                 <div className="h-6 w-48 bg-muted rounded animate-pulse mb-2" />
+  //                 <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+  //                 <div className="mt-4 flex items-center justify-between">
+  //                   <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+  //                   <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           ))}
+  //         </div>
+  //       </div>
+
+  //       {/* Upcoming assignments */}
+  //       <div className="space-y-4">
+  //         <div className="flex items-center justify-between">
+  //           <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+  //           <div className="h-9 w-24 bg-muted rounded animate-pulse" />
+  //         </div>
+  //         <div className="rounded-lg border">
+  //           <div className="p-4">
+  //             <table className="w-full">
+  //               <thead>
+  //                 <tr className="border-b">
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-28 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                 </tr>
+  //               </thead>
+  //               <tbody>
+  //                 {[...Array(3)].map((_, index) => (
+  //                   <tr key={index} className="border-b last:border-0">
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                   </tr>
+  //                 ))}
+  //               </tbody>
+  //             </table>
+  //           </div>
+  //         </div>
+  //       </div>
+
+  //       {/* Upcoming exams */}
+  //       <div className="space-y-4">
+  //         <div className="flex items-center justify-between">
+  //           <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+  //           <div className="h-9 w-24 bg-muted rounded animate-pulse" />
+  //         </div>
+  //         <div className="rounded-lg border">
+  //           <div className="p-4">
+  //             <table className="w-full">
+  //               <thead>
+  //                 <tr className="border-b">
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-28 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                   <th className="text-left py-2">
+  //                     <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+  //                   </th>
+  //                 </tr>
+  //               </thead>
+  //               <tbody>
+  //                 {[...Array(3)].map((_, index) => (
+  //                   <tr key={index} className="border-b last:border-0">
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                     <td className="py-3">
+  //                       <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+  //                     </td>
+  //                   </tr>
+  //                 ))}
+  //               </tbody>
+  //             </table>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   )
+  // }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
