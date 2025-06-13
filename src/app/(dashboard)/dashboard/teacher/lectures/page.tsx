@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { getCurrentUser, getTeacherClasses, getClassLectures, deleteLecture } from "@/lib/supabase"
+import SearchFilter, { FilterOption } from "@/components/search-filter"
 import {
   Dialog,
   DialogContent,
@@ -48,13 +49,225 @@ export default function TeacherLecturesPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [lectures, setLectures] = useState<Lecture[]>([])
+  const [filteredLectures, setFilteredLectures] = useState<Lecture[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<Record<string, any>>({})
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null)
   const [currentFileIndex, setCurrentFileIndex] = useState(0)
 
+  // Tạo filter options từ dữ liệu lectures
+  const filterOptions: FilterOption[] = useMemo(() => {
+    const subjects = [...new Set(lectures.map(l => l.class.subject.name).filter(Boolean))] as string[]
+    const classNames = [...new Set(lectures.map(l => l.class.name).filter(Boolean))] as string[]
+    const fileTypes = [...new Set(lectures.map(l => l.file_type).filter(Boolean))] as string[]
+    
+    return [
+      {
+        key: 'subject',
+        label: 'Môn học',
+        type: 'select',
+        options: subjects.map(subject => ({ value: subject, label: subject }))
+      },
+      {
+        key: 'className',
+        label: 'Lớp học',
+        type: 'select',
+        options: classNames.map(className => ({ value: className, label: className }))
+      },
+      {
+        key: 'fileType',
+        label: 'Loại file',
+        type: 'select',
+        options: fileTypes.map(type => ({ value: type, label: type.toUpperCase() }))
+      },
+      {
+        key: 'uploadDate',
+        label: 'Ngày tải lên',
+        type: 'daterange'
+      },
+      {
+        key: 'fileSize',
+        label: 'Kích thước file',
+        type: 'select',
+        options: [
+          { value: '0-1', label: 'Dưới 1MB' },
+          { value: '1-10', label: '1-10MB' },
+          { value: '10-50', label: '10-50MB' },
+          { value: '50+', label: 'Trên 50MB' }
+        ]
+      },
+      {
+        key: 'fileCount',
+        label: 'Số lượng file',
+        type: 'select',
+        options: [
+          { value: '1', label: '1 file' },
+          { value: '2', label: '2 files' },
+          { value: '3+', label: '3+ files' }
+        ]
+      },
+      {
+        key: 'contentType',
+        label: 'Loại nội dung',
+        type: 'select',
+        options: [
+          { value: 'video', label: 'Video (YouTube)' },
+          { value: 'document', label: 'Tài liệu' },
+          { value: 'mixed', label: 'Hỗn hợp' }
+        ]
+      },
+      {
+        key: 'timing',
+        label: 'Thời gian',
+        type: 'select',
+        options: [
+          { value: 'today', label: 'Hôm nay' },
+          { value: 'this_week', label: 'Tuần này' },
+          { value: 'this_month', label: 'Tháng này' },
+          { value: 'older', label: 'Cũ hơn' }
+        ]
+      }
+    ]
+  }, [lectures])
+
   useEffect(() => {
     loadLectures()
   }, [])
+
+  // Lọc lectures dựa trên search query và filters
+  useEffect(() => {
+    let filtered = lectures
+
+    // Tìm kiếm theo text
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(lecture => 
+        lecture.title.toLowerCase().includes(query) ||
+        lecture.description.toLowerCase().includes(query) ||
+        lecture.class.subject.name.toLowerCase().includes(query) ||
+        lecture.class.name.toLowerCase().includes(query) ||
+        lecture.original_filename?.toLowerCase().includes(query)
+      )
+    }
+
+    // Áp dụng filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
+
+      switch (key) {
+        case 'subject':
+          filtered = filtered.filter(l => l.class.subject.name === value)
+          break
+        case 'className':
+          filtered = filtered.filter(l => l.class.name === value)
+          break
+        case 'fileType':
+          filtered = filtered.filter(l => l.file_type === value)
+          break
+        case 'uploadDate':
+          if (Array.isArray(value) && (value[0] || value[1])) {
+            const [startDate, endDate] = value
+            filtered = filtered.filter(l => {
+              const lectureDate = new Date(l.created_at)
+              const start = startDate ? new Date(startDate) : null
+              const end = endDate ? new Date(endDate) : null
+              
+              if (start && end) {
+                return lectureDate >= start && lectureDate <= end
+              } else if (start) {
+                return lectureDate >= start
+              } else if (end) {
+                return lectureDate <= end
+              }
+              return true
+            })
+          }
+          break
+        case 'fileSize':
+          filtered = filtered.filter(l => {
+            const sizeMB = l.file_size / (1024 * 1024)
+            switch (value) {
+              case '0-1':
+                return sizeMB < 1
+              case '1-10':
+                return sizeMB >= 1 && sizeMB <= 10
+              case '10-50':
+                return sizeMB > 10 && sizeMB <= 50
+              case '50+':
+                return sizeMB > 50
+              default:
+                return true
+            }
+          })
+          break
+        case 'fileCount':
+          filtered = filtered.filter(l => {
+            const fileCount = l.file_url.split('|||').length
+            switch (value) {
+              case '1':
+                return fileCount === 1
+              case '2':
+                return fileCount === 2
+              case '3+':
+                return fileCount >= 3
+              default:
+                return true
+            }
+          })
+          break
+        case 'contentType':
+          filtered = filtered.filter(l => {
+            const urls = l.file_url.split('|||')
+            const hasVideo = urls.some(url => isYouTubeUrl(url))
+            const hasDocument = urls.some(url => !isYouTubeUrl(url))
+            
+            switch (value) {
+              case 'video':
+                return hasVideo && !hasDocument
+              case 'document':
+                return hasDocument && !hasVideo
+              case 'mixed':
+                return hasVideo && hasDocument
+              default:
+                return true
+            }
+          })
+          break
+        case 'timing':
+          filtered = filtered.filter(l => {
+            const now = new Date()
+            const lectureDate = new Date(l.created_at)
+            
+            switch (value) {
+              case 'today':
+                return lectureDate.toDateString() === now.toDateString()
+              case 'this_week':
+                const weekStart = new Date(now.setDate(now.getDate() - now.getDay()))
+                const weekEnd = new Date(weekStart)
+                weekEnd.setDate(weekEnd.getDate() + 6)
+                return lectureDate >= weekStart && lectureDate <= weekEnd
+              case 'this_month':
+                return lectureDate.getMonth() === now.getMonth() && lectureDate.getFullYear() === now.getFullYear()
+              case 'older':
+                const monthAgo = new Date()
+                monthAgo.setMonth(monthAgo.getMonth() - 1)
+                return lectureDate < monthAgo
+              default:
+                return true
+            }
+          })
+          break
+      }
+    })
+
+    setFilteredLectures(filtered)
+  }, [lectures, searchQuery, filters])
+
+  const handleSearch = (query: string, newFilters: Record<string, any>) => {
+    setSearchQuery(query)
+    setFilters(newFilters)
+  }
 
   async function loadLectures() {
     try {
@@ -105,6 +318,7 @@ export default function TeacherLecturesPage() {
       // Sắp xếp theo thời gian mới nhất
       allLectures.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       setLectures(allLectures)
+      setFilteredLectures(allLectures)
 
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
@@ -181,6 +395,9 @@ export default function TeacherLecturesPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Bài giảng</h2>
           <p className="text-muted-foreground">Quản lý tất cả bài giảng của bạn</p>
+          <div className="text-sm text-muted-foreground mt-1">
+            Hiển thị {filteredLectures.length} / {lectures.length} bài giảng
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="default" onClick={() => router.push("/dashboard/teacher/lectures/create")}>
@@ -195,8 +412,15 @@ export default function TeacherLecturesPage() {
         </div>
       </div>
 
+      {/* Search and Filter */}
+      <SearchFilter
+        searchPlaceholder="Tìm kiếm bài giảng..."
+        filterOptions={filterOptions}
+        onSearch={handleSearch}
+      />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {lectures.map((lecture) => (
+        {filteredLectures.map((lecture) => (
           <div key={lecture.id} 
             className="group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
           >
@@ -281,6 +505,8 @@ export default function TeacherLecturesPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileIcon className="h-4 w-4" />
                     <span>{lecture.file_url.split('|||').length} file</span>
+                    <span>•</span>
+                    <span>{formatFileSize(lecture.file_size)}</span>
                   </div>
                 )}
               </div>
@@ -288,9 +514,11 @@ export default function TeacherLecturesPage() {
           </div>
         ))}
 
-        {lectures.length === 0 && !isLoading && (
+        {filteredLectures.length === 0 && !isLoading && (
           <div className="col-span-full text-center py-12">
-            <p className="text-muted-foreground">Chưa có bài giảng nào</p>
+            <p className="text-muted-foreground">
+              {lectures.length === 0 ? "Chưa có bài giảng nào" : "Không tìm thấy bài giảng phù hợp"}
+            </p>
           </div>
         )}
       </div>
