@@ -28,6 +28,7 @@ type Lecture = {
   file_url: string
   file_type: string
   file_size: number
+  original_filename: string | null
   second_file: {
     url: string
     type: string
@@ -82,6 +83,7 @@ export default function TeacherLecturesPage() {
             file_url: l.file_url,
             file_type: l.file_type,
             file_size: l.file_size,
+            original_filename: l.original_filename,
             second_file: secondFile,
             created_at: l.created_at,
             class: {
@@ -93,6 +95,12 @@ export default function TeacherLecturesPage() {
           }
         }))
       }
+
+      // Debug log
+      console.log('Loaded lectures with original_filename:', allLectures.map(l => ({
+        title: l.title,
+        original_filename: l.original_filename
+      })))
 
       // Sắp xếp theo thời gian mới nhất
       allLectures.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -334,7 +342,9 @@ export default function TeacherLecturesPage() {
                           <div className="flex items-center gap-3">
                             <FileIcon className="h-8 w-8 text-blue-500" />
                             <div>
-                              <p className="font-medium">{url.split('/').pop()}</p>
+                              <p className="font-medium">
+                                {selectedLecture.original_filename?.split('|||')[index] || url.split('/').pop()}
+                              </p>
                               <p className="text-sm text-muted-foreground">
                                 {formatFileSize(selectedLecture.file_size / (selectedLecture.file_url.split('|||').length || 1))}
                               </p>

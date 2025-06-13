@@ -129,6 +129,12 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                   Thông tin file
                 </h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
+                  {lecture.original_filename && (
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground">Tên file gốc</p>
+                      <p className="font-medium break-all">{lecture.original_filename}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-muted-foreground">Loại file</p>
                     <p className="font-medium break-all">

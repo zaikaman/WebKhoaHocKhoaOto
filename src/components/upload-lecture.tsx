@@ -74,7 +74,8 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         description,
         file_url: fileUrl.url,
         file_type: file.type,
-        file_size: file.size
+        file_size: file.size,
+        original_filename: fileUrl.original_filename
       })
       
       toast({
@@ -125,7 +126,8 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         description,
         file_url: videoUrl,
         file_type: 'video',
-        file_size: 0
+        file_size: 0,
+        original_filename: null
       })
 
       toast({

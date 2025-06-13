@@ -96,7 +96,8 @@ export default function CreateLecturePage() {
           ...lectureData,
           file_url: fileUrl,
           file_type: 'url',
-          file_size: 0
+          file_size: 0,
+          original_filename: null
         }
       } else {
         if (selectedFiles.length === 0) {
@@ -109,6 +110,7 @@ export default function CreateLecturePage() {
         let fileUrl = uploadedFileUrl.url
         let fileType = uploadedFileUrl.file_type
         let fileSize = uploadedFileUrl.file_size
+        let originalFilename = uploadedFileUrl.original_filename
 
         // Nếu có file thứ hai, upload và nối URL
         if (selectedFiles.length > 1) {
@@ -117,13 +119,15 @@ export default function CreateLecturePage() {
           fileUrl = `${fileUrl}|||${secondFileUrl.url}`
           fileType = `${fileType}|||${secondFileUrl.file_type}`
           fileSize = fileSize + secondFileUrl.file_size
+          originalFilename = `${originalFilename}|||${secondFileUrl.original_filename}`
         }
 
         lectureData = {
           ...lectureData,
           file_url: fileUrl,
           file_type: fileType,
-          file_size: fileSize
+          file_size: fileSize,
+          original_filename: originalFilename
         }
       }
       
