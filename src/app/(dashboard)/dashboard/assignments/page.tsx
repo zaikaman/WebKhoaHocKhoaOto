@@ -298,7 +298,7 @@ export default function AssignmentsPage() {
 
       {/* Search and Filter */}
       <SearchFilter
-        searchPlaceholder="Tìm kiếm bài tập theo tên, mô tả, lớp học..."
+        searchPlaceholder="Tìm kiếm bài tập..."
         filterOptions={filterOptions}
         onSearch={handleSearch}
       />

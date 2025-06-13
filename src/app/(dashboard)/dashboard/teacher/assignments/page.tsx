@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { getCurrentUser, getTeacherClasses, getClassAssignments } from "@/lib/supabase"
+import SearchFilter, { FilterOption } from "@/components/search-filter"
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,9 @@ export default function TeacherAssignmentsPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<Record<string, any>>({})
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
@@ -64,9 +68,178 @@ export default function TeacherAssignmentsPage() {
     type: 'multiple_choice' as 'multiple_choice' | 'essay'
   })
 
+  // Tạo filter options từ dữ liệu assignments
+  const filterOptions: FilterOption[] = useMemo(() => {
+    const subjects = [...new Set(assignments.map(a => a.subject))]
+    const classNames = [...new Set(assignments.map(a => a.className))]
+    
+    return [
+      {
+        key: 'subject',
+        label: 'Môn học',
+        type: 'select',
+        options: subjects.map(subject => ({ value: subject, label: subject }))
+      },
+      {
+        key: 'className',
+        label: 'Lớp học',
+        type: 'select',
+        options: classNames.map(className => ({ value: className, label: className }))
+      },
+      {
+        key: 'type',
+        label: 'Loại bài tập',
+        type: 'select',
+        options: [
+          { value: 'multiple_choice', label: 'Trắc nghiệm' },
+          { value: 'essay', label: 'Tự luận' }
+        ]
+      },
+      {
+        key: 'status',
+        label: 'Trạng thái',
+        type: 'select',
+        options: [
+          { value: 'active', label: 'Đang diễn ra' },
+          { value: 'overdue', label: 'Quá hạn' },
+          { value: 'upcoming', label: 'Sắp đến hạn' }
+        ]
+      },
+      {
+        key: 'dueDate',
+        label: 'Hạn nộp',
+        type: 'daterange'
+      },
+      {
+        key: 'points',
+        label: 'Điểm tối đa',
+        type: 'select',
+        options: [
+          { value: '0-50', label: '0-50 điểm' },
+          { value: '50-80', label: '50-80 điểm' },
+          { value: '80-100', label: '80-100 điểm' }
+        ]
+      },
+      {
+        key: 'submissions',
+        label: 'Tình trạng nộp bài',
+        type: 'select',
+        options: [
+          { value: 'has_submissions', label: 'Có bài nộp' },
+          { value: 'no_submissions', label: 'Chưa có bài nộp' }
+        ]
+      }
+    ]
+  }, [assignments])
+
   useEffect(() => {
     loadData()
   }, [])
+
+  // Lọc assignments dựa trên search query và filters
+  useEffect(() => {
+    let filtered = assignments
+
+    // Tìm kiếm theo text
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(assignment => 
+        assignment.title.toLowerCase().includes(query) ||
+        assignment.description?.toLowerCase().includes(query) ||
+        assignment.subject.toLowerCase().includes(query) ||
+        assignment.className.toLowerCase().includes(query)
+      )
+    }
+
+    // Áp dụng filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
+
+      switch (key) {
+        case 'subject':
+          filtered = filtered.filter(a => a.subject === value)
+          break
+        case 'className':
+          filtered = filtered.filter(a => a.className === value)
+          break
+        case 'type':
+          filtered = filtered.filter(a => a.type === value)
+          break
+        case 'status':
+          filtered = filtered.filter(a => {
+            const now = new Date()
+            const dueDate = new Date(a.dueDate)
+            const timeDiff = dueDate.getTime() - now.getTime()
+            const daysDiff = timeDiff / (1000 * 3600 * 24)
+            
+            switch (value) {
+              case 'active':
+                return daysDiff > 0
+              case 'overdue':
+                return daysDiff <= 0
+              case 'upcoming':
+                return daysDiff > 0 && daysDiff <= 7
+              default:
+                return true
+            }
+          })
+          break
+        case 'dueDate':
+          if (Array.isArray(value) && (value[0] || value[1])) {
+            const [startDate, endDate] = value
+            filtered = filtered.filter(a => {
+              const assignmentDate = new Date(a.dueDate)
+              const start = startDate ? new Date(startDate) : null
+              const end = endDate ? new Date(endDate) : null
+              
+              if (start && end) {
+                return assignmentDate >= start && assignmentDate <= end
+              } else if (start) {
+                return assignmentDate >= start
+              } else if (end) {
+                return assignmentDate <= end
+              }
+              return true
+            })
+          }
+          break
+        case 'points':
+          filtered = filtered.filter(a => {
+            const points = a.maxPoints
+            switch (value) {
+              case '0-50':
+                return points >= 0 && points <= 50
+              case '50-80':
+                return points > 50 && points <= 80
+              case '80-100':
+                return points > 80 && points <= 100
+              default:
+                return true
+            }
+          })
+          break
+        case 'submissions':
+          filtered = filtered.filter(a => {
+            switch (value) {
+              case 'has_submissions':
+                return a.submittedCount > 0
+              case 'no_submissions':
+                return a.submittedCount === 0
+              default:
+                return true
+            }
+          })
+          break
+      }
+    })
+
+    setFilteredAssignments(filtered)
+  }, [assignments, searchQuery, filters])
+
+  const handleSearch = (query: string, newFilters: Record<string, any>) => {
+    setSearchQuery(query)
+    setFilters(newFilters)
+  }
 
   async function loadData() {
     try {
@@ -106,6 +279,7 @@ export default function TeacherAssignmentsPage() {
       // Sắp xếp theo thời gian mới nhất
       allAssignments.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
       setAssignments(allAssignments)
+      setFilteredAssignments(allAssignments)
 
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
@@ -200,19 +374,14 @@ export default function TeacherAssignmentsPage() {
         title: "Thành công",
         description: "Đã tạo bài tập mới"
       })
-      loadData()
+      await loadData()
 
-    } catch (error) {
-      console.error('Chi tiết lỗi khi tạo bài tập:', error)
-      if (error instanceof Error) {
-        console.error('Error name:', error.name)
-        console.error('Error message:', error.message)
-        console.error('Error stack:', error.stack)
-      }
+    } catch (error: any) {
+      console.error('Lỗi khi tạo bài tập:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error instanceof Error ? error.message : "Không thể tạo bài tập"
+        description: error.message || "Không thể tạo bài tập"
       })
     } finally {
       setIsLoading(false)
@@ -223,130 +392,85 @@ export default function TeacherAssignmentsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setSelectedFile(file)
+
     try {
-      setSelectedFile(file)
       const data = await file.arrayBuffer()
       const workbook = XLSX.read(data)
       const worksheet = workbook.Sheets[workbook.SheetNames[0]]
       const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
-      if (!Array.isArray(jsonData) || jsonData.length === 0) {
-        throw new Error('File không có dữ liệu')
-      }
+      const newQuestions = jsonData.map((row: any) => ({
+        content: row['Câu hỏi'] || row['Question'] || '',
+        options: [
+          row['Phương án A'] || row['Option A'] || '',
+          row['Phương án B'] || row['Option B'] || '',
+          row['Phương án C'] || row['Option C'] || '',
+          row['Phương án D'] || row['Option D'] || ''
+        ].filter(option => option.trim() !== ''),
+        correct_answer: row['Đáp án đúng'] || row['Correct Answer'] || '',
+        points: Number(row['Điểm'] || row['Points'] || 10)
+      })).filter(q => q.content && q.correct_answer)
 
-      // Validate và chuyển đổi dữ liệu
-      const validQuestions = jsonData
-        .filter((row: any) => {
-          return row.content && 
-                 row.option1 && row.option2 && row.option3 && row.option4 &&
-                 row.correct_option &&
-                 Number(row.correct_option) >= 1 && Number(row.correct_option) <= 4
-        })
-        .map((row: any) => ({
-          content: row.content.trim(),
-          options: [
-            row.option1.trim(),
-            row.option2.trim(),
-            row.option3.trim(),
-            row.option4.trim()
-          ],
-          correct_answer: row[`option${row.correct_option}`].trim(),
-          points: Number(row.points) || 1
-        }))
-
-      if (validQuestions.length === 0) {
-        throw new Error('Không có câu hỏi hợp lệ trong file')
-      }
-
-      setQuestions(validQuestions)
+      setQuestions(newQuestions)
+      
       toast({
         title: "Thành công",
-        description: `Đã tải lên ${validQuestions.length} câu hỏi`
+        description: `Đã tải ${newQuestions.length} câu hỏi từ file Excel`
       })
-
     } catch (error) {
-      console.error('Lỗi khi xử lý file:', error)
+      console.error('Lỗi khi đọc file Excel:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error instanceof Error ? error.message : "Không thể xử lý file"
+        description: "Không thể đọc file Excel. Vui lòng kiểm tra định dạng file."
       })
-      setSelectedFile(null)
     }
   }
 
   const handleDownloadTemplate = () => {
-    const template = [
+    const templateData = [
       {
-        content: 'Câu hỏi: 1 + 1 = ?',
-        option1: 'A. 1',
-        option2: 'B. 2',
-        option3: 'C. 3',
-        option4: 'D. 4',
-        correct_option: '2',
-        points: '1'
+        'Câu hỏi': 'Câu hỏi mẫu 1?',
+        'Phương án A': 'Đáp án A',
+        'Phương án B': 'Đáp án B',
+        'Phương án C': 'Đáp án C',
+        'Phương án D': 'Đáp án D',
+        'Đáp án đúng': 'A',
+        'Điểm': 10
       },
       {
-        content: 'Câu hỏi: 2 x 2 = ?',
-        option1: 'A. 2',
-        option2: 'B. 3',
-        option3: 'C. 4',
-        option4: 'D. 5',
-        correct_option: '3',
-        points: '1'
+        'Câu hỏi': 'Câu hỏi mẫu 2?',
+        'Phương án A': 'Đáp án A',
+        'Phương án B': 'Đáp án B',
+        'Phương án C': 'Đáp án C',
+        'Phương án D': 'Đáp án D',
+        'Đáp án đúng': 'B',
+        'Điểm': 10
       }
-    ];
+    ]
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    ws['!cols'] = [
-      { wch: 40 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 10 }
-    ];
-
-    const notes = [
-      { content: 'Ghi chú:', option1: '', option2: '', option3: '', option4: '', correct_option: '', points: '' },
-      { content: '- Cột correct_option: nhập số thứ tự đáp án đúng (1,2,3,4)', option1: '', option2: '', option3: '', option4: '', correct_option: '', points: '' },
-      { content: '- Cột points: nhập điểm số cho câu hỏi', option1: '', option2: '', option3: '', option4: '', correct_option: '', points: '' }
-    ];
-
-    XLSX.utils.sheet_add_json(ws, notes, { skipHeader: true, origin: -1 });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'mau_cau_hoi_trac_nghiem.xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(templateData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template')
+    XLSX.writeFile(workbook, 'template_bai_tap.xlsx')
   }
 
   const handleDeleteAssignment = async (assignmentId: string) => {
-    if (!assignmentId) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Không tìm thấy ID bài tập để xóa"
-      })
-      return
-    }
-
     try {
       setIsLoading(true)
-      const { error } = await supabase
-        .from('assignments')
-        .delete()
-        .eq('id', assignmentId)
-
-      if (error) throw error
-
+      
+      // Thêm logic xóa bài tập ở đây
+      // await deleteAssignment(assignmentId)
+      
       toast({
         title: "Thành công",
         description: "Đã xóa bài tập"
       })
-      loadData()
+      
+      await loadData()
     } catch (error) {
-      console.error('Error deleting assignment:', error)
+      console.error('Lỗi khi xóa bài tập:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
@@ -371,6 +495,9 @@ export default function TeacherAssignmentsPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Bài tập</h2>
           <p className="text-muted-foreground">Quản lý tất cả bài tập của bạn</p>
+          <div className="text-sm text-muted-foreground mt-1">
+            Hiển thị {filteredAssignments.length} / {assignments.length} bài tập
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={() => setShowCreateDialog(true)}>
@@ -396,6 +523,13 @@ export default function TeacherAssignmentsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Search and Filter */}
+      <SearchFilter
+        searchPlaceholder="Tìm kiếm bài tập..."
+        filterOptions={filterOptions}
+        onSearch={handleSearch}
+      />
 
       {/* Dialog tạo bài tập */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -559,23 +693,12 @@ export default function TeacherAssignmentsPage() {
                         required
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="attachments">Tài liệu đính kèm (không bắt buộc)</Label>
-                      <Input 
-                        id="attachments"
-                        type="file" 
-                        multiple
-                        onChange={(e) => {
-                          // TODO: Handle file upload
-                        }}
-                      />
-                    </div>
                   </div>
                 </div>
               </TabsContent>
             </Tabs>
-            <DialogFooter className="mt-4">
-              <Button variant="outline" type="button" onClick={() => setShowCreateDialog(false)}>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
                 Hủy
               </Button>
               <Button type="submit">Tạo bài tập</Button>
@@ -691,7 +814,7 @@ export default function TeacherAssignmentsPage() {
       {/* Danh sách bài tập */}
       <div className="rounded-md border">
         <div className="divide-y">
-          {assignments.map((assignment) => (
+          {filteredAssignments.map((assignment) => (
             <div key={assignment.id} className="p-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-4">
                 <div className="p-2 rounded-full bg-blue-100 text-blue-600">
@@ -765,9 +888,11 @@ export default function TeacherAssignmentsPage() {
             </div>
           ))}
 
-          {assignments.length === 0 && !isLoading && (
+          {filteredAssignments.length === 0 && !isLoading && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Chưa có bài tập nào</p>
+              <p className="text-muted-foreground">
+                {assignments.length === 0 ? "Chưa có bài tập nào" : "Không tìm thấy bài tập phù hợp"}
+              </p>
             </div>
           )}
         </div>

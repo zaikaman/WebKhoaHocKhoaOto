@@ -343,7 +343,7 @@ export default function ExamsPage() {
 
       {/* Search and Filter */}
       <SearchFilter
-        searchPlaceholder="Tìm kiếm bài kiểm tra theo tên, mô tả, lớp học..."
+        searchPlaceholder="Tìm kiếm bài kiểm tra..."
         filterOptions={filterOptions}
         onSearch={handleSearch}
       />

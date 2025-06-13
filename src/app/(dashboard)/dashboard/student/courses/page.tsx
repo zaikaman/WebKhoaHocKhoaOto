@@ -291,7 +291,7 @@ export default function StudentCoursesPage() {
 
       {/* Search and Filter */}
       <SearchFilter
-        searchPlaceholder="Tìm kiếm lớp học theo tên, mã lớp, môn học, giảng viên..."
+        searchPlaceholder="Tìm kiếm lớp học..."
         filterOptions={filterOptions}
         onSearch={handleSearch}
       />
