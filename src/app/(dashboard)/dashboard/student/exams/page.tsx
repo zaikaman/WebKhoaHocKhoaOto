@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { getCurrentUser, getStudentClasses, supabase } from "@/lib/supabase"
+import SearchFilter, { FilterOption } from "@/components/search-filter"
 
 interface Exam {
   id: string
@@ -35,10 +36,167 @@ export default function ExamsPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [exams, setExams] = useState<Exam[]>([])
+  const [filteredExams, setFilteredExams] = useState<Exam[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<Record<string, any>>({})
+
+  // Tạo filter options từ dữ liệu exams
+  const filterOptions: FilterOption[] = useMemo(() => {
+    const subjects = [...new Set(exams.map(e => e.class.subject.name))]
+    const classes = [...new Set(exams.map(e => e.class.name))]
+    
+    return [
+      {
+        key: 'subject',
+        label: 'Môn học',
+        type: 'select',
+        options: subjects.map(subject => ({ value: subject, label: subject }))
+      },
+      {
+        key: 'class',
+        label: 'Lớp học',
+        type: 'select',
+        options: classes.map(className => ({ value: className, label: className }))
+      },
+      {
+        key: 'type',
+        label: 'Loại bài thi',
+        type: 'select',
+        options: [
+          { value: 'quiz', label: 'Kiểm tra nhanh' },
+          { value: 'midterm', label: 'Giữa kỳ' },
+          { value: 'final', label: 'Cuối kỳ' }
+        ]
+      },
+      {
+        key: 'status',
+        label: 'Trạng thái',
+        type: 'select',
+        options: [
+          { value: 'upcoming', label: 'Sắp diễn ra' },
+          { value: 'in-progress', label: 'Đang diễn ra' },
+          { value: 'submitted', label: 'Đã nộp bài' },
+          { value: 'graded', label: 'Đã chấm' },
+          { value: 'completed', label: 'Đã kết thúc' }
+        ]
+      },
+      {
+        key: 'examTime',
+        label: 'Thời gian thi',
+        type: 'daterange'
+      },
+      {
+        key: 'duration',
+        label: 'Thời lượng',
+        type: 'select',
+        options: [
+          { value: '0-30', label: '0-30 phút' },
+          { value: '30-60', label: '30-60 phút' },
+          { value: '60-90', label: '60-90 phút' },
+          { value: '90+', label: 'Trên 90 phút' }
+        ]
+      }
+    ]
+  }, [exams])
 
   useEffect(() => {
     loadExams()
   }, [])
+
+  // Lọc exams dựa trên search query và filters
+  useEffect(() => {
+    let filtered = exams
+
+    // Tìm kiếm theo text
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(exam => 
+        exam.title.toLowerCase().includes(query) ||
+        exam.description?.toLowerCase().includes(query) ||
+        exam.class.name.toLowerCase().includes(query) ||
+        exam.class.subject.name.toLowerCase().includes(query)
+      )
+    }
+
+    // Áp dụng filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
+
+      switch (key) {
+        case 'subject':
+          filtered = filtered.filter(e => e.class.subject.name === value)
+          break
+        case 'class':
+          filtered = filtered.filter(e => e.class.name === value)
+          break
+        case 'type':
+          filtered = filtered.filter(e => e.type === value)
+          break
+        case 'status':
+          filtered = filtered.filter(e => {
+            const status = getExamStatus(e)
+            switch (value) {
+              case 'upcoming':
+                return status.label === 'Sắp diễn ra'
+              case 'in-progress':
+                return status.label === 'Đang diễn ra'
+              case 'submitted':
+                return status.label === 'Đã nộp bài'
+              case 'graded':
+                return status.label.includes('Đã chấm')
+              case 'completed':
+                return status.label === 'Đã kết thúc'
+              default:
+                return true
+            }
+          })
+          break
+        case 'examTime':
+          if (Array.isArray(value) && (value[0] || value[1])) {
+            const [startDate, endDate] = value
+            filtered = filtered.filter(e => {
+              const examDate = new Date(e.start_time)
+              const start = startDate ? new Date(startDate) : null
+              const end = endDate ? new Date(endDate) : null
+              
+              if (start && end) {
+                return examDate >= start && examDate <= end
+              } else if (start) {
+                return examDate >= start
+              } else if (end) {
+                return examDate <= end
+              }
+              return true
+            })
+          }
+          break
+        case 'duration':
+          filtered = filtered.filter(e => {
+            const duration = e.duration
+            switch (value) {
+              case '0-30':
+                return duration >= 0 && duration <= 30
+              case '30-60':
+                return duration > 30 && duration <= 60
+              case '60-90':
+                return duration > 60 && duration <= 90
+              case '90+':
+                return duration > 90
+              default:
+                return true
+            }
+          })
+          break
+      }
+    })
+
+    setFilteredExams(filtered)
+  }, [exams, searchQuery, filters])
+
+  const handleSearch = (query: string, newFilters: Record<string, any>) => {
+    setSearchQuery(query)
+    setFilters(newFilters)
+  }
 
   async function loadExams() {
     try {
@@ -89,6 +247,7 @@ export default function ExamsPage() {
       }))
 
       setExams(examsWithSubmissions)
+      setFilteredExams(examsWithSubmissions)
 
     } catch (error) {
       console.error('Lỗi khi tải danh sách bài kiểm tra:', error)
@@ -177,7 +336,17 @@ export default function ExamsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Bài kiểm tra</h2>
+        <div className="text-sm text-muted-foreground">
+          Hiển thị {filteredExams.length} / {exams.length} bài kiểm tra
+        </div>
       </div>
+
+      {/* Search and Filter */}
+      <SearchFilter
+        searchPlaceholder="Tìm kiếm bài kiểm tra theo tên, mô tả, lớp học..."
+        filterOptions={filterOptions}
+        onSearch={handleSearch}
+      />
 
       <div className="rounded-lg border">
         <table className="w-full">
@@ -193,60 +362,68 @@ export default function ExamsPage() {
             </tr>
           </thead>
           <tbody>
-            {exams.map((exam) => {
-              const status = getExamStatus(exam)
-              return (
-                <tr key={exam.id} className="border-b last:border-0">
-                  <td className="py-3 px-4">
-                    <div className="font-medium">{exam.title}</div>
-                    <div className="text-sm text-muted-foreground">{exam.class.name}</div>
-                  </td>
-                  <td className="py-3 px-4">{exam.class.subject.name}</td>
-                  <td className="py-3 px-4">{getExamType(exam.type)}</td>
-                  <td className="py-3 px-4">
-                    {new Date(exam.start_time).toLocaleDateString('vi-VN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'UTC'
-                    })}
-                  </td>
-                  <td className="py-3 px-4">{exam.duration} phút</td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
-                      {status.label}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    {status.canTakeExam ? (
-                      <Button
-                        size="sm"
-                        onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
-                      >
-                        Vào thi
-                      </Button>
-                    ) : status.canViewResult ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/dashboard/student/exams/${exam.id}/result`)}
-                      >
-                        Xem kết quả
-                      </Button>
-                    ) : null}
-                  </td>
-                </tr>
-              )
-            })}
-
-            {exams.length === 0 && (
+            {filteredExams.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                  Không có bài kiểm tra nào
+                  {exams.length === 0 ? "Chưa có bài kiểm tra nào" : "Không tìm thấy bài kiểm tra phù hợp"}
                 </td>
               </tr>
+            ) : (
+              filteredExams.map((exam) => {
+                const status = getExamStatus(exam)
+                return (
+                  <tr key={exam.id} className="border-b last:border-0">
+                    <td className="py-3 px-4">
+                      <div className="font-medium">{exam.title}</div>
+                      <div className="text-sm text-muted-foreground">{exam.class.name}</div>
+                    </td>
+                    <td className="py-3 px-4">{exam.class.subject.name}</td>
+                    <td className="py-3 px-4">{getExamType(exam.type)}</td>
+                    <td className="py-3 px-4">
+                      {new Date(exam.start_time).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'UTC'
+                      })}
+                    </td>
+                    <td className="py-3 px-4">{exam.duration} phút</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {status.canTakeExam ? (
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
+                        >
+                          Vào thi
+                        </Button>
+                      ) : status.canViewResult ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/student/exams/${exam.id}/result`)}
+                        >
+                          Xem kết quả
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
+                        >
+                          Xem chi tiết
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
