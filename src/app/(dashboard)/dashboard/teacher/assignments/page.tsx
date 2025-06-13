@@ -359,8 +359,8 @@ export default function TeacherAssignmentsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[200px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -689,89 +689,89 @@ export default function TeacherAssignmentsPage() {
       </Dialog>
 
       {/* Danh sách bài tập */}
-      <div className="rounded-md border">
-        <div className="divide-y">
-          {assignments.map((assignment) => (
-            <div key={assignment.id} className="p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="16" y1="13" x2="8" y2="13" />
-                    <line x1="16" y1="17" x2="8" y2="17" />
-                    <line x1="10" y1="9" x2="8" y2="9" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium">{assignment.title}</h4>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      assignment.type === 'multiple_choice'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-purple-100 text-purple-700'
-                    }`}>
-                      {assignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
-                    </span>
+      {assignments.length === 0 && !isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Chưa có bài tập nào</p>
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <div className="divide-y">
+            {assignments.map((assignment) => (
+              <div key={assignment.id} className="p-4 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                      <line x1="10" y1="9" x2="8" y2="9" />
+                    </svg>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{assignment.subject} - {assignment.className}</p>
-                  <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Điểm tối đa</p>
-                      <p className="font-medium">{assignment.maxPoints} điểm</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{assignment.title}</h4>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        assignment.type === 'multiple_choice'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-purple-100 text-purple-700'
+                      }`}>
+                        {assignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Hạn nộp</p>
-                      <p className="font-medium">
-                        {new Date(assignment.dueDate).toISOString().replace('T', ' ').substring(0, 19)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Đã nộp</p>
-                      <p className="font-medium">{assignment.submittedCount}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{assignment.subject} - {assignment.className}</p>
+                    <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Điểm tối đa</p>
+                        <p className="font-medium">{assignment.maxPoints} điểm</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Hạn nộp</p>
+                        <p className="font-medium">
+                          {new Date(assignment.dueDate).toISOString().replace('T', ' ').substring(0, 19)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Đã nộp</p>
+                        <p className="font-medium">{assignment.submittedCount}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      setSelectedAssignment(assignment)
-                      setShowDetailDialog(true)
-                    }}
-                  >
-                    Chi tiết
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions`)}
-                  >
-                    Bài nộp
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedAssignment(assignment)
+                        setShowDetailDialog(true)
+                      }}
+                    >
+                      Chi tiết
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions`)}
+                    >
+                      Bài nộp
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {assignments.length === 0 && !isLoading && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Chưa có bài tập nào</p>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 } 

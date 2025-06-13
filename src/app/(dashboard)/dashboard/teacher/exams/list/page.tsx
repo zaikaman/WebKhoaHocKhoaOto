@@ -218,7 +218,13 @@ export default function TeacherExamsListPage() {
       setIsLoading(false)
     }
   }
-
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -239,119 +245,119 @@ export default function TeacherExamsListPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border shadow">
-        <div className="divide-y">
-          {exams.map((exam) => (
-            <div key={exam.id} className="p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`p-2 rounded-full ${
-                  exam.status === 'completed'
-                    ? 'bg-green-100 text-green-600'
-                    : exam.status === 'in-progress'
-                    ? 'bg-blue-100 text-blue-600'
-                    : 'bg-orange-100 text-orange-600'
-                }`}>
-                  {exam.status === 'completed' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  ) : exam.status === 'in-progress' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2v4" />
-                      <path d="M12 18v4" />
-                      <path d="M4.93 4.93l2.83 2.83" />
-                      <path d="M16.24 16.24l2.83 2.83" />
-                      <path d="M2 12h4" />
-                      <path d="M18 12h4" />
-                      <path d="M4.93 19.07l2.83-2.83" />
-                      <path d="M16.24 7.76l2.83-2.83" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 8v4l3 3" />
-                      <circle cx="12" cy="12" r="10" />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1">
+      {exams.length === 0 && !isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Chưa có bài kiểm tra nào</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border shadow">
+          <div className="divide-y">
+            {exams.map((exam) => (
+              <div key={exam.id} className="p-4 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`p-2 rounded-full ${
+                    exam.status === 'completed'
+                      ? 'bg-green-100 text-green-600'
+                      : exam.status === 'in-progress'
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'bg-orange-100 text-orange-600'
+                  }`}>
+                    {exam.status === 'completed' ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : exam.status === 'in-progress' ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v4" />
+                        <path d="M12 18v4" />
+                        <path d="M4.93 4.93l2.83 2.83" />
+                        <path d="M16.24 16.24l2.83 2.83" />
+                        <path d="M2 12h4" />
+                        <path d="M18 12h4" />
+                        <path d="M4.93 19.07l2.83-2.83" />
+                        <path d="M16.24 7.76l2.83-2.83" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 8v4l3 3" />
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{exam.title}</h4>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        exam.status === 'completed'
+                          ? 'bg-green-100 text-green-700'
+                          : exam.status === 'in-progress'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {exam.status === 'completed' 
+                          ? 'Đã hoàn thành'
+                          : exam.status === 'in-progress'
+                          ? 'Đang diễn ra'
+                          : 'Sắp diễn ra'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{exam.subject} - {exam.className}</p>
+                    <div className="grid grid-cols-5 gap-4 mt-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Thời gian thi</p>
+                        <p className="font-medium">
+                          {new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN', { 
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })} - {new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Thời gian làm bài</p>
+                        <p className="font-medium">{exam.duration} phút</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Tổng số SV</p>
+                        <p className="font-medium">{exam.totalStudents}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Đã nộp</p>
+                        <p className="font-medium">{exam.submittedCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Điểm TB</p>
+                        <p className="font-medium">{exam.averageScore?.toFixed(1) || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium">{exam.title}</h4>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      exam.status === 'completed'
-                        ? 'bg-green-100 text-green-700'
-                        : exam.status === 'in-progress'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {exam.status === 'completed' 
-                        ? 'Đã hoàn thành'
-                        : exam.status === 'in-progress'
-                        ? 'Đang diễn ra'
-                        : 'Sắp diễn ra'}
-                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(exam.id)}>
+                      Chỉnh sửa
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => router.push(`/dashboard/teacher/exams/${exam.id}/submissions`)}>
+                      Bài nộp
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteExam(exam.id)}>
+                      Xóa
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{exam.subject} - {exam.className}</p>
-                  <div className="grid grid-cols-5 gap-4 mt-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Thời gian thi</p>
-                      <p className="font-medium">
-                        {new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN', { 
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true
-                        })} - {new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Thời gian làm bài</p>
-                      <p className="font-medium">{exam.duration} phút</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Tổng số SV</p>
-                      <p className="font-medium">{exam.totalStudents}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Đã nộp</p>
-                      <p className="font-medium">{exam.submittedCount}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Điểm TB</p>
-                      <p className="font-medium">{exam.averageScore?.toFixed(1) || 'N/A'}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(exam.id)}>
-                    Chỉnh sửa
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => router.push(`/dashboard/teacher/exams/${exam.id}/submissions`)}>
-                    Bài nộp
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteExam(exam.id)}>
-                    Xóa
-                  </Button>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {exams.length === 0 && !isLoading && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Chưa có bài kiểm tra nào</p>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>

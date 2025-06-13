@@ -123,7 +123,7 @@ export default function StudentCoursesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -142,13 +142,14 @@ export default function StudentCoursesPage() {
               <DialogTitle>Tham gia lớp học</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="class-code">Mã lớp học</Label>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="class-code" >Mã lớp học :</Label>
                 <Input
                   id="class-code"
                   placeholder="Nhập mã lớp học"
                   value={classCode}
                   onChange={(e) => setClassCode(e.target.value)}
+                  className="flex-1"
                 />
               </div>
               <Button 
@@ -186,6 +187,7 @@ export default function StudentCoursesPage() {
                 <Button
                   variant="secondary"
                   onClick={() => router.push(`/dashboard/student/courses/${course.id}`)}
+                  className="transition-colors hover:bg-black hover:text-white"
                 >
                   Xem chi tiết
                 </Button>

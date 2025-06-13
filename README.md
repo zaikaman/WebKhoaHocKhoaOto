@@ -1,8 +1,20 @@
-# Hướng dẫn sử dụng Hệ thống Quản lý Học tập
+# Web Khóa Học Khóa Ô Tô
 
----
+## 1. Tổng quan dự án
 
-## 1. Dành cho **Sinh viên**
+Dự án "Web Khóa Học Khóa Ô Tô" là một nền tảng học trực tuyến hiện đại được phát triển nhằm cung cấp các khóa học chất lượng cao trong lĩnh vực ô tô. Hệ thống được xây dựng trên nền tảng công nghệ tiên tiến Next.js, tích hợp đầy đủ các tính năng thiết yếu cho việc học trực tuyến như:
+
+- Quản lý khóa học và nội dung học tập
+- Hệ thống xác thực và phân quyền người dùng
+- Công cụ soạn thảo nội dung đa dạng
+- Quản lý tài liệu và tài nguyên học tập
+- Hệ thống đánh giá và phản hồi
+- Báo cáo và thống kê chi tiết
+
+Dự án hướng đến mục tiêu tạo ra một môi trường học tập trực tuyến chuyên nghiệp, dễ tiếp cận và hiệu quả cho người học, đồng thời xây dựng một mô hình kinh doanh bền vững trong lĩnh vực đào tạo trực tuyến. Với giao diện thân thiện và trải nghiệm người dùng được tối ưu hóa, hệ thống hứa hẹn mang lại giá trị thiết thực cho cả người học và đơn vị đào tạo.
+
+## 2. Tính năng
+## Dành cho **Sinh viên**
 
 ### Đăng nhập
 - Sử dụng **mã số sinh viên** làm tên đăng nhập.
@@ -38,7 +50,7 @@
 
 ---
 
-## 2. Dành cho **Giảng viên**
+## Dành cho **Giảng viên**
 
 ### Đăng nhập
 - Sử dụng tài khoản có định dạng **gvXXX** (ví dụ: gv001).
@@ -70,7 +82,7 @@
 
 ---
 
-## 3. Dành cho **Admin**
+## Dành cho **Admin**
 
 ### Đăng nhập Admin
 - Truy cập trang `/admin/login`
@@ -97,21 +109,65 @@
 - Theo dõi hiệu suất hệ thống
 - Xuất báo cáo định kỳ
 
----
+----
 
-## **Lưu ý chung**
+## Công nghệ sử dụng
 
-### 1. Bảo mật
-- Không chia sẻ tài khoản
-- Đổi mật khẩu định kỳ
-- Đăng xuất sau khi sử dụng
+### Frontend (Giao diện người dùng)
+- Next.js 14.1.0: Framework giúp xây dựng giao diện website hiện đại, nhanh và mượt mà
+- TypeScript: Ngôn ngữ lập trình giúp code ổn định và ít lỗi hơn
+- Tailwind CSS: Công cụ tạo giao diện đẹp một cách nhanh chóng
+- Radix UI Components: Bộ công cụ tạo các nút bấm, menu, form đẹp và dễ sử dụng
+- React Hook Form: Thư viện giúp xử lý form đăng nhập, đăng ký dễ dàng
+- Zod: Công cụ kiểm tra dữ liệu người dùng nhập vào có hợp lệ không
+- TipTap: Công cụ soạn thảo văn bản có định dạng (như Word)
+- Monaco Editor: Công cụ soạn thảo code trực tuyến
+- TinyMCE: Một công cụ soạn thảo văn bản khác có nhiều tính năng
 
-### 2. Hỗ trợ
-- Liên hệ admin khi gặp vấn đề
-- Đọc hướng dẫn trước khi sử dụng
-- Báo cáo lỗi kịp thời
+### Backend (Hệ thống máy chủ)
+- Next.js API Routes: Công nghệ xử lý yêu cầu từ người dùng
+- Prisma: Công cụ giúp tương tác với cơ sở dữ liệu dễ dàng hơn
+- Supabase: Hệ thống quản lý đăng nhập và lưu trữ dữ liệu
+- NextAuth.js: Thư viện hỗ trợ đăng nhập, xác thực người dùng
 
-### **Quy định sử dụng**
-- Tuân thủ quy định của nhà trường
-- Tôn trọng quyền riêng tư
-- Sử dụng ngôn ngữ phù hợp
+### Công cụ phát triển
+- ESLint: Công cụ giúp phát hiện và sửa lỗi code
+- TypeScript: (Đã giới thiệu ở trên)
+- Tailwind CSS: (Đã giới thiệu ở trên)
+- PostCSS: Công cụ xử lý và tối ưu CSS
+- Vercel: Nền tảng đưa website lên internet cho mọi người sử dụng
+
+### Các thư viện hỗ trợ
+- XLSX: Thư viện giúp đọc và tạo file Excel
+- DOCX: Thư viện giúp đọc và tạo file Word
+- File Saver: Công cụ hỗ trợ tải file về máy
+- React Table: Thư viện tạo bảng dữ liệu đẹp và dễ sử dụng
+- Hero Icons: Bộ icon đẹp và chuyên nghiệp
+- Lucide React: Một bộ icon khác đẹp và dễ sử dụng
+
+## Cài đặt và chạy dự án
+
+1. Clone repository
+```bash
+git clone [repository-url]
+```
+
+2. Cài đặt dependencies
+```bash
+npm install
+```
+
+3. Chạy môi trường development
+```bash
+npm run dev
+```
+
+4. Build cho production
+```bash
+npm run build
+```
+
+5. Chạy production
+```bash
+npm start
+```
