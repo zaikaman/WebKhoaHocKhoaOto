@@ -116,7 +116,8 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           ...lectureData,
           file_url: fileUrl,
           file_type: 'url',
-          file_size: 0
+          file_size: 0,
+          original_filename: null
         }
       } else {
         if (selectedFiles.length === 0) {
@@ -136,12 +137,16 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           fileUrls[selectedFileIndex] = uploadedFileUrl.url
           fileTypes[selectedFileIndex] = uploadedFileUrl.file_type
           
-          // Cập nhật dữ liệu
+          // Cập nhật dữ liệu  
+          const originalFilenames = lecture.original_filename?.split('|||') || []
+          originalFilenames[selectedFileIndex] = uploadedFileUrl.original_filename
+          
           lectureData = {
             ...lectureData,
             file_url: fileUrls.join('|||'),
             file_type: fileTypes.join('|||'),
-            file_size: uploadedFileUrl.file_size
+            file_size: uploadedFileUrl.file_size,
+            original_filename: originalFilenames.join('|||')
           }
         } else {
           // Nếu chỉ có 1 file
@@ -149,7 +154,8 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
             ...lectureData,
             file_url: uploadedFileUrl.url,
             file_type: uploadedFileUrl.file_type,
-            file_size: uploadedFileUrl.file_size
+            file_size: uploadedFileUrl.file_size,
+            original_filename: uploadedFileUrl.original_filename
           }
         }
       }
@@ -315,7 +321,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
 
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">
-                  File đang chọn: {lecture.file_url.split('|||')[selectedFileIndex].split('/').pop()}
+                  File đang chọn: {lecture.original_filename?.split('|||')[selectedFileIndex] || lecture.file_url.split('|||')[selectedFileIndex].split('/').pop()}
                 </p>
               </div>
             </div>

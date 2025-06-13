@@ -72,6 +72,7 @@ export type Lecture = {
   file_type: string
   file_size: number
   download_count: number
+  original_filename: string | null
   created_at: string
   updated_at: string
 }
@@ -1037,7 +1038,7 @@ export async function listBuckets() {
   return data
 }
 
-export async function uploadLectureFile(file: File): Promise<{ url: string; file_type: string; file_size: number }> {
+export async function uploadLectureFile(file: File): Promise<{ url: string; file_type: string; file_size: number; original_filename: string }> {
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
   const filePath = `lectures/${fileName}`
@@ -1057,7 +1058,8 @@ export async function uploadLectureFile(file: File): Promise<{ url: string; file
   return {
     url: publicUrl,
     file_type: file.type,
-    file_size: file.size
+    file_size: file.size,
+    original_filename: file.name
   }
 }
 

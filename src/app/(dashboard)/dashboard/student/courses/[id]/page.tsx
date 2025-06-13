@@ -15,6 +15,7 @@ interface Lecture {
   file_url: string | null
   file_type: string | null
   file_size: number | null
+  original_filename: string | null
   created_at: string
 }
 
