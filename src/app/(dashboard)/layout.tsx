@@ -13,6 +13,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Menu, X } from "lucide-react"
 
 export default function DashboardLayout({
   children,
@@ -24,6 +32,7 @@ export default function DashboardLayout({
   const { toast } = useToast()
   const [role, setRole] = useState<'student' | 'teacher' | 'admin' | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -74,17 +83,73 @@ export default function DashboardLayout({
     }
   }
 
+  const NavLink = ({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) => (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "text-sm sm:text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group block",
+        "text-black font-medium",
+        "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
+      )}
+    >
+      {children}
+    </Link>
+  )
+
+  const navigationItems = (
+    <>
+      <NavLink href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+        Trang chủ
+      </NavLink>
+
+      {role === 'teacher' && (
+        <>
+          <NavLink href="/dashboard/teacher/classes" onClick={() => setIsMobileMenuOpen(false)}>
+            Lớp học của tôi
+          </NavLink>
+          <NavLink href="/dashboard/teacher/lectures" onClick={() => setIsMobileMenuOpen(false)}>
+            Bài giảng
+          </NavLink>
+          <NavLink href="/dashboard/teacher/assignments" onClick={() => setIsMobileMenuOpen(false)}>
+            Bài tập
+          </NavLink>
+          <NavLink href="/dashboard/teacher/exams/list" onClick={() => setIsMobileMenuOpen(false)}>
+            Bài kiểm tra
+          </NavLink>
+          <NavLink href="/dashboard/teacher/subjects" onClick={() => setIsMobileMenuOpen(false)}>
+            Môn học
+          </NavLink>
+        </>
+      )}
+
+      {role === 'student' && (
+        <>
+          <NavLink href="/dashboard/student/courses" onClick={() => setIsMobileMenuOpen(false)}>
+            Lớp học
+          </NavLink>
+          <NavLink href="/dashboard/assignments" onClick={() => setIsMobileMenuOpen(false)}>
+            Bài tập
+          </NavLink>
+          <NavLink href="/dashboard/student/exams" onClick={() => setIsMobileMenuOpen(false)}>
+            Bài kiểm tra
+          </NavLink>
+        </>
+      )}
+    </>
+  )
+
   return (
     <div className="min-h-screen overflow-x-hidden">
       {/* Fixed Navigation Header */}
       <header className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled 
-          ? "bg-white/60 backdrop-blur-md shadow-sm border-b border-gray-100" 
+          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100" 
           : "bg-white shadow-sm"
       )}>
-        <div className="max-w-7xl mx-auto px-6 py-2 relative">
-          <div className="flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-2 relative">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             {/* Logo and Brand */}
             <Link href="/dashboard" className="flex items-center space-x-2 flex-shrink-0">
               <svg
@@ -95,122 +160,42 @@ export default function DashboardLayout({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-6 w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
               >
                 <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
               </svg>
-              <span className="text-lg font-bold">E-Learning</span>
+              <span className="text-base sm:text-lg font-bold">E-Learning</span>
             </Link>
 
-            {/* Navigation Menu */}
-            <nav className="flex items-center gap-4 overflow-x-auto flex-grow justify-center scrollbar-none">
-              <Link
-                href="/dashboard"
-                className={cn(
-                  "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                     "text-black font-medium",
-                  "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                )}
-              >
-                Trang chủ
-              </Link>
-
-              {role === 'teacher' && (
-                <>
-                  <Link
-                    href="/dashboard/teacher/classes"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      "text-black font-medium",
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Lớp học của tôi
-                  </Link>
-                  <Link
-                    href="/dashboard/teacher/lectures"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                       "text-black font-medium",
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Bài giảng
-                  </Link>
-                  <Link
-                    href="/dashboard/teacher/assignments"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      "text-black font-medium" ,
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Bài tập
-                  </Link>
-                  <Link
-                    href="/dashboard/teacher/exams/list"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      "text-black font-medium" ,
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Bài kiểm tra
-                  </Link>
-                  <Link
-                    href="/dashboard/teacher/subjects"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                       "text-black font-medium" ,
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Môn học
-                  </Link>
-                </>
-              )}
-
-              {role === 'student' && (
-                <>
-                  <Link
-                    href="/dashboard/student/courses"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                     "text-black font-medium" ,
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Lớp học
-                  </Link>
-                  <Link
-                    href="/dashboard/assignments"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                      "text-black font-medium" ,
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Bài tập
-                  </Link>
-                  <Link
-                    href="/dashboard/student/exams"
-                    className={cn(
-                      "text-[15px] px-3 py-2 rounded transition-colors whitespace-nowrap relative group",
-                    "text-black font-medium" ,
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-black after:transition-all after:duration-300 hover:after:w-full"
-                    )}
-                  >
-                    Bài kiểm tra
-                  </Link>
-                </>
-              )}
+            {/* Desktop Navigation Menu */}
+            <nav className="hidden lg:flex items-center gap-4 overflow-x-auto flex-grow justify-center scrollbar-none">
+              {navigationItems}
             </nav>
 
-            {/* User Actions */}
-            <div className="flex items-center gap-4 flex-shrink-0">
+            {/* User Actions and Mobile Menu */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              {/* Mobile Menu */}
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="sm" className="lg:hidden p-2">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Mở menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle className="text-left">Menu điều hướng</SheetTitle>
+                  </SheetHeader>
+                  <nav className="flex flex-col gap-2 mt-8">
+                    {navigationItems}
+                  </nav>
+                </SheetContent>
+              </Sheet>
+
+              {/* User Dropdown */}
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="whitespace-nowrap">
+                  <Button variant="ghost" size="sm" className="gap-2 px-2 sm:px-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
@@ -219,12 +204,12 @@ export default function DashboardLayout({
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-5 w-5"
+                      className="h-4 w-4 sm:h-5 sm:w-5"
                     >
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                       <circle cx="12" cy="7" r="4" />
                     </svg>
-                    <span className="ml-2">Tài khoản</span>
+                    <span className="hidden sm:inline text-sm">Tài khoản</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
@@ -235,7 +220,7 @@ export default function DashboardLayout({
                 >
                   <DropdownMenuItem 
                     onClick={() => router.push('/change-password')}
-                    className="text-xs font-medium cursor-pointer !text-gray-700 hover:!text-gray-900"
+                    className="text-sm font-medium cursor-pointer !text-gray-700 hover:!text-gray-900"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -256,7 +241,7 @@ export default function DashboardLayout({
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={handleSignOut}
-                    className="text-xs font-medium cursor-pointer !text-gray-700 hover:!text-gray-900"
+                    className="text-sm font-medium cursor-pointer !text-gray-700 hover:!text-gray-900"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -284,8 +269,8 @@ export default function DashboardLayout({
       </header>
 
       {/* Main content */}
-      <main className="pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="pt-16 sm:pt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {children}
         </div>
       </main>

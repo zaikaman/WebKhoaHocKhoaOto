@@ -432,16 +432,25 @@ export default function TeacherDashboardPage() {
   // }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Xin chào, {teacherName}</h2>
-        <Button variant="outline" onClick={loadDashboardData} disabled={isLoading}>
+    <div className="space-y-6 sm:space-y-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, {teacherName}</h2>
+          <p className="text-sm text-muted-foreground mt-1">Quản lý hoạt động giảng dạy của bạn</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={loadDashboardData} 
+          disabled={isLoading}
+          className="w-full sm:w-auto"
+        >
           {isLoading ? "Đang tải..." : "Làm mới"}
         </Button>
       </div>
 
       {/* Thống kê tổng quan */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {isStatsLoading ? (
           <>
             <StatsSkeleton />
@@ -454,47 +463,47 @@ export default function TeacherDashboardPage() {
           </>
         ) : (
           <>
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-blue-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 sm:w-6 sm:h-6">
                       <path d="M18 6h-5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h5c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
                       <path d="M9 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h5c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Lớp học</p>
-                    <h3 className="text-2xl font-bold">{stats.totalClasses}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Lớp học</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.totalClasses}</h3>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-green-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 sm:w-6 sm:h-6">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
                       <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Sinh viên</p>
-                    <h3 className="text-2xl font-bold">{stats.totalStudents}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Sinh viên</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.totalStudents}</h3>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-yellow-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-yellow-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-600 sm:w-6 sm:h-6">
                       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
                       <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z" />
                       <path d="M12 11h4" />
@@ -503,80 +512,80 @@ export default function TeacherDashboardPage() {
                       <path d="M8 16h.01" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bài tập chờ chấm</p>
-                    <h3 className="text-2xl font-bold">{stats.pendingAssignments}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Bài tập chờ</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.pendingAssignments}</h3>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-red-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-red-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 sm:w-6 sm:h-6">
                       <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1.5" />
                       <path d="M16 2v4" />
                       <path d="M8 2v4" />
                       <path d="M3 10h18" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Deadline sắp tới</p>
-                    <h3 className="text-2xl font-bold">{stats.upcomingDeadlines}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Deadline sắp tới</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.upcomingDeadlines}</h3>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-purple-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600 sm:w-6 sm:h-6">
                       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                       <path d="m9 9 3 3-3 3" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bài giảng</p>
-                    <h3 className="text-2xl font-bold">{stats.totalLectures}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Bài giảng</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.totalLectures}</h3>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-orange-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 sm:w-6 sm:h-6">
                       <path d="M9 11l3 3L22 4" />
                       <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bài kiểm tra</p>
-                    <h3 className="text-2xl font-bold">{stats.totalExams}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Bài kiểm tra</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.totalExams}</h3>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+            <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-green-100 rounded-full w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 sm:w-6 sm:h-6">
                       <path d="M12 20v-8" />
                       <path d="M18 20V4" />
                       <path d="M6 20v-4" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Điểm trung bình</p>
-                    <h3 className="text-2xl font-bold">{stats.averageScore?.toFixed(1)}</h3>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Điểm TB</p>
+                    <h3 className="text-lg sm:text-2xl font-bold">{stats.averageScore?.toFixed(1)}</h3>
                   </div>
                 </div>
               </div>
@@ -587,9 +596,9 @@ export default function TeacherDashboardPage() {
 
       {/* Sự kiện sắp tới */}
       <div>
-        <h3 className="text-xl font-semibold mb-4">Sự kiện sắp tới</h3>
+        <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Sự kiện sắp tới</h3>
         {isEventsLoading ? (
-          <div className="rounded-xl border shadow">
+          <div className="rounded-lg sm:rounded-xl border shadow">
             <EventSkeleton />
             <EventSkeleton />
             <EventSkeleton />
@@ -599,12 +608,12 @@ export default function TeacherDashboardPage() {
             Chưa có sự kiện nào
           </div>
         ) : (
-          <div className="rounded-xl border shadow">
+          <div className="rounded-lg sm:rounded-xl border shadow">
             <div className="divide-y">
               {upcomingEvents.map((event) => (
-                <div key={event.id} className="p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-full ${
+                <div key={event.id} className="p-3 sm:p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                    <div className={`p-2 rounded-full flex-shrink-0 ${
                       event.type === 'assignment' 
                         ? 'bg-blue-100 text-blue-600'
                         : event.type === 'exam'
@@ -612,17 +621,17 @@ export default function TeacherDashboardPage() {
                         : 'bg-green-100 text-green-600'
                     }`}>
                       {event.type === 'assignment' ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
                           <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z" />
                         </svg>
                       ) : event.type === 'exam' ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                           <path d="M12 8v4l3 3" />
                           <circle cx="12" cy="12" r="10" />
                         </svg>
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                           <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
                           <line x1="16" x2="16" y1="2" y2="6" />
                           <line x1="8" x2="8" y1="2" y2="6" />
@@ -630,36 +639,41 @@ export default function TeacherDashboardPage() {
                         </svg>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{event.title}</h4>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm sm:text-base truncate">{event.title}</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                         {new Date(event.date).toLocaleDateString('vi-VN', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
+                          weekday: 'short',
+                          month: 'short',
                           day: 'numeric'
                         })}
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
                       Chi tiết
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
-            </div>
+          </div>
         )}
-        </div> 
+      </div> 
+
       {/* Bài giảng gần đây */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold">Bài giảng gần đây</h3>
-          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/teacher/lectures')}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
+          <h3 className="text-lg sm:text-xl font-semibold">Bài giảng gần đây</h3>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push('/dashboard/teacher/lectures')}
+            className="w-full sm:w-auto"
+          >
             Xem tất cả
           </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 ">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {isLecturesLoading ? (
             <>
               <LectureSkeleton />
@@ -672,27 +686,27 @@ export default function TeacherDashboardPage() {
             </div>
           ) : (
             recentLectures.map((lecture) => (
-              <div key={lecture.id} className="rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
-                <div className="p-6">
+              <div key={lecture.id} className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg">
+                <div className="p-4 sm:p-6">
                   <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h4 className="font-semibold line-clamp-2">{lecture.title}</h4>
-                      <p className="text-sm text-muted-foreground">{lecture.subject}</p>
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <h4 className="font-semibold text-sm sm:text-base line-clamp-2">{lecture.title}</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{lecture.subject}</p>
                     </div>
-                    <Button variant="ghost" size="icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <Button variant="ghost" size="icon" className="flex-shrink-0 ml-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" x2="12" y1="15" y2="3" />
                       </svg>
                     </Button>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                  <p className="mt-2 text-xs sm:text-sm text-muted-foreground line-clamp-2">
                     {lecture.description}
                   </p>
-                  <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                    <p>Ngày tải lên: {new Date(lecture.uploadDate).toLocaleDateString('vi-VN')}</p>
-                    <p>{lecture.downloadCount} lượt tải</p>
+                  <div className="mt-3 sm:mt-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-muted-foreground">
+                    <p className="truncate">Ngày: {new Date(lecture.uploadDate).toLocaleDateString('vi-VN')}</p>
+                    <p className="flex-shrink-0">{lecture.downloadCount} lượt tải</p>
                   </div>
                 </div>
               </div>
@@ -703,33 +717,43 @@ export default function TeacherDashboardPage() {
 
       {/* Bài kiểm tra */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold">Bài kiểm tra gần đây</h3>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => router.push('/dashboard/teacher/exams')}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
+          <h3 className="text-lg sm:text-xl font-semibold">Bài kiểm tra gần đây</h3>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => router.push('/dashboard/teacher/exams')}
+              className="w-full sm:w-auto"
+            >
               Tạo bài kiểm tra
             </Button>
-            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/teacher/exams/list')}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/dashboard/teacher/exams/list')}
+              className="w-full sm:w-auto"
+            >
               Xem tất cả
             </Button>
           </div>
         </div>
-        {isExamsLoading ? (
-          <div className="rounded-xl border shadow">
-            <ExamSkeleton />
-            <ExamSkeleton />
-            <ExamSkeleton />
-          </div>
-        ) : recentExams.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
-            Chưa có nội dung nào
-          </div>
-        ) : (
+        <div className="rounded-lg sm:rounded-xl border shadow">
+          {isExamsLoading ? (
+            <div>
+              <ExamSkeleton />
+              <ExamSkeleton />
+              <ExamSkeleton />
+            </div>
+          ) : recentExams.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">
+              Chưa có nội dung nào
+            </div>
+          ) : (
             <div className="divide-y">
               {recentExams.map((exam) => (
-                <div key={exam.id} className="p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-full ${
+                <div key={exam.id} className="p-3 sm:p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                    <div className={`p-2 rounded-full flex-shrink-0 ${
                       exam.status === 'completed'
                         ? 'bg-green-100 text-green-600'
                         : exam.status === 'in-progress'
@@ -737,11 +761,11 @@ export default function TeacherDashboardPage() {
                         : 'bg-orange-100 text-orange-600'
                     }`}>
                       {exam.status === 'completed' ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                           <path d="M20 6 9 17l-5-5" />
                         </svg>
                       ) : exam.status === 'in-progress' ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                           <path d="M12 2v4" />
                           <path d="M12 18v4" />
                           <path d="M4.93 4.93l2.83 2.83" />
@@ -752,16 +776,16 @@ export default function TeacherDashboardPage() {
                           <path d="M16.24 7.76l2.83-2.83" />
                         </svg>
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                           <path d="M12 8v4l3 3" />
                           <circle cx="12" cy="12" r="10" />
                         </svg>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{exam.title}</h4>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <h4 className="font-medium text-sm sm:text-base truncate">{exam.title}</h4>
+                        <span className={`px-2 py-0.5 text-xs rounded-full w-fit ${
                           exam.status === 'completed'
                             ? 'bg-green-100 text-green-700'
                             : exam.status === 'in-progress'
@@ -769,20 +793,20 @@ export default function TeacherDashboardPage() {
                             : 'bg-orange-100 text-orange-700'
                         }`}>
                           {exam.status === 'completed' 
-                            ? 'Đã hoàn thành'
+                            ? 'Hoàn thành'
                             : exam.status === 'in-progress'
                             ? 'Đang diễn ra'
                             : 'Sắp diễn ra'}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{exam.subject}</p>
-                      <div className="grid grid-cols-4 gap-4 mt-2 text-sm">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{exam.subject}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mt-2 text-xs sm:text-sm">
                         <div>
                           <p className="text-muted-foreground">Thời gian</p>
-                          <p className="font-medium">{exam.duration} phút</p>
+                          <p className="font-medium">{exam.duration}p</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Tổng số SV</p>
+                          <p className="text-muted-foreground">Tổng SV</p>
                           <p className="font-medium">{exam.totalStudents}</p>
                         </div>
                         <div>
@@ -791,11 +815,11 @@ export default function TeacherDashboardPage() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Điểm TB</p>
-                          <p className="font-medium">{exam.averageScore?.toFixed(1)}</p>
+                          <p className="font-medium">{exam.averageScore?.toFixed(1) || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm flex-shrink-0">
                       Chi tiết
                     </Button>
                   </div>
@@ -805,5 +829,6 @@ export default function TeacherDashboardPage() {
           )}
         </div>
       </div>
+    </div>
   )
 } 
