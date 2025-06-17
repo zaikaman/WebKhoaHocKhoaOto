@@ -724,11 +724,11 @@ export async function createSubject(subjectData: Omit<Subject, 'id' | 'created_a
   }
 } 
 
-// Cập nhật hàm createEnrollment
+// Cập nhật hàm createEnrollment - hỗ trợ cả class_id (UUID) và class_code
 export async function createEnrollment(data: {
   student_id: string
   full_name: string
-  class_id: string // class_id ở đây thực chất là class_code
+  class_id: string // Có thể là class_id (UUID) từ teacher hoặc class_code từ student
 }) {
   try {
     console.log('Bắt đầu tạo enrollment với dữ liệu:', data)
@@ -753,12 +753,31 @@ export async function createEnrollment(data: {
 
     console.log('Tìm thấy profile:', existingProfile)
 
-    // Lấy thông tin lớp học từ mã lớp
-    const { data: classData, error: classError } = await supabase
-      .from('classes')
-      .select('id')
-      .eq('code', data.class_id)
-      .single()
+    // Kiểm tra xem data.class_id là UUID hay class_code
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.class_id)
+    
+    let classData
+    let classError
+    
+    if (isUUID) {
+      // Nếu là UUID, tìm theo id
+      const result = await supabase
+        .from('classes')
+        .select('id')
+        .eq('id', data.class_id)
+        .single()
+      classData = result.data
+      classError = result.error
+    } else {
+      // Nếu không phải UUID, tìm theo code
+      const result = await supabase
+        .from('classes')
+        .select('id')
+        .eq('code', data.class_id)
+        .single()
+      classData = result.data
+      classError = result.error
+    }
 
     if (classError) {
       console.error('Lỗi khi tìm lớp học:', {
@@ -766,7 +785,9 @@ export async function createEnrollment(data: {
         message: classError.message,
         details: classError.details,
         hint: classError.hint,
-        code: classError.code
+        code: classError.code,
+        searchBy: isUUID ? 'UUID' : 'Code',
+        searchValue: data.class_id
       })
       return { success: false, message: 'Không tìm thấy lớp học với mã này' }
     }
@@ -775,7 +796,7 @@ export async function createEnrollment(data: {
       return { success: false, message: 'Không tìm thấy lớp học với mã này' }
     }
 
-    console.log('Tìm thấy lớp học:', classData)
+    console.log('Tìm thấy lớp học:', classData, 'Search by:', isUUID ? 'UUID' : 'Code')
 
     // Kiểm tra xem sinh viên đã đăng ký lớp này chưa
     const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
