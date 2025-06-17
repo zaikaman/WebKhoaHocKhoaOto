@@ -8,6 +8,18 @@ interface EditorProps {
   defaultValue?: string
 }
 
+// Helper function to strip HTML tags and get plain text
+function stripHtmlTags(html: string): string {
+  // Create a temporary DOM element to parse HTML
+  if (typeof window !== 'undefined') {
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = html
+    return tempDiv.textContent || tempDiv.innerText || ''
+  }
+  // Fallback for server-side rendering
+  return html.replace(/<[^>]*>/g, '')
+}
+
 export function Editor({ name, defaultValue = '' }: EditorProps) {
   const editor = useEditor({
     extensions: [
@@ -25,14 +37,16 @@ export function Editor({ name, defaultValue = '' }: EditorProps) {
   editor?.on('update', ({ editor }) => {
     const input = document.querySelector(`input[name="${name}"]`) as HTMLInputElement
     if (input) {
-      input.value = editor.getHTML()
+      // Get plain text instead of HTML
+      const plainText = stripHtmlTags(editor.getHTML())
+      input.value = plainText
     }
   })
 
   return (
     <div>
       <EditorContent editor={editor} />
-      <input type="hidden" name={name} value={editor?.getHTML() || ''} />
+      <input type="hidden" name={name} value={stripHtmlTags(editor?.getHTML() || '')} />
     </div>
   )
 }

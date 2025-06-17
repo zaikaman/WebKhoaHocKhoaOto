@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { supabase, createAssignment, Assignment as DBAssignment } from '@/lib/supabase'
+import { sanitizeDescription } from '@/lib/utils'
 
 type Assignment = {
   id: string
@@ -318,7 +319,7 @@ export default function TeacherAssignmentsPage() {
       // Create assignment
       const assignmentData: CreateAssignmentData = {
         title: formData.title,
-        description: formData.description,
+        description: sanitizeDescription(formData.description),
         class_id: formData.classId,
         due_date: formData.dueDate,
         total_points: Number(formData.maxPoints),

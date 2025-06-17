@@ -7,10 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { uploadLectureFile } from '@/lib/supabase'
+import { uploadLectureFile, createLecture } from '@/lib/supabase'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { FileUpIcon, LinkIcon } from "lucide-react"
-import { createLecture } from '@/lib/supabase'
+import { sanitizeDescription } from '@/lib/utils'
 
 interface UploadLectureProps {
   classId: string;
@@ -71,7 +71,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
       const result = await createLecture({
         class_id: classId,
         title,
-        description,
+        description: sanitizeDescription(description),
         file_url: fileUrl.url,
         file_type: file.type,
         file_size: file.size,
@@ -123,7 +123,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
       const result = await createLecture({
         class_id: classId,
         title,
-        description,
+        description: sanitizeDescription(description),
         file_url: videoUrl,
         file_type: 'video',
         file_size: 0,
