@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getCurrentUser, getClassDetailsById } from "@/lib/supabase"
+import { getCurrentUser, getClassDetailsById, incrementDownloadCount } from "@/lib/supabase"
 import { FileIcon } from "lucide-react"
 
 interface Lecture {
@@ -59,7 +59,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [classData, setClassData] = useState<ClassDetails | null>(null)
-  const [activeLectureFileIndex, setActiveLectureFileIndex] = useState<{ [key: string]: number }>({})
+  const [activeLectureFileIndex, setActiveLectureFileIndex] = useState<Record<string, number>>({})
 
   useEffect(() => {
     loadClassDetails()
@@ -112,6 +112,43 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // Hàm xử lý download với tracking
+  const handleDownload = async (lectureId: string, fileUrl: string, filename?: string) => {
+    try {
+      // Tăng download count
+      const result = await incrementDownloadCount(lectureId)
+      if (result.success) {
+        console.log('Download count updated:', result.newCount)
+        // Reload data để cập nhật UI nếu cần
+        loadClassDetails()
+      }
+      
+      // Tiến hành download
+      const link = document.createElement('a')
+      link.href = fileUrl
+      if (filename) {
+        link.download = filename
+      }
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast({
+        title: "Thành công",
+        description: "Tài liệu đã được tải xuống"
+      })
+    } catch (error) {
+      console.error('Error downloading:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải xuống file"
+      })
+    }
   }
 
   if (isLoading) {
@@ -238,17 +275,17 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                           className="w-full h-[400px] rounded-lg"
                         />
                       ) : (
-                        <Button asChild variant="secondary" className="w-full hover:bg-primary hover:text-white transition-colors">
-                          <a
-                            href={currentFileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download
-                            className="flex items-center gap-2"
-                          >
-                            <FileIcon className="h-4 w-4" />
-                            Tải xuống tài liệu
-                          </a>
+                        <Button 
+                          variant="secondary" 
+                          className="w-full hover:bg-primary hover:text-white transition-colors"
+                          onClick={() => handleDownload(
+                            lecture.id, 
+                            currentFileUrl, 
+                            lecture.original_filename?.split('|||')[currentFileIdx] || lecture.title
+                          )}
+                        >
+                          <FileIcon className="h-4 w-4 mr-2" />
+                          Tải xuống tài liệu
                         </Button>
                       )}
                     </div>

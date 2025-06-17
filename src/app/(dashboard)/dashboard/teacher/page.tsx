@@ -10,7 +10,10 @@ import {
   getTeacherClasses,
   getClassAssignments,
   getClassExams,
-  getClassLectures
+  getClassLectures,
+  downloadLectureFile,
+  simpleDownloadFile,
+  incrementDownloadCount
 } from "@/lib/supabase"
 
 // Types
@@ -39,6 +42,7 @@ type Lecture = {
   uploadDate: string
   downloadCount: number
   fileUrl: string
+  original_filename?: string | null
 }
 
 type Exam = {
@@ -78,6 +82,83 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     loadDashboardData()
   }, [])
+
+  // Hàm xử lý khi click nút "Chi tiết" của sự kiện
+  const handleEventDetail = (event: UpcomingEvent) => {
+    if (event.type === 'assignment') {
+      router.push(`/dashboard/teacher/assignments/${event.id}`)
+    } else if (event.type === 'exam') {
+      router.push(`/dashboard/teacher/exams/${event.id}`)
+    }
+  }
+
+  // Hàm xử lý khi click nút tải xuống bài giảng
+  const handleDownloadLecture = async (lecture: Lecture) => {
+    try {
+      console.log('Bắt đầu xử lý download:', lecture)
+      
+      if (!lecture.fileUrl) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Không tìm thấy file bài giảng"
+        })
+        return
+      }
+
+      // Hiển thị loading
+      toast({
+        title: "Đang tải...",
+        description: "Đang chuẩn bị tải xuống file"
+      })
+
+      // Thử phương pháp chính trước với lecture ID
+      let result = await downloadLectureFile(
+        lecture.fileUrl, 
+        lecture.original_filename || lecture.title,
+        lecture.id // Truyền lecture ID để tracking
+      )
+      
+      // Nếu thất bại, thử phương pháp backup
+      if (!result.success) {
+        console.log('Phương pháp chính thất bại, thử backup...')
+        result = await simpleDownloadFile(
+          lecture.fileUrl, 
+          lecture.original_filename || lecture.title,
+          lecture.id // Truyền lecture ID để tracking
+        )
+      }
+      
+      if (result.success) {
+        // Reload data để cập nhật số lượt tải trên UI
+        loadDashboardData()
+        
+        toast({
+          title: "Thành công",
+          description: "File đã được tải xuống thành công"
+        })
+      } else {
+        console.error('Lỗi download:', result.error)
+        toast({
+          variant: "destructive",
+          title: "Lỗi tải file",
+          description: result.error || "Không thể tải xuống file"
+        })
+      }
+    } catch (error) {
+      console.error('Exception khi tải file:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi tải file"
+      })
+    }
+  }
+
+  // Hàm xử lý khi click nút "Chi tiết" của bài kiểm tra
+  const handleExamDetail = (exam: Exam) => {
+    router.push(`/dashboard/teacher/exams/${exam.id}`)
+  }
 
   async function loadDashboardData() {
     try {
@@ -162,7 +243,8 @@ export default function TeacherDashboardPage() {
           subject: classItem.subject.name,
           uploadDate: l.created_at,
           downloadCount: l.download_count,
-          fileUrl: l.file_url
+          fileUrl: l.file_url,
+          original_filename: l.original_filename
         })))
       }
 
@@ -649,7 +731,7 @@ export default function TeacherDashboardPage() {
                         })}
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
+                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm" onClick={() => handleEventDetail(event)}>
                       Chi tiết
                     </Button>
                   </div>
@@ -693,7 +775,7 @@ export default function TeacherDashboardPage() {
                       <h4 className="font-semibold text-sm sm:text-base line-clamp-2">{lecture.title}</h4>
                       <p className="text-xs sm:text-sm text-muted-foreground truncate">{lecture.subject}</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="flex-shrink-0 ml-2">
+                    <Button variant="ghost" size="icon" className="flex-shrink-0 ml-2" onClick={() => handleDownloadLecture(lecture)}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
@@ -819,7 +901,7 @@ export default function TeacherDashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm flex-shrink-0">
+                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm flex-shrink-0" onClick={() => handleExamDetail(exam)}>
                       Chi tiết
                     </Button>
                   </div>
