@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { deleteLecture, deleteLectureFile } from '@/lib/supabase'
+import { deleteLecture, deleteLectureFile, incrementDownloadCount } from '@/lib/supabase'
 import type { Lecture } from '@/lib/supabase'
 
 interface LectureDetailProps {
@@ -41,6 +41,45 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
       })
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  // Hàm xử lý download với tracking
+  const handleDownload = async () => {
+    try {
+      // Tăng download count
+      const result = await incrementDownloadCount(lecture.id)
+      if (result.success) {
+        console.log('Download count updated:', result.newCount)
+      }
+      
+      // Xử lý multiple URLs nếu có
+      let fileUrl = lecture.file_url
+      if (fileUrl.includes('|||')) {
+        fileUrl = fileUrl.split('|||')[0].trim()
+      }
+      
+      // Tiến hành download
+      const link = document.createElement('a')
+      link.href = fileUrl
+      link.download = lecture.original_filename || lecture.title
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast({
+        title: "Thành công",
+        description: "File đã được tải xuống"
+      })
+    } catch (error) {
+      console.error('Error downloading:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải xuống file"
+      })
     }
   }
 
@@ -169,15 +208,12 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                     Nhấn nút bên để tải file
                   </p>
                 </div>
-                <Button asChild variant="outline" className="hover:bg-primary hover:text-white transition-colors">
-                  <a
-                    href={lecture.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    Tải xuống
-                  </a>
+                <Button 
+                  variant="outline" 
+                  className="hover:bg-primary hover:text-white transition-colors"
+                  onClick={handleDownload}
+                >
+                  Tải xuống
                 </Button>
               </div>
             </>

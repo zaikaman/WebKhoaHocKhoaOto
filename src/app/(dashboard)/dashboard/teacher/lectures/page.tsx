@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getTeacherClasses, getClassLectures, deleteLecture } from "@/lib/supabase"
+import { getCurrentUser, getTeacherClasses, getClassLectures, deleteLecture, incrementDownloadCount } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import {
   Dialog,
@@ -383,6 +383,34 @@ export default function TeacherLecturesPage() {
     }
   }
 
+  // Hàm xử lý download với tracking
+  const handleDownload = async (lecture: Lecture, fileUrl: string, filename?: string) => {
+    try {
+      // Tăng download count
+      const result = await incrementDownloadCount(lecture.id)
+      if (result.success) {
+        console.log('Download count updated:', result.newCount)
+        // Reload lectures để cập nhật UI
+        loadLectures()
+      }
+      
+      // Tiến hành download
+      window.open(fileUrl, '_blank')
+      
+      toast({
+        title: "Thành công", 
+        description: "File đã được mở để tải xuống"
+      })
+    } catch (error) {
+      console.error('Error downloading:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải xuống file"
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -651,7 +679,7 @@ export default function TeacherLecturesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(url, '_blank')}
+                            onClick={() => handleDownload(selectedLecture, url, selectedLecture.original_filename?.split('|||')[index] || url.split('/').pop())}
                           >
                             Tải xuống
                           </Button>

@@ -724,11 +724,11 @@ export async function createSubject(subjectData: Omit<Subject, 'id' | 'created_a
   }
 } 
 
-// Cập nhật hàm createEnrollment
+// Cập nhật hàm createEnrollment - hỗ trợ cả class_id (UUID) và class_code
 export async function createEnrollment(data: {
   student_id: string
   full_name: string
-  class_id: string // class_id ở đây thực chất là class_code
+  class_id: string // Có thể là class_id (UUID) từ teacher hoặc class_code từ student
 }) {
   try {
     console.log('Bắt đầu tạo enrollment với dữ liệu:', data)
@@ -753,12 +753,31 @@ export async function createEnrollment(data: {
 
     console.log('Tìm thấy profile:', existingProfile)
 
-    // Lấy thông tin lớp học từ mã lớp
-    const { data: classData, error: classError } = await supabase
-      .from('classes')
-      .select('id')
-      .eq('code', data.class_id)
-      .single()
+    // Kiểm tra xem data.class_id là UUID hay class_code
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.class_id)
+    
+    let classData
+    let classError
+    
+    if (isUUID) {
+      // Nếu là UUID, tìm theo id
+      const result = await supabase
+        .from('classes')
+        .select('id')
+        .eq('id', data.class_id)
+        .single()
+      classData = result.data
+      classError = result.error
+    } else {
+      // Nếu không phải UUID, tìm theo code
+      const result = await supabase
+        .from('classes')
+        .select('id')
+        .eq('code', data.class_id)
+        .single()
+      classData = result.data
+      classError = result.error
+    }
 
     if (classError) {
       console.error('Lỗi khi tìm lớp học:', {
@@ -766,7 +785,9 @@ export async function createEnrollment(data: {
         message: classError.message,
         details: classError.details,
         hint: classError.hint,
-        code: classError.code
+        code: classError.code,
+        searchBy: isUUID ? 'UUID' : 'Code',
+        searchValue: data.class_id
       })
       return { success: false, message: 'Không tìm thấy lớp học với mã này' }
     }
@@ -775,7 +796,7 @@ export async function createEnrollment(data: {
       return { success: false, message: 'Không tìm thấy lớp học với mã này' }
     }
 
-    console.log('Tìm thấy lớp học:', classData)
+    console.log('Tìm thấy lớp học:', classData, 'Search by:', isUUID ? 'UUID' : 'Code')
 
     // Kiểm tra xem sinh viên đã đăng ký lớp này chưa
     const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
@@ -1118,6 +1139,52 @@ export async function updateLecture(lectureId: string, lecture: Partial<Lecture>
     .eq('id', lectureId)
     .select()
     .single()
+
+  if (error) throw error
+  return data
+}
+
+// Hàm tăng số lượt tải xuống
+export async function incrementDownloadCount(lectureId: string) {
+  try {
+    console.log('Tăng download count cho lecture:', lectureId)
+    
+    // Lấy số lượt tải hiện tại
+    const { data: lecture, error: fetchError } = await supabase
+      .from('lectures')
+      .select('download_count')
+      .eq('id', lectureId)
+      .single()
+
+    if (fetchError) {
+      console.error('Lỗi khi lấy download count:', fetchError)
+      throw fetchError
+    }
+
+    // Tăng số lượt tải lên 1
+    const newDownloadCount = (lecture.download_count || 0) + 1
+
+    const { data, error: updateError } = await supabase
+      .from('lectures')
+      .update({ 
+        download_count: newDownloadCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', lectureId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Lỗi khi cập nhật download count:', updateError)
+      throw updateError
+    }
+
+    console.log('Đã cập nhật download count:', { lectureId, newDownloadCount })
+    return { success: true, newCount: newDownloadCount }
+  } catch (error) {
+    console.error('Lỗi trong incrementDownloadCount:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Có lỗi xảy ra' }
+  }
 }
 
 export async function getExamQuestions(examId: string): Promise<ExamQuestion[]> {
@@ -1281,10 +1348,171 @@ export async function getStudentUpcomingExams(studentId: string) {
 
 // Hàm cập nhật mật khẩu
 export async function updateUserPassword(newPassword: string) {
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword
-  })
-  
-  if (error) throw error
-  return data
+  try {
+    // Cập nhật mật khẩu trong auth.users (sử dụng admin client)
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return { success: false, error: 'Người dùng không được xác thực' }
+    }
+
+    const { error: authError } = await adminSupabase.auth.admin.updateUserById(
+      user.id,
+      { password: newPassword }
+    )
+
+    if (authError) {
+      console.error('Lỗi cập nhật mật khẩu:', authError)
+      return { success: false, error: authError.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Lỗi:', error)
+    return { success: false, error: 'Có lỗi xảy ra' }
+  }
+}
+
+// Hàm download file bài giảng từ Supabase storage
+export async function downloadLectureFile(fileUrl: string, filename: string, lectureId?: string) {
+  try {
+    console.log('Bắt đầu download file:', { fileUrl, filename, lectureId })
+    
+    if (!fileUrl) {
+      throw new Error('URL file không hợp lệ')
+    }
+
+    // Xử lý trường hợp file_url có nhiều URL được nối bằng |||
+    let actualFileUrl = fileUrl
+    if (fileUrl.includes('|||')) {
+      console.log('Phát hiện multiple URLs, lấy URL đầu tiên')
+      actualFileUrl = fileUrl.split('|||')[0].trim()
+    }
+
+    console.log('URL thực tế để download:', actualFileUrl)
+
+    // Nếu fileUrl là URL đầy đủ từ Supabase storage
+    if (actualFileUrl.includes('supabase') || actualFileUrl.startsWith('http')) {
+      console.log('Download từ URL đầy đủ:', actualFileUrl)
+      
+      // Thử cách đơn giản nhất - mở trong tab mới
+      const link = document.createElement('a')
+      link.href = actualFileUrl
+      link.download = filename || 'lecture-file'
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Tăng download count nếu có lectureId
+      if (lectureId) {
+        console.log('Tăng download count cho lecture:', lectureId)
+        const countResult = await incrementDownloadCount(lectureId)
+        if (countResult.success) {
+          console.log('Download count đã được cập nhật:', countResult.newCount)
+        } else {
+          console.warn('Không thể cập nhật download count:', countResult.error)
+        }
+      }
+      
+      return { success: true }
+    }
+
+    // Nếu fileUrl chỉ là path, lấy từ bucket
+    console.log('Download từ storage bucket:', actualFileUrl)
+    const { data, error } = await supabase.storage
+      .from('lectures')
+      .download(actualFileUrl)
+
+    if (error) {
+      console.error('Lỗi download từ storage:', error)
+      throw new Error(error.message)
+    }
+
+    if (!data) {
+      throw new Error('Không có dữ liệu file')
+    }
+
+    const url = window.URL.createObjectURL(data)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename || 'lecture-file'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    // Tăng download count nếu có lectureId
+    if (lectureId) {
+      console.log('Tăng download count cho lecture:', lectureId)
+      const countResult = await incrementDownloadCount(lectureId)
+      if (countResult.success) {
+        console.log('Download count đã được cập nhật:', countResult.newCount)
+      } else {
+        console.warn('Không thể cập nhật download count:', countResult.error)
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Lỗi download file:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải file' 
+    }
+  }
+}
+
+// Hàm backup đơn giản để download file
+export async function simpleDownloadFile(fileUrl: string, filename?: string, lectureId?: string) {
+  try {
+    console.log('Simple download:', { fileUrl, filename, lectureId })
+    
+    if (!fileUrl) {
+      throw new Error('URL file không hợp lệ')
+    }
+
+    // Xử lý trường hợp file_url có nhiều URL được nối bằng |||
+    let actualFileUrl = fileUrl
+    if (fileUrl.includes('|||')) {
+      console.log('Simple download: Phát hiện multiple URLs, lấy URL đầu tiên')
+      actualFileUrl = fileUrl.split('|||')[0].trim()
+    }
+
+    console.log('Simple download URL thực tế:', actualFileUrl)
+
+    // Tạo link và click để download
+    const link = document.createElement('a')
+    link.href = actualFileUrl
+    if (filename) {
+      link.download = filename
+    }
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    
+    // Thêm vào DOM, click, rồi xóa
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Tăng download count nếu có lectureId
+    if (lectureId) {
+      console.log('Simple download: Tăng download count cho lecture:', lectureId)
+      const countResult = await incrementDownloadCount(lectureId)
+      if (countResult.success) {
+        console.log('Simple download: Download count đã được cập nhật:', countResult.newCount)
+      } else {
+        console.warn('Simple download: Không thể cập nhật download count:', countResult.error)
+      }
+    }
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Lỗi simple download:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Không thể tải file' 
+    }
+  }
 }

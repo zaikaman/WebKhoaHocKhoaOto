@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
-import { Editor } from '@/components/editor'
+import { Textarea } from '@/components/ui/textarea'
 import { getTeacherClasses, getCurrentUser, createExam } from '@/lib/supabase'
+import { sanitizeDescription } from '@/lib/utils'
 
 interface Class {
   id: string;
@@ -52,7 +53,7 @@ export default function CreateExamPage() {
 
       const examData = {
         title: formData.get('title') as string,
-        description: formData.get('description') as string,
+        description: sanitizeDescription(formData.get('description') as string),
         class_id: formData.get('class_id') as string,
         type: formData.get('type') as "quiz" | "midterm" | "final",
         duration: Number(formData.get('duration')) || 60,
@@ -120,7 +121,12 @@ export default function CreateExamPage() {
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium">Mô tả</label>
-          <Editor name="description" />
+          <Textarea 
+            name="description"
+            placeholder="Nhập mô tả bài kiểm tra"
+            className="w-full"
+            rows={4}
+          />
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium">Thời gian bắt đầu</label>
