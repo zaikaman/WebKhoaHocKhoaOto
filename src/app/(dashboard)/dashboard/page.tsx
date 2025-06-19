@@ -298,6 +298,7 @@ export default function DashboardPage() {
                     <Button 
                       variant="secondary" 
                       size="sm"
+                      className="hover:bg-black hover:text-white transition-colors"
                       onClick={() => router.push(`/dashboard/student/courses/${course.id}`)}
                     >
                       Xem chi tiết

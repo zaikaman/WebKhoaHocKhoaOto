@@ -313,7 +313,7 @@ export default function StudentCoursesPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-3">
-                <Label htmlFor="class-code" >Mã lớp học :</Label>
+                <p className="fs-12" >Mã lớp học :</p>
                 <Input
                   id="class-code"
                   placeholder="Nhập mã lớp học"

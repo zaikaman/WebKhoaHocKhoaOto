@@ -309,7 +309,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         <TabsContent value="exams" className="space-y-6">
           <div className="rounded-md border">
             <div className="p-4">
-              <Button onClick={() => router.push('/dashboard/exams')}>
+              <Button onClick={() => router.push('/dashboard/student/exams')}>
                 Đến trang Bài kiểm tra
               </Button>
             </div>
