@@ -176,40 +176,40 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8 px-2 sm:px-4 md:px-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">{classData.subjects.name}</h2>
-          <p className="text-muted-foreground mt-2">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Môn học : {classData.subjects.name}</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2">
             Mã lớp: {classData.code} | Giảng viên: {classData.teacher.full_name}
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/dashboard/student/courses')}>
+        <Button variant="outline" onClick={() => router.push('/dashboard/student/courses')} className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
           Quay lại
         </Button>
       </div>
 
       <Tabs defaultValue="info">
         <TabsList>
-          <TabsTrigger value="info">Thông tin chung</TabsTrigger>
+          <TabsTrigger value="info">Thông tin</TabsTrigger>
           <TabsTrigger value="lectures">Bài giảng</TabsTrigger>
           <TabsTrigger value="assignments">Bài tập</TabsTrigger>
           <TabsTrigger value="exams">Bài kiểm tra</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-              <h3 className="font-semibold mb-2">Thông tin môn học</h3>
-              <div className="space-y-2">
+          <div className="grid gap-3 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
+              <h3 className="font-semibold mb-2 text-base sm:text-lg">Thông tin môn học</h3>
+              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                 <p>Mã môn: {classData.subjects.code}</p>
                 <p>Tên môn: {classData.subjects.name}</p>
                 <p>Số tín chỉ: {classData.subjects.credits}</p>
               </div>
             </div>
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-              <h3 className="font-semibold mb-2">Thông tin lớp học</h3>
-              <div className="space-y-2">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
+              <h3 className="font-semibold mb-2 text-base sm:text-lg">Thông tin lớp học</h3>
+              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                 <p>Học kỳ: {classData.semester}</p>
                 <p>Năm học: {classData.academic_year}</p>
                 <p>Trạng thái: {classData.status === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'}</p>
@@ -219,7 +219,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         </TabsContent>
 
         <TabsContent value="lectures" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {classData.lectures.map((lecture) => {
               const fileUrls = lecture.file_url?.split('|||') || []
               const fileTypes = lecture.file_type?.split('|||') || []
@@ -232,12 +232,12 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               return (
                 <div 
                   key={lecture.id}
-                  className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-4"
+                  className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6 space-y-3 sm:space-y-4"
                 >
                   <div>
-                    <h4 className="font-semibold">{lecture.title}</h4>
+                    <h4 className="font-semibold text-sm sm:text-base">{lecture.title}</h4>
                     {lecture.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
                         {lecture.description}
                       </p>
                     )}
@@ -250,6 +250,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                           key={index}
                           variant={currentFileIdx === index ? "default" : "outline"}
                           size="sm"
+                          className="text-xs sm:text-sm px-2 sm:px-3"
                           onClick={() => setActiveLectureFileIndex(prev => ({ ...prev, [lecture.id]: index }))}
                         >
                           File {index + 1}
@@ -272,12 +273,12 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                       ) : currentFileType === 'application/pdf' ? (
                         <iframe
                           src={currentFileUrl}
-                          className="w-full h-[400px] rounded-lg"
+                          className="w-full h-[300px] sm:h-[400px] rounded-lg"
                         />
                       ) : (
                         <Button 
                           variant="secondary" 
-                          className="w-full hover:bg-primary hover:text-white transition-colors"
+                          className="w-full hover:bg-primary hover:text-white transition-colors text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2"
                           onClick={() => handleDownload(
                             lecture.id, 
                             currentFileUrl, 
@@ -290,9 +291,9 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                       )}
                     </div>
                   ) : (fileUrls.length > 0 && (
-                    <div className="text-sm text-muted-foreground mt-2">Không thể hiển thị file này.</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mt-2">Không thể hiển thị file này.</div>
                   ))}
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Ngày đăng: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                   </div>
                 </div>
@@ -300,8 +301,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
             })}
 
             {classData.lectures.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <div className="text-muted-foreground">Chưa có bài giảng nào</div>
+              <div className="col-span-full text-center py-8 sm:py-12">
+                <div className="text-xs sm:text-base text-muted-foreground">Chưa có bài giảng nào</div>
               </div>
             )}
           </div>
@@ -309,75 +310,79 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
         <TabsContent value="assignments" className="space-y-6">
           <div className="rounded-md border">
-            <div className="p-4">
-              <Button onClick={() => router.push('/dashboard/assignments')}>
+            <div className="p-3 sm:p-4">
+              <Button onClick={() => router.push('/dashboard/assignments')} className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
                 Đến trang Bài tập
               </Button>
             </div>
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
-                  <th className="py-3 px-4 text-left font-medium">Mô tả</th>
-                  <th className="py-3 px-4 text-left font-medium">Hạn nộp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classData.assignments.map((assignment) => (
-                  <tr key={assignment.id} className="border-b last:border-0">
-                    <td className="py-3 px-4">{assignment.title}</td>
-                    <td className="py-3 px-4">{assignment.description}</td>
-                    <td className="py-3 px-4">
-                      {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Tiêu đề</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Mô tả</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Hạn nộp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {classData.assignments.map((assignment) => (
+                    <tr key={assignment.id} className="border-b last:border-0">
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">{assignment.title}</td>
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">{assignment.description}</td>
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="exams" className="space-y-6">
           <div className="rounded-md border">
-            <div className="p-4">
-              <Button onClick={() => router.push('/dashboard/student/exams')}>
+            <div className="p-3 sm:p-4">
+              <Button onClick={() => router.push('/dashboard/student/exams')} className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
                 Đến trang Bài kiểm tra
               </Button>
             </div>
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
-                  <th className="py-3 px-4 text-left font-medium">Mô tả</th>
-                  <th className="py-3 px-4 text-left font-medium">Thời gian</th>
-                  <th className="py-3 px-4 text-left font-medium">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classData.exams.map((exam) => (
-                  <tr key={exam.id} className="border-b last:border-0">
-                    <td className="py-3 px-4">{exam.title}</td>
-                    <td className="py-3 px-4">{exam.description}</td>
-                    <td className="py-3 px-4">
-                      {new Date(exam.start_time).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })} - {new Date(exam.end_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="py-3 px-4">{exam.status === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Tiêu đề</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Mô tả</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Thời gian</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 text-left font-medium text-xs sm:text-sm">Trạng thái</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {classData.exams.map((exam) => (
+                    <tr key={exam.id} className="border-b last:border-0">
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">{exam.title}</td>
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">{exam.description}</td>
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        {new Date(exam.start_time).toLocaleDateString('vi-VN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })} - {new Date(exam.end_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">{exam.status === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

@@ -221,8 +221,8 @@ export default function SearchFilter({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Search Bar */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 w-full">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder={searchPlaceholder}
@@ -234,7 +234,7 @@ export default function SearchFilter({
         <Button
           variant="outline"
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto"
         >
           <FilterIcon className="h-4 w-4" />
           Lọc
@@ -248,7 +248,7 @@ export default function SearchFilter({
           <Button
             variant="ghost"
             onClick={clearAllFilters}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0"
           >
             <XIcon className="h-4 w-4" />
             Xóa tất cả

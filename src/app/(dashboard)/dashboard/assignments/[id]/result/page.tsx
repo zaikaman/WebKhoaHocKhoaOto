@@ -155,7 +155,7 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -178,15 +178,15 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
   }
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{result.assignment.title}</h2>
+    <div className="container py-8 px-2 sm:px-0 space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+        <div className="w-full sm:w-auto">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{result.assignment.title}</h2>
           <p className="text-muted-foreground">
             {result.assignment.class.subject.name} - {result.assignment.class.name}
           </p>
         </div>
-        <Button onClick={() => router.push('/dashboard/assignments')}>
+        <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/assignments')}>
           Quay lại
         </Button>
       </div>
@@ -217,7 +217,7 @@ export default function AssignmentResultPage({ params }: { params: { id: string 
         </CardContent>
       </Card>
 
-      <div className="grid gap-6">
+      <div className="grid gap-6 grid-cols-1">
         {result.questions.map((question, index) => {
           const userAnswer = result.submission.answers[question.id]
           const isCorrect = question.type === 'multiple_choice' && userAnswer === question.correct_answer

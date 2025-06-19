@@ -173,8 +173,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Xin chào, {userName}</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight w-full sm:w-auto sm:text-left">Xin chào, {userName}</h2>
       </div>
 
       {/* Stats */}
@@ -268,9 +268,9 @@ export default function DashboardPage() {
 
       {/* Recent courses */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Lớp học</h3>
-          <Button variant="outline" onClick={() => router.push('/dashboard/student/courses')}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <h3 className="text-lg font-medium w-full sm:w-auto sm:text-left">Lớp học</h3>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push('/dashboard/student/courses')}>
             Xem tất cả
           </Button>
         </div>
@@ -293,12 +293,12 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-500 mt-2">
                     {course.name} - {course.teacher.full_name}
                   </p>
-                  <div className="mt-4 flex items-center justify-between">
                     <span className="text-sm text-gray-500">Học kỳ: {course.semester}</span>
+                  <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
                     <Button 
                       variant="secondary" 
                       size="sm"
-                      className="hover:bg-black hover:text-white transition-colors"
+                      className="hover:bg-black hover:text-white transition-colors w-full sm:w-auto"
                       onClick={() => router.push(`/dashboard/student/courses/${course.id}`)}
                     >
                       Xem chi tiết
@@ -313,21 +313,21 @@ export default function DashboardPage() {
 
       {/* Upcoming assignments */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Bài tập sắp đến hạn</h3>
-          <Button variant="outline" onClick={() => router.push('/dashboard/assignments')}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <h3 className="text-lg font-medium w-full sm:w-auto sm:text-left">Bài tập sắp đến hạn</h3>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push('/dashboard/assignments')}>
             Xem tất cả
           </Button>
         </div>
-        <div className="rounded-lg border">
-          <div className="p-4">
-            <table className="w-full">
+        <div className="rounded-lg border overflow-x-auto">
+          <div className="p-4 min-w-[600px]">
+            <table className="min-w-[600px] w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Tên bài tập</th>
-                  <th className="text-left py-2">Môn học</th>
-                  <th className="text-left py-2">Hạn nộp</th>
-                  <th className="text-left py-2">Trạng thái</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Tên bài tập</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Môn học</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Hạn nộp</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,16 +346,16 @@ export default function DashboardPage() {
                 ) : (
                   upcomingAssignments.map((assignment) => (
                     <tr key={assignment.id} className="border-b last:border-0">
-                      <td className="py-3">{assignment.title}</td>
-                      <td className="py-3">{assignment.class.subject.name}</td>
-                      <td className="py-3">{new Date(assignment.due_date).toLocaleDateString('vi-VN', {
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.title}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.class.subject.name}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit'
                       })}</td>
-                      <td className="py-3">
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">
                         <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800">
                           Chưa nộp
                         </span>
@@ -371,21 +371,21 @@ export default function DashboardPage() {
 
       {/* Upcoming exams */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Bài kiểm tra sắp tới</h3>
-          <Button variant="outline" onClick={() => router.push('/dashboard/student/exams')}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <h3 className="text-lg font-medium w-full sm:w-auto sm:text-left">Bài kiểm tra sắp tới</h3>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push('/dashboard/student/exams')}>
             Xem tất cả
           </Button>
         </div>
-        <div className="rounded-lg border">
-          <div className="p-4">
-            <table className="w-full">
+        <div className="rounded-lg border overflow-x-auto">
+          <div className="p-4 min-w-[600px]">
+            <table className="min-w-[600px] w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Tên bài kiểm tra</th>
-                  <th className="text-left py-2">Môn học</th>
-                  <th className="text-left py-2">Thời gian</th>
-                  <th className="text-left py-2">Thời lượng</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Tên bài kiểm tra</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Môn học</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Thời gian</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Thời lượng</th>
                 </tr>
               </thead>
               <tbody>
@@ -404,16 +404,16 @@ export default function DashboardPage() {
                 ) : (
                   upcomingExams.map((exam) => (
                     <tr key={exam.id} className="border-b last:border-0">
-                      <td className="py-3">{exam.title}</td>
-                      <td className="py-3">{exam.class.subject.name}</td>
-                      <td className="py-3">{new Date(exam.start_time).toLocaleDateString('vi-VN', {
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{exam.title}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{exam.class.subject.name}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{new Date(exam.start_time).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit'
                       })}</td>
-                      <td className="py-3">{exam.duration} phút</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{exam.duration} phút</td>
                     </tr>
                   ))
                 )}

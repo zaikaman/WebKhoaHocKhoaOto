@@ -261,7 +261,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -286,19 +286,20 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
   return (
     <div className="space-y-8">
       <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2>
+        <div className="container py-2 sm:py-4 px-2 sm:px-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="w-full sm:w-auto">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{assignment.title}</h2>
               <p className="text-muted-foreground">
                 {assignment.class.subject.name} - {assignment.class.name}
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <div className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
                 Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}
               </div>
               <Button
+                className="w-full sm:w-auto"
                 disabled={isSubmitting}
                 onClick={() => setShowConfirmDialog(true)}
               >
@@ -309,7 +310,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
         </div>
       </div>
 
-      <div className="container pb-8">
+      <div className="container pb-8 px-2 sm:px-0">
         {assignment.description && (
           <Card className="mb-8">
             <CardHeader>
@@ -378,7 +379,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">Nội dung bài làm</CardTitle>
@@ -393,7 +394,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
                           value={content}
                           onChange={(e) => setContent(e.target.value)}
                           placeholder="Nhập nội dung bài làm của bạn vào đây..."
-                          className="min-h-[300px] resize-none"
+                          className="min-h-[300px] resize-none w-full"
                         />
                         <p className="text-sm text-muted-foreground">
                           Bạn có thể định dạng văn bản bằng cách sử dụng Markdown
@@ -411,15 +412,29 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="grid w-full max-w-sm items-center gap-1.5">
-                          <Label htmlFor="file">Chọn file</Label>
-                          <Input
-                            id="file"
-                            type="file"
-                            onChange={(e) => setFile(e.target.files?.[0] || null)}
-                            accept=".pdf,.doc,.docx,.txt"
-                            className="cursor-pointer"
-                          />
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Upload file bài làm</label>
+                          <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
+                            <div className="flex flex-col items-center justify-center space-y-4">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+                              </svg>
+                              <div className="text-center">
+                                <p className="text-base font-medium text-blue-600">Chọn file để tải lên</p>
+                                <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Định dạng hỗ trợ: PDF, DOC, DOCX, TXT
+                                </p>
+                              </div>
+                              <input
+                                type="file"
+                                name="file"
+                                accept=".pdf,.doc,.docx,.txt"
+                                onChange={e => setFile(e.target.files?.[0] || null)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                            </div>
+                          </div>
                         </div>
                         
                         {file && (
@@ -442,7 +457,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
                           </div>
                         )}
 
-                        <div className="rounded-lg border border-dashed p-4">
+                        {/* <div className="rounded-lg border border-dashed p-4">
                           <div className="flex flex-col items-center gap-2 text-center">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -465,7 +480,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
                               <p>Kích thước tối đa: 10MB</p>
                             </div>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
                     </CardContent>
                   </Card>
@@ -514,17 +529,19 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
               Bạn có chắc chắn muốn nộp bài? Sau khi nộp bài, bạn sẽ không thể chỉnh sửa.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
             <Button
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Hủy
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? 'Đang xử lý...' : 'Nộp bài'}
             </Button>

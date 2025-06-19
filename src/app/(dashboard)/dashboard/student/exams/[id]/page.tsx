@@ -349,21 +349,22 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-8">
       <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container max-w-screen-2xl py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{exam.title}</h2>
+        <div className="container max-w-screen-2xl py-2 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="w-full sm:w-auto">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Bài kiểm tra : {exam.title}</h2>
               <p className="text-muted-foreground">
                 {exam.class.subject.name} - {exam.class.name}
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {timeLeft !== null && (
-                <div className="text-lg font-semibold">
+                <div className="text-base sm:text-lg font-semibold">
                   Thời gian còn lại: {formatTime(timeLeft)}
                 </div>
               )}
               <Button
+                className="w-full sm:w-auto"
                 disabled={isSubmitting}
                 onClick={() => setShowConfirmDialog(true)}
               >
@@ -374,8 +375,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="container max-w-screen-2xl pb-8">
-        <div className="grid gap-6">
+      <div className="container max-w-screen-2xl pb-8 px-2 sm:px-0">
+        <div className="grid gap-4 sm:gap-6">
           {questions.map((question, index) => (
             <Card key={question.id} className="w-full">
               <CardHeader>
@@ -476,17 +477,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               Bạn có chắc chắn muốn nộp bài? Sau khi nộp bài, bạn sẽ không thể chỉnh sửa.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
             <Button
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Hủy
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? 'Đang xử lý...' : 'Nộp bài'}
             </Button>

@@ -220,7 +220,7 @@ export default function CreateLecturePage() {
               />
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2"> 
               <label className="text-sm font-medium">Upload file bài giảng</label>
               <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
                 <div className="flex flex-col items-center justify-center space-y-4">

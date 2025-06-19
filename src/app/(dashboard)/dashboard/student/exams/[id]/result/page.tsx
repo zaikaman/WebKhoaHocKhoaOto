@@ -178,10 +178,10 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="container py-2 space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{result.exam.title}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Bài kiểm tra : {result.exam.title}</h2>
           <p className="text-muted-foreground">
             {result.exam.class.subject.name} - {result.exam.class.name}
           </p>

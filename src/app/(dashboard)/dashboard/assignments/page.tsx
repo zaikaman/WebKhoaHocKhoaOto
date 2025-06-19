@@ -254,7 +254,7 @@ export default function AssignmentsPage() {
         }
       }
       return {
-        label: 'Đã nộp - Chờ chấm',
+        label: 'Chờ chấm',
         color: 'bg-blue-100 text-blue-800',
         canSubmit: false,
         canViewResult: true
@@ -364,9 +364,9 @@ export default function AssignmentsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Bài tập</h2>
-        <div className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight w-full sm:w-auto sm:text-left">Bài tập</h2>
+        <div className="text-sm text-muted-foreground w-full  sm:w-auto sm:text-right">
           Hiển thị {filteredAssignments.length} / {assignments.length} bài tập
         </div>
       </div>
@@ -378,16 +378,16 @@ export default function AssignmentsPage() {
         onSearch={handleSearch}
       />
 
-      <div className="rounded-lg border">
-        <table className="w-full">
+      <div className="rounded-lg border overflow-x-auto">
+        <table className="min-w-[700px] w-full">
           <thead>
             <tr className="border-b">
-              <th className="text-left py-3 px-4">Tên bài tập</th>
-              <th className="text-left py-3 px-4">Môn học</th>
-              <th className="text-left py-3 px-4">Hạn nộp</th>
-              <th className="text-left py-3 px-4">Điểm</th>
-              <th className="text-left py-3 px-4">Trạng thái</th>
-              <th className="text-left py-3 px-4"></th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Tên bài tập</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Môn học</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Hạn nộp</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Điểm</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Trạng thái</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4"></th>
             </tr>
           </thead>
           <tbody>
@@ -402,12 +402,12 @@ export default function AssignmentsPage() {
                 const status = getSubmissionStatus(assignment)
                 return (
                   <tr key={assignment.id} className="border-b last:border-0">
-                    <td className="py-3 px-4">
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
                       <div className="font-medium">{assignment.title}</div>
                       <div className="text-sm text-muted-foreground">{assignment.class.name}</div>
                     </td>
-                    <td className="py-3 px-4">{assignment.class.subject.name}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.class.subject.name}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
                       {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: '2-digit',
@@ -416,13 +416,13 @@ export default function AssignmentsPage() {
                         minute: '2-digit'
                       })}
                     </td>
-                    <td className="py-3 px-4">{assignment.total_points}</td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.total_points}</td>
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs text-center font-medium ${status.color}`}>
                         {status.label}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-2 px-2 sm:py-3 sm:px-4">
                       {status.canViewResult ? (
                         <Button
                           variant="outline"

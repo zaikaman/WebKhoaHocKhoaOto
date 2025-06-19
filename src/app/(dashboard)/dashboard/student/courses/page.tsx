@@ -295,35 +295,35 @@ export default function StudentCoursesPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8 px-2 sm:px-4 md:px-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Lớp học của tôi</h2>
-          <div className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Lớp học của tôi</h2>
+          <div className="text-xs sm:text-sm text-muted-foreground mt-1">
             Hiển thị {filteredCourses.length} / {courses.length} lớp học
           </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Tham gia lớp học</Button>
+            <Button className="text-sm sm:text-base px-4 py-2">Tham gia lớp học</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-xs sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Tham gia lớp học</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Tham gia lớp học</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-3">
-                <p className="fs-12" >Mã lớp học :</p>
+            <div className="space-y-4 py-2 sm:py-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                <p className="text-xs sm:text-sm">Mã lớp học :</p>
                 <Input
                   id="class-code"
                   placeholder="Nhập mã lớp học"
                   value={classCode}
                   onChange={(e) => setClassCode(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                 />
               </div>
               <Button 
-                className="w-full" 
+                className="w-full text-sm sm:text-base py-2"
                 onClick={handleJoinClass}
                 disabled={isJoining}
               >
@@ -341,20 +341,20 @@ export default function StudentCoursesPage() {
         onSearch={handleSearch}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredCourses.map((course) => (
           <div 
             key={course.id} 
             className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
           >
-            <div className="p-6 space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">{course.subject.name}</h3>
-                <p className="text-sm text-muted-foreground">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="space-y-1 sm:space-y-2">
+                <h3 className="text-base sm:text-lg font-semibold">{course.subject.name}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {course.name} - {course.teacher.full_name}
                 </p>
               </div>
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
                 <p>Mã lớp: {course.code}</p>
                 <p>Học kỳ: {course.semester}</p>
                 <p>Năm học: {course.academic_year}</p>
@@ -364,7 +364,7 @@ export default function StudentCoursesPage() {
                 <Button
                   variant="secondary"
                   onClick={() => router.push(`/dashboard/student/courses/${course.id}`)}
-                  className="transition-colors hover:bg-black hover:text-white"
+                  className="transition-colors hover:bg-black hover:text-white text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2"
                 >
                   Xem chi tiết
                 </Button>
@@ -374,8 +374,8 @@ export default function StudentCoursesPage() {
         ))}
 
         {filteredCourses.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <div className="text-muted-foreground">
+          <div className="col-span-full text-center py-8 sm:py-12">
+            <div className="text-xs sm:text-base text-muted-foreground">
               {courses.length === 0 ? "Bạn chưa tham gia lớp học nào" : "Không tìm thấy lớp học phù hợp"}
             </div>
           </div>
