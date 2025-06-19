@@ -615,86 +615,116 @@ export default function TeacherAssignmentsPage() {
               <TabsContent value="multiple_choice" className="space-y-4">
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="file-upload">Tải lên file Excel theo mẫu</Label>
-                    <div className="grid w-full max-w-sm items-center gap-1.5">
-                      <Input 
-                        id="file-upload"
-                        type="file" 
-                        accept=".xlsx,.xls"
-                        onChange={handleFileUpload}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
-                      <Button 
-                        variant="link" 
-                        className="h-auto p-0" 
-                        onClick={() => setShowTemplateDialog(true)}
-                        type="button"
-                      >
-                        Tải mẫu
-                      </Button>
-                    </p>
+                    {selectedFile ? (
+                      <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors flex flex-col items-center justify-center space-y-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+                        </svg>
+                        <div className="text-center">
+                          <p className="text-base font-medium text-blue-600">Đã chọn file:</p>
+                          <p className="text-sm font-medium mt-1">{selectedFile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedFile(null)}
+                        >
+                          Xóa file
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors text-center flex flex-col items-center justify-center space-y-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+                        </svg>
+                        <div className="text-center">
+                          <p className="text-base font-medium text-blue-600">Chọn file Excel để tải lên</p>
+                          <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Định dạng hỗ trợ: XLSX, XLS
+                          </p>
+                        </div>
+                        <input
+                          id="file-upload"
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleFileUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="title-mc">Tiêu đề</Label>
-                      <Input 
-                        id="title-mc"
-                        placeholder="Nhập tiêu đề bài tập"
-                        value={formData.title}
-                        onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="description-mc">Mô tả</Label>
-                      <Textarea 
-                        id="description-mc"
-                        placeholder="Nhập mô tả bài tập"
-                        value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="class-mc">Lớp học</Label>
-                      <select
-                        id="class-mc"
-                        name="class_id"
-                        className="w-full px-3 py-2 border rounded-md"
-                        value={formData.classId}
-                        onChange={(e) => setFormData({...formData, classId: e.target.value})}
-                        required
-                      >
-                        <option value="">Chọn lớp học</option>
-                        {classes.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="dueDate-mc">Hạn nộp</Label>
-                      <Input
-                        type="datetime-local"
-                        id="dueDate-mc"
-                        value={formData.dueDate}
-                        onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="maxPoints-mc">Điểm tối đa</Label>
-                      <Input
-                        type="number"
-                        id="maxPoints-mc"
-                        min="0"
-                        max="100"
-                        value={formData.maxPoints}
-                        onChange={(e) => setFormData({...formData, maxPoints: e.target.value})}
-                        required
-                      />
-                    </div>
+                  <p className="text-sm text-muted-foreground">
+                    File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 text-blue-600 underline"
+                      onClick={() => setShowTemplateDialog(true)}
+                      type="button"
+                    >
+                      Tải mẫu
+                    </Button>
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title-mc">Tiêu đề</Label>
+                    <Input 
+                      id="title-mc"
+                      placeholder="Nhập tiêu đề bài tập"
+                      value={formData.title}
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description-mc">Mô tả</Label>
+                    <Textarea 
+                      id="description-mc"
+                      placeholder="Nhập mô tả bài tập"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="class-mc">Lớp học</Label>
+                    <select
+                      id="class-mc"
+                      name="class_id"
+                      className="w-full px-3 py-2 border rounded-md"
+                      value={formData.classId}
+                      onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                      required
+                    >
+                      <option value="">Chọn lớp học</option>
+                      {classes.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="dueDate-mc">Hạn nộp</Label>
+                    <Input
+                      type="datetime-local"
+                      id="dueDate-mc"
+                      value={formData.dueDate}
+                      onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="maxPoints-mc">Điểm tối đa</Label>
+                    <Input
+                      type="number"
+                      id="maxPoints-mc"
+                      min="0"
+                      max="100"
+                      value={formData.maxPoints}
+                      onChange={(e) => setFormData({...formData, maxPoints: e.target.value})}
+                      required
+                    />
                   </div>
                 </div>
               </TabsContent>
