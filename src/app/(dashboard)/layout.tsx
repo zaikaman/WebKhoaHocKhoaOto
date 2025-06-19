@@ -184,7 +184,7 @@ export default function DashboardLayout({
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                   <SheetHeader>
-                    <SheetTitle className="text-left">Menu điều hướng</SheetTitle>
+                    <SheetTitle className="text-left">- Menu -</SheetTitle>
                   </SheetHeader>
                   <nav className="flex flex-col gap-2 mt-8">
                     {navigationItems}

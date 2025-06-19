@@ -287,17 +287,19 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Quản lý tài khoản</h1>
-        <div className="space-x-4">
-          <Button onClick={() => {
+    <div className="container mx-auto px-2 py-4 sm:px-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold w-full text-center sm:w-auto sm:text-left">
+          Quản lý tài khoản
+        </h1>
+        <div className="flex space-x-2 sm:space-x-4 w-full sm:w-auto">
+          <Button className="w-full sm:w-auto" onClick={() => {
             setSelectedAccount(null)
             setIsDialogOpen(true)
           }}>
             Thêm tài khoản
           </Button>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button className="w-full sm:w-auto" variant="outline" onClick={handleLogout}>
             Đăng xuất
           </Button>
         </div>
@@ -313,23 +315,23 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="min-w-[600px] w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Mã số
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Họ tên
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Vai trò
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Lớp
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Thao tác
               </th>
             </tr>
@@ -337,13 +339,13 @@ export default function AdminDashboardPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {displayedAccounts.map((account) => (
               <tr key={account.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {account.student_id}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {account.full_name}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     account.role === 'student' 
                       ? 'bg-green-100 text-green-800' 
@@ -352,13 +354,14 @@ export default function AdminDashboardPage() {
                     {account.role === 'student' ? 'Sinh viên' : 'Giảng viên'}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {account.class_code || '-'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium flex flex-col sm:flex-row gap-2 sm:space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setSelectedAccount(account)
                       setIsDialogOpen(true)
@@ -369,6 +372,7 @@ export default function AdminDashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setSelectedAccount(account)
                       setIsResetDialogOpen(true)
@@ -379,6 +383,7 @@ export default function AdminDashboardPage() {
                   <Button
                     variant="destructive"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setSelectedAccount(account)
                       setIsDeleteDialogOpen(true)
@@ -394,21 +399,23 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Phân trang */}
-      <div className="mt-4 flex justify-center space-x-2">
+      <div className="mt-4 flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2">
         <Button
           variant="outline"
           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
+          className="w-full sm:w-auto"
         >
           Trước
         </Button>
-        <span className="px-4 py-2 rounded-md bg-gray-100">
+        <span className="px-4 py-2 rounded-md bg-gray-100 text-center w-full sm:w-auto">
           Trang {currentPage} / {totalPages}
         </span>
         <Button
           variant="outline"
           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
+          className="w-full sm:w-auto"
         >
           Sau
         </Button>
@@ -416,7 +423,7 @@ export default function AdminDashboardPage() {
 
       {/* Dialog thêm/sửa tài khoản */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xs sm:max-w-lg w-full">
           <DialogHeader>
             <DialogTitle>{selectedAccount ? "Chỉnh sửa tài khoản" : "Thêm tài khoản mới"}</DialogTitle>
             <DialogDescription>
@@ -476,11 +483,11 @@ export default function AdminDashboardPage() {
                 className="w-full px-3 py-2 border rounded-md"
               />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
                 Hủy
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                 {selectedAccount ? "Cập nhật" : "Thêm mới"}
               </Button>
             </DialogFooter>
@@ -490,18 +497,18 @@ export default function AdminDashboardPage() {
 
       {/* Dialog xác nhận xóa */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xs sm:max-w-md w-full">
           <DialogHeader>
             <DialogTitle>Xác nhận xóa tài khoản</DialogTitle>
             <DialogDescription>
               Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="w-full sm:w-auto">
               Hủy
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
+            <Button variant="destructive" onClick={handleDelete} disabled={isLoading} className="w-full sm:w-auto">
               Xóa
             </Button>
           </DialogFooter>
@@ -510,7 +517,7 @@ export default function AdminDashboardPage() {
 
       {/* Dialog xác nhận reset mật khẩu */}
       <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xs sm:max-w-md w-full">
           <DialogHeader>
             <DialogTitle>Xác nhận reset mật khẩu</DialogTitle>
             <DialogDescription>
@@ -518,11 +525,11 @@ export default function AdminDashboardPage() {
               Mật khẩu mới sẽ là: password123
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2">
+            <Button type="button" variant="outline" onClick={() => setIsResetDialogOpen(false)} className="w-full sm:w-auto">
               Hủy
             </Button>
-            <Button type="button" onClick={handleResetPassword} disabled={isLoading}>
+            <Button type="button" onClick={handleResetPassword} disabled={isLoading} className="w-full sm:w-auto">
               Xác nhận
             </Button>
           </DialogFooter>
