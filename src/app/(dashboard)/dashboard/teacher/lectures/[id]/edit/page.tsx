@@ -20,11 +20,10 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<{ vie?: FileWithPreview; eng?: FileWithPreview }>({})
   const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url')
   const [fileUrl, setFileUrl] = useState('')
   const [lecture, setLecture] = useState<any>(null)
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0)
 
   useEffect(() => {
     loadLecture()
@@ -40,23 +39,35 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
       // Parse thông tin file từ file_url
       const fileUrls = lectureData.file_url?.split('|||') || []
       const fileTypes = lectureData.file_type?.split('|||') || []
+      const originalFilenames = lectureData.original_filename?.split('|||') || []
 
+      let filesObj: { vie?: FileWithPreview; eng?: FileWithPreview } = {}
       if (fileUrls.length > 0) {
         if (fileTypes[0] === 'url') {
           setUploadMethod('url')
           setFileUrl(fileUrls[0])
         } else {
           setUploadMethod('upload')
-          // Tạo FileWithPreview giả cho các file đã upload
-          setSelectedFiles(fileUrls.map((url: string, index: number) => ({
-            file: new File([], `file${index + 1}`),
-            preview: url,
-            size: 0,
-            type: fileTypes[index] || ''
-          })))
+          // Gán file cho từng ngôn ngữ dựa vào vị trí 0: vie, 1: eng
+          if (fileUrls[0]) {
+            filesObj.vie = {
+              file: new File([], originalFilenames[0] || `file1`),
+              preview: fileUrls[0],
+              size: 0,
+              type: fileTypes[0] || ''
+            }
+          }
+          if (fileUrls[1]) {
+            filesObj.eng = {
+              file: new File([], originalFilenames[1] || `file2`),
+              preview: fileUrls[1],
+              size: 0,
+              type: fileTypes[1] || ''
+            }
+          }
         }
       }
-
+      setSelectedFiles(filesObj)
       setLecture(lectureData)
     } catch (error) {
       console.error('Lỗi khi tải bài giảng:', error)
@@ -69,32 +80,25 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
     }
   }
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (lang: 'vie' | 'eng') => (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
-    if (files) {
-      const newFiles = Array.from(files).map(file => ({
+    if (files && files.length > 0) {
+      const file = files[0]
+      setSelectedFiles(prev => ({ ...prev, [lang]: {
         file,
         preview: URL.createObjectURL(file),
         size: file.size,
         type: file.type
-      }))
-      
-      // Chỉ cho phép chọn 1 file khi đang sửa
-      if (newFiles.length > 1) {
-        toast({
-          variant: 'destructive',
-          title: 'Lỗi',
-          description: 'Chỉ được chọn 1 file để thay thế'
-        })
-        return
-      }
-
-      setSelectedFiles(newFiles)
+      }}))
     }
   }
 
-  const handleRemoveFile = () => {
-    setSelectedFiles([])
+  const handleRemoveFile = (lang: 'vie' | 'eng') => {
+    setSelectedFiles(prev => {
+      const newFiles = { ...prev }
+      delete newFiles[lang]
+      return newFiles
+    })
   }
 
   async function handleUpdateLecture(event: React.FormEvent<HTMLFormElement>) {
@@ -102,12 +106,10 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
     try {
       setIsLoading(true)
       const formData = new FormData(event.currentTarget)
-      
       let lectureData: any = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
       }
-
       if (uploadMethod === 'url') {
         if (!fileUrl) {
           throw new Error('Vui lòng nhập link bài giảng')
@@ -120,47 +122,35 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           original_filename: null
         }
       } else {
-        if (selectedFiles.length === 0) {
-          throw new Error('Vui lòng chọn file để thay thế')
+        // Upload từng file nếu có
+        const fileUrls = lecture.file_url?.split('|||') || ['', '']
+        const fileTypes = lecture.file_type?.split('|||') || ['', '']
+        const originalFilenames = lecture.original_filename?.split('|||') || ['', '']
+        let fileSizes = lecture.file_size?.split('|||') || ['', '']
+        // vie
+        if (selectedFiles.vie) {
+          const uploadedVie = await uploadLectureFile(selectedFiles.vie.file)
+          fileUrls[0] = uploadedVie.url
+          fileTypes[0] = uploadedVie.file_type
+          originalFilenames[0] = uploadedVie.original_filename
+          fileSizes[0] = uploadedVie.file_size
         }
-
-        // Upload file mới
-        const newFile = selectedFiles[0]
-        const uploadedFileUrl = await uploadLectureFile(newFile.file)
-        
-        // Nếu có nhiều file, thay thế file được chọn
-        if (lecture.file_url.includes('|||')) {
-          const fileUrls = lecture.file_url.split('|||')
-          const fileTypes = lecture.file_type.split('|||')
-          
-          // Thay thế file được chọn bằng file mới
-          fileUrls[selectedFileIndex] = uploadedFileUrl.url
-          fileTypes[selectedFileIndex] = uploadedFileUrl.file_type
-          
-          // Cập nhật dữ liệu  
-          const originalFilenames = lecture.original_filename?.split('|||') || []
-          originalFilenames[selectedFileIndex] = uploadedFileUrl.original_filename
-          
-          lectureData = {
-            ...lectureData,
-            file_url: fileUrls.join('|||'),
-            file_type: fileTypes.join('|||'),
-            file_size: uploadedFileUrl.file_size,
-            original_filename: originalFilenames.join('|||')
-          }
-        } else {
-          // Nếu chỉ có 1 file
-          lectureData = {
-            ...lectureData,
-            file_url: uploadedFileUrl.url,
-            file_type: uploadedFileUrl.file_type,
-            file_size: uploadedFileUrl.file_size,
-            original_filename: uploadedFileUrl.original_filename
-          }
+        // eng
+        if (selectedFiles.eng) {
+          const uploadedEng = await uploadLectureFile(selectedFiles.eng.file)
+          fileUrls[1] = uploadedEng.url
+          fileTypes[1] = uploadedEng.file_type
+          originalFilenames[1] = uploadedEng.original_filename
+          fileSizes[1] = uploadedEng.file_size
+        }
+        lectureData = {
+          ...lectureData,
+          file_url: fileUrls.join('|||'),
+          file_type: fileTypes.join('|||'),
+          file_size: fileSizes.join('|||'),
+          original_filename: originalFilenames.join('|||')
         }
       }
-      
-      console.log('Updating lecture with data:', lectureData)
       await updateLecture(params.id, lectureData)
       toast({
         title: 'Thành công',
@@ -254,80 +244,71 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           ) : (
             <div className="space-y-2">
               <label className="text-sm font-medium">Upload file bài giảng</label>
-              {/* Hiển thị danh sách file hiện có */}
-              {lecture.file_url.includes('|||') && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-sm font-medium mb-2">File hiện có:</h3>
-                  <div className="flex gap-2 overflow-x-auto">
-                    {lecture.file_url.split('|||').map((url: string, index: number) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => setSelectedFileIndex(index)}
-                        className={`px-3 py-1 rounded-md text-sm whitespace-nowrap ${
-                          selectedFileIndex === index
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-200 hover:bg-gray-300'
-                        }`}
-                      >
-                        File {index + 1}
-                      </button>
-                    ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                {/* File tiếng Việt */}
+                <div className="bg-white border border-blue-300 rounded-xl shadow-sm p-5 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <FileUpIcon className="h-6 w-6 text-blue-500" />
+                    <span className="font-semibold text-blue-700 text-base">File tiếng Việt (vie)</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">Chọn file tài liệu tiếng Việt (PDF, DOC, DOCX, PPT, PPTX)</p>
+                  <label className="relative flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-lg p-4 hover:border-blue-500 transition-colors cursor-pointer min-h-[120px]">
+                    <input
+                      type="file"
+                      name="lecture_file_vie"
+                      accept=".pdf,.doc,.docx,.ppt,.pptx"
+                      onChange={handleFileChange('vie')}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    {selectedFiles.vie ? (
+                      <>
+                        <span className="text-blue-700 font-medium">{selectedFiles.vie.file.name}</span>
+                        <span className="text-xs text-gray-500">{(selectedFiles.vie.size / (1024 * 1024)).toFixed(2)} MB</span>
+                        <button type="button" onClick={e => { e.stopPropagation(); handleRemoveFile('vie') }} className="mt-2 px-2 py-1 text-xs rounded bg-red-100 text-red-600 hover:bg-red-200">Xóa file</button>
+                      </>
+                    ) : (
+                      <>
+                        <FileUpIcon className="h-8 w-8 text-blue-400 mb-2" />
+                        <span className="text-sm text-blue-600">Nhấn để chọn hoặc kéo thả file vào đây</span>
+                      </>
+                    )}
+                  </label>
+                  <div className="mt-2 p-2 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-200">
+                    File hiện tại: <span className="font-medium">{lecture.original_filename?.split('|||')[0] || lecture.file_url?.split('|||')[0]?.split('/').pop() || 'Chưa có'}</span>
                   </div>
                 </div>
-              )}
-
-              <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-4 sm:p-8 hover:border-blue-500 transition-colors">
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  <FileUpIcon className="h-8 w-8 sm:h-12 sm:w-12 text-blue-500" />
-                  <div className="text-center">
-                    <p className="text-base font-medium text-blue-600">Chọn file để tải lên</p>
-                    <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Định dạng hỗ trợ: PDF, DOC, DOCX, PPT, PPTX
-                    </p>
+                {/* File tiếng Anh */}
+                <div className="bg-white border border-green-300 rounded-xl shadow-sm p-5 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <FileUpIcon className="h-6 w-6 text-green-500" />
+                    <span className="font-semibold text-green-700 text-base">File tiếng Anh (eng)</span>
                   </div>
-                  <input
-                    type="file"
-                    name="lecture_files"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                  <p className="text-xs text-gray-500 mb-2">Chọn file tài liệu tiếng Anh (PDF, DOC, DOCX, PPT, PPTX)</p>
+                  <label className="relative flex flex-col items-center justify-center border-2 border-dashed border-green-400 rounded-lg p-4 hover:border-green-500 transition-colors cursor-pointer min-h-[120px]">
+                    <input
+                      type="file"
+                      name="lecture_file_eng"
+                      accept=".pdf,.doc,.docx,.ppt,.pptx"
+                      onChange={handleFileChange('eng')}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    {selectedFiles.eng ? (
+                      <>
+                        <span className="text-green-700 font-medium">{selectedFiles.eng.file.name}</span>
+                        <span className="text-xs text-gray-500">{(selectedFiles.eng.size / (1024 * 1024)).toFixed(2)} MB</span>
+                        <button type="button" onClick={e => { e.stopPropagation(); handleRemoveFile('eng') }} className="mt-2 px-2 py-1 text-xs rounded bg-red-100 text-red-600 hover:bg-red-200">Xóa file</button>
+                      </>
+                    ) : (
+                      <>
+                        <FileUpIcon className="h-8 w-8 text-green-400 mb-2" />
+                        <span className="text-sm text-green-600">Nhấn để chọn hoặc kéo thả file vào đây</span>
+                      </>
+                    )}
+                  </label>
+                  <div className="mt-2 p-2 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-200">
+                    File hiện tại: <span className="font-medium">{lecture.original_filename?.split('|||')[1] || lecture.file_url?.split('|||')[1]?.split('/').pop() || 'Chưa có'}</span>
+                  </div>
                 </div>
-              </div>
-
-              {selectedFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {selectedFiles.map((file, index) => (
-                    <div key={index} className="p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                        <div className="flex items-center space-x-2 sm:space-x-3">
-                          <FileUpIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500"/>
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 break-all">{file.file.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / (1024 * 1024)).toFixed(2)} MB
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleRemoveFile}
-                          className="text-sm text-red-500 hover:text-red-700"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  File đang chọn: {lecture.original_filename?.split('|||')[selectedFileIndex] || lecture.file_url.split('|||')[selectedFileIndex].split('/').pop()}
-                </p>
               </div>
             </div>
           )}
