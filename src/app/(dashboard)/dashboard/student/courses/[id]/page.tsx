@@ -253,7 +253,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                           className="text-xs sm:text-sm px-2 sm:px-3"
                           onClick={() => setActiveLectureFileIndex(prev => ({ ...prev, [lecture.id]: index }))}
                         >
-                          File {index + 1}
+                          {index === 0 ? 'vie' : index === 1 ? 'eng' : `${index + 1}`}
                         </Button>
                       ))}
                     </div>
