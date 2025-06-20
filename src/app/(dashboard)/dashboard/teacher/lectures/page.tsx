@@ -482,23 +482,39 @@ export default function TeacherLecturesPage() {
     )
   }
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 px-2 sm:px-4 md:px-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Bài giảng</h2>
-          <p className="text-muted-foreground">Quản lý tất cả bài giảng của bạn</p>
-          <div className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Bài giảng</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">Quản lý tất cả bài giảng của bạn</p>
+          <div className="text-xs sm:text-sm text-muted-foreground mt-1">
             Hiển thị {filteredLectures.length} / {lectures.length} bài giảng
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="default" onClick={() => router.push("/dashboard/teacher/lectures/create")}>
+        <div className="flex flex-row xs:flex-row gap-2 w-full sm:w-auto">
+          <Button variant="default" onClick={() => router.push("/dashboard/teacher/lectures/create")}
+            className="w-full xs:w-auto">
+                <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 mr-2"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
             Tạo bài giảng
           </Button>
-          <Button onClick={() => router.back()}>
+          {/* <Button onClick={() => router.back()} variant="outline"  className="w-full xs:w-auto">
             Quay lại
-          </Button>
-          <Button variant="outline" onClick={loadLectures} disabled={isLoading}>
+          </Button> */}
+          <Button variant="outline" onClick={loadLectures} disabled={isLoading} className="w-full xs:w-auto">
             {isLoading ? "Đang tải..." : "Làm mới"}
           </Button>
         </div>
@@ -511,7 +527,7 @@ export default function TeacherLecturesPage() {
         onSearch={handleSearch}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredLectures.map((lecture) => (
           <div key={lecture.id} 
             className="group relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
@@ -616,7 +632,7 @@ export default function TeacherLecturesPage() {
       </div>
 
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-[500px]">
+        <DialogContent className="max-w-full sm:max-w-[500px] px-2 sm:px-6 py-4 sm:py-8">
           <DialogHeader>
             <DialogTitle>{selectedLecture?.title}</DialogTitle>
             <DialogDescription>
@@ -625,7 +641,7 @@ export default function TeacherLecturesPage() {
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            <div className="bg-muted/50 p-4 rounded-lg">
+            <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
               <h4 className="text-sm font-semibold uppercase tracking-wide text-primary mb-2">
                 Mô tả
               </h4>
@@ -636,22 +652,23 @@ export default function TeacherLecturesPage() {
 
             {selectedLecture?.file_url && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Tài liệu bài giảng</h3>
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold">Tài liệu bài giảng</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                     {selectedLecture.file_url.split('|||').map((url: string, index: number) => (
                       <Button
                         key={index}
                         variant={currentFileIndex === index ? "default" : "outline"}
                         size="sm"
                         onClick={() => setCurrentFileIndex(index)}
+                        className="whitespace-nowrap"
                       >
                         File {index + 1}
                       </Button>
                     ))}
                   </div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
                   {selectedLecture.file_url.split('|||').map((url: string, index: number) => (
                     <div key={index} className={currentFileIndex === index ? 'block' : 'hidden'}>
                       {isYouTubeUrl(url) ? (
@@ -664,14 +681,14 @@ export default function TeacherLecturesPage() {
                           />
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FileIcon className="h-8 w-8 text-blue-500" />
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-4 bg-white rounded-lg border">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <FileIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
                             <div>
-                              <p className="font-medium">
+                              <p className="font-medium break-all">
                                 {selectedLecture.original_filename?.split('|||')[index] || url.split('/').pop()}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
                                 {formatFileSize(selectedLecture.file_size / (selectedLecture.file_url.split('|||').length || 1))}
                               </p>
                             </div>
@@ -680,6 +697,7 @@ export default function TeacherLecturesPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDownload(selectedLecture, url, selectedLecture.original_filename?.split('|||')[index] || url.split('/').pop())}
+                            className="w-full sm:w-auto"
                           >
                             Tải xuống
                           </Button>

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { getLecture, updateLecture, uploadLectureFile } from '@/lib/supabase'
-import { FileUpIcon, XIcon } from "lucide-react"
+import { FileUpIcon, XIcon, ArrowLeft } from "lucide-react"
 
 type FileWithPreview = {
   file: File;
@@ -188,11 +188,17 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
   }
 
   return (
-    <div className="container mx-auto pb-8 px-4 md:px-6 lg:px-8 max-w-4xl">
-      <div className="bg-white rounded-lg shadow-sm px-6 pb-6 md:px-8 md:pb-8">
+    <div className="container mx-auto pb-8 px-2 sm:px-4 md:px-6 lg:px-8 max-w-4xl">
+      <div className="bg-white rounded-lg shadow-sm px-2 sm:px-4 md:px-8 pb-6 md:pb-8">
+        <div className="pt-4 pb-2">
+          <Button variant="ghost" type="button" onClick={() => router.back()} className="flex items-center gap-2 px-0">
+            <ArrowLeft className="w-5 h-5 mr-1" />
+            Quay lại
+          </Button>
+        </div>
         <div className="mb-8">
-          <h2 className="text-3xl font-bold tracking-tight">Chỉnh sửa bài giảng</h2>
-          <p className="text-muted-foreground mt-2">Cập nhật thông tin bài giảng bên dưới</p>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Chỉnh sửa bài giảng</h2>
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">Cập nhật thông tin bài giảng bên dưới</p>
         </div>
 
         <form onSubmit={handleUpdateLecture} className="space-y-6">
@@ -203,11 +209,11 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Mô tả</label>
-            <Textarea name="description" defaultValue={lecture.description} required className="w-full min-h-[120px]" />
+            <Textarea name="description" defaultValue={lecture.description} required className="w-full min-h-[100px] sm:min-h-[120px]" />
           </div>
 
           <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-6">
               <label className="inline-flex items-center">
                 <input
                   type="radio"
@@ -248,18 +254,17 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           ) : (
             <div className="space-y-2">
               <label className="text-sm font-medium">Upload file bài giảng</label>
-              
               {/* Hiển thị danh sách file hiện có */}
               {lecture.file_url.includes('|||') && (
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                   <h3 className="text-sm font-medium mb-2">File hiện có:</h3>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 overflow-x-auto">
                     {lecture.file_url.split('|||').map((url: string, index: number) => (
                       <button
                         key={index}
                         type="button"
                         onClick={() => setSelectedFileIndex(index)}
-                        className={`px-3 py-1 rounded-md text-sm ${
+                        className={`px-3 py-1 rounded-md text-sm whitespace-nowrap ${
                           selectedFileIndex === index
                             ? 'bg-primary text-white'
                             : 'bg-gray-200 hover:bg-gray-300'
@@ -272,9 +277,9 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
                 </div>
               )}
 
-              <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors">
+              <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-4 sm:p-8 hover:border-blue-500 transition-colors">
                 <div className="flex flex-col items-center justify-center space-y-4">
-                  <FileUpIcon className="h-12 w-12 text-blue-500" />
+                  <FileUpIcon className="h-8 w-8 sm:h-12 sm:w-12 text-blue-500" />
                   <div className="text-center">
                     <p className="text-base font-medium text-blue-600">Chọn file để tải lên</p>
                     <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
@@ -295,12 +300,12 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
               {selectedFiles.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {selectedFiles.map((file, index) => (
-                    <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <FileUpIcon className="w-8 h-8 text-blue-500"/>
+                    <div key={index} className="p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <FileUpIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500"/>
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{file.file.name}</p>
+                            <p className="text-sm font-medium text-gray-700 break-all">{file.file.name}</p>
                             <p className="text-xs text-gray-500">
                               {(file.size / (1024 * 1024)).toFixed(2)} MB
                             </p>
@@ -319,7 +324,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
                 </div>
               )}
 
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="mt-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">
                   File đang chọn: {lecture.original_filename?.split('|||')[selectedFileIndex] || lecture.file_url.split('|||')[selectedFileIndex].split('/').pop()}
                 </p>
@@ -327,9 +332,9 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          <div className="flex justify-end space-x-4 pt-6">
-            <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
-            <Button type="submit" disabled={isLoading}>
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-6">
+            <Button variant="outline" type="button" className="w-full sm:w-auto" onClick={() => router.back()}>Hủy</Button>
+            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
               {isLoading ? 'Đang cập nhật...' : 'Cập nhật bài giảng'}
             </Button>
           </div>

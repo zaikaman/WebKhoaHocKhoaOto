@@ -374,20 +374,25 @@ export default function TeacherClassesPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Lớp học của tôi</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Lớp học của tôi
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Quản lý các lớp học và hoạt động giảng dạy
           </p>
-          <div className="text-sm text-muted-foreground mt-1">
+          <div className="text-xs sm:text-sm text-muted-foreground mt-1">
             Hiển thị {filteredClasses.length} / {classes.length} lớp học
           </div>
         </div>
-        <Button onClick={() => {
-          setSelectedClass(null)
-          setIsDialogOpen(true)
-        }}>
+        <Button
+          onClick={() => {
+            setSelectedClass(null)
+            setIsDialogOpen(true)
+          }}
+          className="w-full sm:w-auto"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -550,7 +555,7 @@ export default function TeacherClassesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="group-hover:bg-primary group-hover:text-primary-foreground"
+                  className="text-xs sm:text-sm flex-shrink-0 bg-black text-white hover:bg-black hover:text-white hover:opacity-100"
                   onClick={() => router.push(`/dashboard/teacher/classes/${classItem.id}`)}
                 >
                   Chi tiết
@@ -605,18 +610,21 @@ export default function TeacherClassesPage() {
 
       {/* Dialog tạo/chỉnh sửa lớp học */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-full sm:max-w-lg p-4 sm:p-8">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {selectedClass ? "Chỉnh sửa lớp học" : "Tạo lớp học mới"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {selectedClass
                 ? "Cập nhật thông tin lớp học"
                 : "Nhập thông tin để tạo lớp học mới"}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateClass} className="space-y-4">
+          <form
+            onSubmit={handleCreateClass}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="subject_id">
                 Môn học
@@ -625,7 +633,7 @@ export default function TeacherClassesPage() {
                 id="subject_id"
                 name="subject_id"
                 defaultValue={selectedClass?.subject_id}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                 required
               >
                 <option value="">Chọn môn học</option>
@@ -644,7 +652,7 @@ export default function TeacherClassesPage() {
                 id="code"
                 name="code"
                 defaultValue={selectedClass?.code}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                 required
               />
             </div>
@@ -656,39 +664,50 @@ export default function TeacherClassesPage() {
                 id="name"
                 name="name"
                 defaultValue={selectedClass?.name}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="semester">
-                Học kỳ
-              </label>
-              <input
-                id="semester"
-                name="semester"
-                defaultValue={selectedClass?.semester}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-              />
+            <div className="flex flex-col sm:flex-row sm:gap-4">
+              <div className="space-y-2 flex-1">
+                <label className="text-sm font-medium" htmlFor="semester">
+                  Học kỳ
+                </label>
+                <input
+                  id="semester"
+                  name="semester"
+                  defaultValue={selectedClass?.semester}
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
+                  required
+                />
+              </div>
+              <div className="space-y-2 flex-1">
+                <label className="text-sm font-medium" htmlFor="academic_year">
+                  Năm học
+                </label>
+                <input
+                  id="academic_year"
+                  name="academic_year"
+                  defaultValue={selectedClass?.academic_year}
+                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="academic_year">
-                Năm học
-              </label>
-              <input
-                id="academic_year"
-                name="academic_year"
-                defaultValue={selectedClass?.academic_year}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Hủy
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full sm:w-auto"
+              >
                 {selectedClass ? "Cập nhật" : "Tạo mới"}
               </Button>
             </DialogFooter>

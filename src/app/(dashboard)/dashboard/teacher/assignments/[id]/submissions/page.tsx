@@ -167,7 +167,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -191,36 +191,36 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
 
   return (
     <div className="container py-8 space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold tracking-tight break-words">{assignment.title}</h2>
+          <p className="text-muted-foreground break-words">
             {assignment.class.subject.name} - {assignment.class.name}
           </p>
         </div>
-        <Button onClick={() => router.push('/dashboard/teacher/assignments')}>
+        <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/assignments')}>
           Quay lại
         </Button>
       </div>
 
-      <div className="rounded-lg border">
-        <table className="w-full">
+      <div className="rounded-lg border overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b">
-              <th className="text-left py-3 px-4">Sinh viên</th>
-              <th className="text-left py-3 px-4">Thời gian nộp</th>
-              <th className="text-left py-3 px-4">Trạng thái</th>
-              <th className="text-left py-3 px-4">Điểm</th>
-              <th className="text-left py-3 px-4"></th>
+              <th className="text-left py-3 px-4 whitespace-nowrap">Sinh viên</th>
+              <th className="text-left py-3 px-4 whitespace-nowrap">Thời gian nộp</th>
+              <th className="text-left py-3 px-4 whitespace-nowrap">Trạng thái</th>
+              <th className="text-left py-3 px-4 whitespace-nowrap">Điểm</th>
+              <th className="text-left py-3 px-4 whitespace-nowrap"></th>
             </tr>
           </thead>
           <tbody>
             {submissions.map((submission) => (
               <tr key={submission.id} className="border-b last:border-0">
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 max-w-[160px] break-words">
                   <div className="font-medium">{submission.student.full_name}</div>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 whitespace-nowrap">
                   {new Date(submission.submitted_at).toLocaleString('vi-VN')}
                 </td>
                 <td className="py-3 px-4">
@@ -232,14 +232,15 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                     {submission.graded_at ? 'Đã chấm' : 'Chưa chấm'}
                   </span>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 whitespace-nowrap">
                   {submission.score !== null ? `${submission.score}/${assignment.total_points}` : 'Chưa có điểm'}
                 </td>
                 <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         setSelectedSubmission(submission)
                         setGradeData({
@@ -255,6 +256,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                       <Button
                         variant="secondary"
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions/${submission.id}`)}
                       >
                         Xem chi tiết
@@ -264,7 +266,6 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                 </td>
               </tr>
             ))}
-
             {submissions.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-muted-foreground">
@@ -277,7 +278,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
       </div>
 
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
-        <DialogContent className="max-w-[700px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-[700px] w-full max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chấm điểm bài làm</DialogTitle>
           </DialogHeader>
@@ -294,17 +295,17 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                       <div className="space-y-4">
                         <div>
                           <Label htmlFor={`question-${question.id}`}>Câu hỏi:</Label>
-                          <div className="mt-1 text-sm">{question.content}</div>
+                          <div className="mt-1 text-sm break-words">{question.content}</div>
                         </div>
                         <div>
                           <Label htmlFor={`answer-${question.id}`}>Câu trả lời của sinh viên:</Label>
-                          <div className="mt-1 text-sm">
+                          <div className="mt-1 text-sm break-words">
                             {selectedSubmission?.answers?.[question.id] || 'Không có câu trả lời'}
                           </div>
                         </div>
                         <div>
                           <Label htmlFor={`correct-${question.id}`}>Đáp án đúng:</Label>
-                          <div className="mt-1 text-sm">{question.correct_answer}</div>
+                          <div className="mt-1 text-sm break-words">{question.correct_answer}</div>
                         </div>
                       </div>
                     </CardContent>
@@ -312,7 +313,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                 ))}
               </>
             ) : (
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-6">
                   <Card>
                     <CardHeader>
@@ -326,7 +327,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                         {selectedSubmission?.content && (
                           <div>
                             <Label htmlFor="submission-content">Nội dung bài làm:</Label>
-                            <div className="mt-2 p-4 rounded-lg bg-muted/50 border text-sm whitespace-pre-wrap">
+                            <div className="mt-2 p-4 rounded-lg bg-muted/50 border text-sm whitespace-pre-wrap break-words">
                               {selectedSubmission.content}
                             </div>
                           </div>
@@ -340,7 +341,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                                 href={selectedSubmission.file_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                                className="inline-flex items-center gap-2 text-sm text-primary hover:underline break-all"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -384,7 +385,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                         </div>
 
                         <div className="space-y-3 col-span-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                             <p className="text-base font-medium">Nhận xét</p>
                             <span className="text-sm text-muted-foreground">
                               (Nhập nhận xét chi tiết về bài làm)
@@ -403,11 +404,11 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                     </CardContent>
                   </Card>
 
-                  <div className="flex justify-end gap-4">
-                    <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
+                  <div className="flex flex-col sm:flex-row justify-end gap-4">
+                    <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowGradeDialog(false)}>
                       Hủy
                     </Button>
-                    <Button onClick={handleGradeSubmit}>
+                    <Button className="w-full sm:w-auto" onClick={handleGradeSubmit}>
                       Lưu điểm
                     </Button>
                   </div>
@@ -456,11 +457,11 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-end gap-4">
-                  <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
+                <div className="flex flex-col sm:flex-row justify-end gap-4">
+                  <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowGradeDialog(false)}>
                     Hủy
                   </Button>
-                  <Button onClick={handleGradeSubmit}>
+                  <Button className="w-full sm:w-auto" onClick={handleGradeSubmit}>
                     Lưu điểm
                   </Button>
                 </div>

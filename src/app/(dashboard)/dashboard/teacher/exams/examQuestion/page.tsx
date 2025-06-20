@@ -423,9 +423,12 @@ export default function ExamQuestionPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 rounded-lg shadow-md">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Tạo câu hỏi cho bài kiểm tra</h2>
+    <div className="space-y-6 p-4 sm:p-6 bg-gray-50 rounded-lg shadow-md">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Tạo câu hỏi cho bài kiểm tra</h2>
+        <Button variant="outline" onClick={() => router.back()} className="w-full sm:w-auto flex-shrink-0">
+          Quay lại
+        </Button>
       </div>
 
       <Tabs value={examType} onValueChange={(value) => setExamType(value as 'multiple_choice' | 'essay')}>
@@ -434,10 +437,10 @@ export default function ExamQuestionPage() {
           <TabsTrigger value="essay">Tự luận</TabsTrigger>
         </TabsList>
 
-        <div className="mt-4 flex items-center gap-4">
-          <Button onClick={() => handleAddQuestion(examType)}>Thêm câu hỏi</Button>
+        <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <Button className="w-full sm:w-auto" onClick={() => handleAddQuestion(examType)}>Thêm câu hỏi</Button>
           {examType === 'multiple_choice' && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -447,12 +450,14 @@ export default function ExamQuestionPage() {
               />
               <Button 
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => fileInputRef.current?.click()}
               >
                 Import từ Excel
               </Button>
               <Button 
                 variant="ghost"
+                className="w-full sm:w-auto text-blue-600 underline hover:text-blue-800"
                 onClick={handleDownloadTemplate}
               >
                 Tải mẫu Excel
@@ -464,8 +469,9 @@ export default function ExamQuestionPage() {
         <div className="mt-4 space-y-4">
           {questions?.filter(q => q && q.content).map((question, index) => (
             <div key={question?.id || index} className="rounded-lg border p-4 bg-white shadow-sm relative">
-              <div className="absolute top-2 right-2 flex space-x-2">
+              <div className="absolute top-2 right-2 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <Button 
+                  size="sm"
                   onClick={() => { 
                     setCurrentQuestion(question); 
                     setExamType(question.type);
@@ -475,31 +481,32 @@ export default function ExamQuestionPage() {
                   Chỉnh sửa
                 </Button>
                 <Button 
+                  size="sm"
                   onClick={() => handleDeleteQuestion(question.id)}
                   variant="outline"
                 >
                   &times;
                 </Button>
               </div>
-              <div className="flex-1">
-                <h3 className="font-medium">Câu {index + 1}: {question?.content}</h3>
+              <div className="flex-1 pr-24 sm:pr-32">
+                <h3 className="font-medium break-words">Câu {index + 1}: {question?.content}</h3>
                 <div className="mt-2 text-sm text-muted-foreground">Điểm: {question?.points}</div>
                 {question?.type === 'multiple_choice' && question?.options && (
                   <div className="mt-2">
                     <h4 className="font-medium">Các đáp án:</h4>
                     <ul className="list-disc pl-5">
                       {JSON.parse(question.options).map((option: string, idx: number) => (
-                        <li key={idx}>{option}</li>
+                        <li key={idx} className="break-words">{option}</li>
                       ))}
                     </ul>
                     <h4 className="font-medium">Đáp án đúng:</h4>
-                    <p>{question?.correct_answer}</p>
+                    <p className="break-words">{question?.correct_answer}</p>
                   </div>
                 )}
                 {question?.type === 'essay' && question?.correct_answer && (
                   <div className="mt-2">
                     <h4 className="font-medium">Đáp án đúng:</h4>
-                    <p>{question?.correct_answer}</p>
+                    <p className="break-words">{question?.correct_answer}</p>
                   </div>
                 )}
               </div>
@@ -507,7 +514,7 @@ export default function ExamQuestionPage() {
           ))}
 
           <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-            <DialogContent className="max-w-[500px] p-4">
+            <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader className="pb-4">
                 <DialogTitle className="text-xl font-semibold">
                   {currentQuestion ? "Cập nhật câu hỏi" : "Thêm câu hỏi"}
@@ -520,7 +527,7 @@ export default function ExamQuestionPage() {
                       Nội dung câu hỏi <span className="text-red-500">*</span>
                     </span>
                   </Label>
-                  <div className="w-full h-[120px]">
+                  <div className="w-full h-auto">
                     <Textarea 
                       id="content" 
                       name="content" 
@@ -535,7 +542,7 @@ export default function ExamQuestionPage() {
 
                 {examType === 'multiple_choice' && (
                   <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[1, 2, 3, 4].map((num) => (
                         <div key={num} className="space-y-2">
                           <Label htmlFor={`option${num}`}>
@@ -547,7 +554,7 @@ export default function ExamQuestionPage() {
                             name={`option${num}`}
                             className="w-full focus:ring-2 focus:ring-blue-500"
                             placeholder={`Nhập đáp án ${num}...`}
-                            defaultValue={currentQuestion?.options?.[num - 1] || ''}
+                            defaultValue={currentQuestion?.options ? JSON.parse(currentQuestion.options)[num - 1] : ''}
                             required
                           />
                         </div>
@@ -563,7 +570,7 @@ export default function ExamQuestionPage() {
                         id="correctOption"
                         name="correctOption"
                         className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        defaultValue={currentQuestion?.options?.indexOf(currentQuestion.correct_answer || '') || 0}
+                        defaultValue={currentQuestion?.options ? JSON.parse(currentQuestion.options).indexOf(currentQuestion.correct_answer) + 1 : 1}
                         required
                       >
                         {[1, 2, 3, 4].map((num) => (
@@ -581,7 +588,7 @@ export default function ExamQuestionPage() {
                         Đáp án mẫu <span className="text-red-500">*</span>
                       </span>
                     </Label>
-                    <div className="w-full h-[120px]">
+                    <div className="w-full h-auto">
                       <Textarea
                         id="correctAnswer"
                         name="correctAnswer"
@@ -613,15 +620,16 @@ export default function ExamQuestionPage() {
                   />
                 </div>
 
-                <DialogFooter className="flex justify-end gap-2 pt-4">
+                <DialogFooter className="flex-col sm:flex-row justify-end gap-2 pt-4">
                   <Button
                     type="button"
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => setIsQuestionDialogOpen(false)}
                   >
                     Hủy
                   </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                     {currentQuestion ? "Cập nhật" : "Thêm"}
                   </Button>
                 </DialogFooter>
@@ -631,9 +639,9 @@ export default function ExamQuestionPage() {
         </div>
       </Tabs>
 
-      <div className="flex justify-end space-x-4">
-        <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
-        <Button onClick={() => router.push('/dashboard/teacher/exams/list')}>Hoàn tất</Button>
+      <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4">
+        <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.back()}>Hủy</Button>
+        <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/exams/list')}>Hoàn tất</Button>
       </div>
     </div>
   )

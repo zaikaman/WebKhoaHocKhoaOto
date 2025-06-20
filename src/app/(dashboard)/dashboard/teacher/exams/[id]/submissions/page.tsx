@@ -173,7 +173,7 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -197,36 +197,38 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
 
   return (
     <div className="container py-8 space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{exam.title}</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold tracking-tight break-words">{exam.title}</h2>
+          <p className="text-muted-foreground break-words">
             {exam.class.subject.name} - {exam.class.name}
           </p>
         </div>
-        <Button onClick={() => router.push('/dashboard/teacher/exams/list')}>
+        <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/exams/list')}>
           Quay lại
         </Button>
       </div>
 
-      <div className="rounded-lg border">
-        <table className="w-full">
+      <div className="rounded-lg border overflow-x-auto">
+        <table className="w-full min-w-[750px]">
           <thead>
             <tr className="border-b">
-              <th className="text-left py-3 px-4">Sinh viên</th>
-              <th className="text-left py-3 px-4">Thời gian nộp</th>
-              <th className="text-left py-3 px-4">Trạng thái</th>
-              <th className="text-left py-3 px-4">Điểm</th>
+            <th className="text-left py-3 px-4 break-words whitespace-nowrap w-[250px]">Sinh viên</th>
+
+
+              <th className="text-left py-3 px-4 whitespace-nowrap">Thời gian nộp</th>
+              <th className="text-left py-3 px-4 whitespace-nowrap">Trạng thái</th>
+              <th className="text-left py-3 px-4 whitespace-nowrap">Điểm</th>
               <th className="text-left py-3 px-4"></th>
             </tr>
           </thead>
           <tbody>
             {submissions.map((submission) => (
               <tr key={submission.id} className="border-b last:border-0">
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 break-words w-[250px]">
                   <div className="font-medium">{submission.student.full_name}</div>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 whitespace-nowrap">
                   {new Date(submission.submitted_at).toLocaleString('vi-VN')}
                 </td>
                 <td className="py-3 px-4">
@@ -238,13 +240,14 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
                     {submission.graded_at ? 'Đã chấm' : 'Chưa chấm'}
                   </span>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 whitespace-nowrap">
                   {submission.score !== null ? `${submission.score}/${exam.total_points}` : 'Chưa có điểm'}
                 </td>
                 <td className="py-3 px-4">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setSelectedSubmission(submission)
                       setGradeData({
@@ -272,7 +275,7 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
       </div>
 
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
-        <DialogContent className="max-w-[700px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chấm điểm bài làm</DialogTitle>
           </DialogHeader>
@@ -287,18 +290,18 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor={`question-${question.id}`}>Câu hỏi:</Label>
-                      <div className="mt-1 text-sm">{question.content}</div>
+                      <div className="mt-1 text-sm break-words">{question.content}</div>
                     </div>
                     <div>
                       <Label htmlFor={`answer-${question.id}`}>Câu trả lời của sinh viên:</Label>
-                      <div className="mt-1 text-sm whitespace-pre-wrap">
+                      <div className="mt-1 text-sm whitespace-pre-wrap break-words">
                         {selectedSubmission?.answers[question.id] || 'Không có câu trả lời'}
                       </div>
                     </div>
                     {question.type === 'multiple_choice' && (
                       <div>
                         <Label htmlFor={`correct-${question.id}`}>Đáp án đúng:</Label>
-                        <div className="mt-1 text-sm">{question.correct_answer}</div>
+                        <div className="mt-1 text-sm break-words">{question.correct_answer}</div>
                       </div>
                     )}
                   </div>
@@ -306,35 +309,45 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
               </Card>
             ))}
 
-            <div className="space-y-2">
-              <Label htmlFor="score">Điểm số</Label>
-              <Input
-                id="score"
-                type="number"
-                min="0"
-                max={exam.total_points}
-                value={gradeData.score}
-                onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
-                placeholder={`Nhập điểm (tối đa ${exam.total_points})`}
-              />
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Chấm điểm & Nhận xét</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+  <Label htmlFor="score">Điểm số :</Label>
+  <Input
+    id="score"
+    type="number"
+    min="0"
+    max={exam.total_points}
+    value={gradeData.score}
+    onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
+    placeholder={`Nhập điểm (tối đa ${exam.total_points})`}
+  />
+</div>
 
-            <div className="space-y-2">
-              <Label htmlFor="feedback">Nhận xét</Label>
-              <Textarea
-                id="feedback"
-                value={gradeData.feedback}
-                onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
-                placeholder="Nhập nhận xét cho bài làm..."
-                rows={4}
-              />
-            </div>
+    
+                <div className="space-y-2">
+                  <Label htmlFor="feedback">Nhận xét : </Label>
+                  <div className="m-15"></div>
+                  <Textarea
+                    id="feedback"
+                    value={gradeData.feedback}
+                    onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
+                    placeholder="Nhập nhận xét cho bài làm..."
+                    rows={4}
+                    className="w-full"
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2 pt-4">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowGradeDialog(false)}>
               Hủy
             </Button>
-            <Button onClick={handleGradeSubmit}>
+            <Button className="w-full sm:w-auto" onClick={handleGradeSubmit}>
               Lưu điểm
             </Button>
           </DialogFooter>

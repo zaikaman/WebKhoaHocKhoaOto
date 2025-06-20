@@ -95,7 +95,7 @@ export default function TeacherDashboardPage() {
   // Hàm xử lý khi click nút tải xuống bài giảng
   const handleDownloadLecture = async (lecture: Lecture) => {
     try {
-      console.log('Bắt đầu xử lý download:', lecture)
+      // console.log('Bắt đầu xử lý download:', lecture)
       
       if (!lecture.fileUrl) {
         toast({
@@ -519,7 +519,6 @@ export default function TeacherDashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, {teacherName}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Quản lý hoạt động giảng dạy của bạn</p>
         </div>
         <Button 
           variant="outline" 
@@ -731,7 +730,7 @@ export default function TeacherDashboardPage() {
                         })}
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm" onClick={() => handleEventDetail(event)}>
+                    <Button variant="ghost" size="sm"   className="text-xs sm:text-sm flex-shrink-0 bg-black text-white hover:bg-black hover:text-white hover:opacity-100" onClick={() => handleEventDetail(event)}>
                       Chi tiết
                     </Button>
                   </div>
@@ -901,9 +900,15 @@ export default function TeacherDashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-xs sm:text-sm flex-shrink-0" onClick={() => handleExamDetail(exam)}>
-                      Chi tiết
-                    </Button>
+                    <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs sm:text-sm flex-shrink-0 bg-black text-white hover:bg-black hover:text-white hover:opacity-100"
+
+                    onClick={() => handleExamDetail(exam)}
+                  >
+                    Chi tiết
+                  </Button>
                   </div>
                 </div>
               ))}

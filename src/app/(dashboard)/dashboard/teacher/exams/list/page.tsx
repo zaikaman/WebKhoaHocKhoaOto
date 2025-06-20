@@ -484,22 +484,37 @@ export default function TeacherExamsListPage() {
   }
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Bài kiểm tra</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Bài kiểm tra</h2>
           <p className="text-muted-foreground">Quản lý tất cả bài kiểm tra của bạn</p>
           <div className="text-sm text-muted-foreground mt-1">
             Hiển thị {filteredExams.length} / {exams.length} bài kiểm tra
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => router.push('/dashboard/teacher/exams')}>
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/exams')}>
+          <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 mr-2"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
             Tạo bài kiểm tra
           </Button>
-          <Button onClick={() => router.back()}>
+          {/* <Button onClick={() => router.back()}>
             Quay lại
-          </Button>
-          <Button variant="outline" onClick={loadExams} disabled={isLoading}>
+          </Button> */}
+          <Button className="w-full sm:w-auto" variant="outline" onClick={loadExams} disabled={isLoading}>
             {isLoading ? "Đang tải..." : "Làm mới"}
           </Button>
         </div>
@@ -512,11 +527,11 @@ export default function TeacherExamsListPage() {
         onSearch={handleSearch}
       />
 
-      <div className="rounded-xl border shadow">
+      <div className="rounded-xl border shadow overflow-x-auto">
         <div className="divide-y">
           {filteredExams.map((exam) => (
             <div key={exam.id} className="p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 min-w-[1000px]">
                 <div className={`p-2 rounded-full ${
                   exam.status === 'completed'
                     ? 'bg-green-100 text-green-600'
@@ -549,7 +564,7 @@ export default function TeacherExamsListPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium">{exam.title}</h4>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    <span className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${
                       exam.status === 'completed'
                         ? 'bg-green-100 text-green-700'
                         : exam.status === 'in-progress'
@@ -603,7 +618,7 @@ export default function TeacherExamsListPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(exam.id)}>
                     Chỉnh sửa
                   </Button>
@@ -626,75 +641,82 @@ export default function TeacherExamsListPage() {
             </div>
           )}
         </div>
-      
+      </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Chọn hành động chỉnh sửa</DialogTitle>
           </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => handleEditChoice('info')}>Chỉnh sửa thông tin</Button>
-            <Button onClick={() => handleEditChoice('question')}>Chỉnh sửa câu hỏi</Button>
+          <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2 pt-4">
+            <Button className="w-full sm:w-auto" onClick={() => handleEditChoice('info')}>Chỉnh sửa thông tin</Button>
+            <Button className="w-full sm:w-auto" onClick={() => handleEditChoice('question')}>Chỉnh sửa câu hỏi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditTitleDialogOpen} onOpenChange={setIsEditTitleDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-full max-w-md">
           <DialogHeader>
             <DialogTitle>Chỉnh sửa thông tin bài kiểm tra</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Tiêu đề</Label>
-              <Input
-                id="edit-title"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Nhập tiêu đề"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-start-time">Thời gian bắt đầu</Label>
-              <Input
-                id="edit-start-time"
-                type="datetime-local"
-                value={editStartTime}
-                onChange={(e) => setEditStartTime(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-end-time">Thời gian kết thúc</Label>
-              <Input
-                id="edit-end-time"
-                type="datetime-local"
-                value={editEndTime}
-                onChange={(e) => setEditEndTime(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-duration">Thời gian làm bài (phút)</Label>
-              <Input
-                id="edit-duration"
-                type="number"
-                min="1"
-                value={editDuration}
-                onChange={(e) => setEditDuration(e.target.value)}
-                placeholder="Nhập thời gian làm bài"
-              />
-            </div>
+          <div className="flex items-center gap-4 mt-4">
+  <p className="w-32 text-sm">Tiêu đề :</p>
+  <Input
+    id="edit-title"
+    value={editTitle}
+    onChange={(e) => setEditTitle(e.target.value)}
+    placeholder="Nhập tiêu đề"
+    className="flex-1"
+  />
+</div>
+
+<div className="flex items-center gap-4 mt-4">
+  <p className="w-32 text-sm">Thời gian bắt đầu :</p>
+  <Input
+    id="edit-start-time"
+    type="datetime-local"
+    value={editStartTime}
+    onChange={(e) => setEditStartTime(e.target.value)}
+    className="flex-1"
+  />
+</div>
+
+<div className="flex items-center gap-4 mt-4">
+  <p className="w-32 text-sm">Thời gian kết thúc :</p>
+  <Input
+    id="edit-end-time"
+    type="datetime-local"
+    value={editEndTime}
+    onChange={(e) => setEditEndTime(e.target.value)}
+    className="flex-1"
+  />
+</div>
+
+<div className="flex items-center gap-4 mt-4">
+  <p className="w-32 text-sm">Thời gian làm bài (phút) :</p>
+  <Input
+    id="edit-duration"
+    type="number"
+    min="1"
+    value={editDuration}
+    onChange={(e) => setEditDuration(e.target.value)}
+    placeholder="Nhập thời gian làm bài"
+    className="flex-1"
+  />
+</div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditTitleDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2 pt-4">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsEditTitleDialogOpen(false)}>
               Hủy
             </Button>
-            <Button onClick={handleUpdateInfo} disabled={isLoading}>
+            <Button className="w-full sm:w-auto" onClick={handleUpdateInfo} disabled={isLoading}>
               {isLoading ? "Đang cập nhật..." : "Cập nhật"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  </div>
-  )}
+  )
+}

@@ -292,17 +292,6 @@ const { id } = params
     )
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <h3 className="text-lg font-semibold mb-2 text-red-600">{error}</h3>
-        <Button variant="outline" onClick={() => router.back()}>
-          Quay lại
-        </Button>
-      </div>
-    )
-  }
-
   if (!classData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -313,14 +302,13 @@ const { id } = params
       </div>
     )
   }
-  
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{classData.name}</h1>
+          <h1 className="text-2xl font-bold">Môn học : {classData.name}</h1>
           <p className="text-muted-foreground mt-1">
             Mã lớp: {classData.code} • {classData.semester} - {classData.academic_year}
           </p>
@@ -377,43 +365,48 @@ const { id } = params
                 <p className="text-muted-foreground">Chưa có sinh viên nào trong lớp học</p>
               </div>
             ) : (
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="py-3 px-4 text-left font-medium">MSSV</th>
-                    <th className="py-3 px-4 text-left font-medium">Họ và tên</th>
-                    <th className="py-3 px-4 text-left font-medium">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((student) => (
-                    <tr key={student.id} className="border-t">
-                      <td className="py-3 px-4">{student.student_id}</td>
-                      <td className="py-3 px-4">{student.full_name}</td>
-                      <td className="py-3 px-4">
-                        <Button variant="ghost" size="sm" onClick={() => handleShowStudentInfo(student)}>Thông tin</Button>
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          console.log(student.id)
-                          handleRemoveStudent(student.id)
-                        }}>Xóa</Button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px] text-xs md:text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">MSSV</th>
+                      <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Họ và tên</th>
+                      <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Thao tác</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {students.map((student) => (
+                      <tr key={student.id} className="border-t">
+                        <td className="py-2 px-2 md:py-3 md:px-4">{student.student_id}</td>
+                        <td className="py-2 px-2 md:py-3 md:px-4">{student.full_name}</td>
+                        <td className="py-2 px-2 md:py-3 md:px-4">
+                          <Button variant="ghost" size="sm" onClick={() => handleShowStudentInfo(student)}>Thông tin</Button>
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            console.log(student.id)
+                            handleRemoveStudent(student.id)
+                          }}>Xóa</Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
           {/* Dialog thêm sinh viên */}
           <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
-            <DialogContent>
+            <DialogContent className="w-full max-w-md sm:max-w-lg md:max-w-xl">
               <DialogHeader>
                 <DialogTitle>Thêm sinh viên vào lớp</DialogTitle>
                 <DialogDescription>
                   Nhập thông tin sinh viên để thêm vào lớp học
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddStudent} className="space-y-4">
+              <form 
+                onSubmit={handleAddStudent} 
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <label className="text-sm font-medium" htmlFor="student_id">
                     Mã số sinh viên
@@ -421,7 +414,7 @@ const { id } = params
                   <input
                     id="student_id"
                     name="student_id"
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
                     required
                   />
                 </div>
@@ -432,15 +425,24 @@ const { id } = params
                   <input
                     id="full_name"
                     name="full_name"
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
                     required
                   />
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddStudentDialogOpen(false)}>
+                <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsAddStudentDialogOpen(false)}
+                    className="w-full sm:w-auto"
+                  >
                     Hủy
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="w-full sm:w-auto"
+                  >
                     {isLoading ? "Đang xử lý..." : "Thêm sinh viên"}
                   </Button>
                 </DialogFooter>
@@ -469,32 +471,34 @@ const { id } = params
                 Đến trang Bài tập
               </Button>
             </div>
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
-                  <th className="py-3 px-4 text-left font-medium">Hạn nộp</th>
-                  <th className="py-3 px-4 text-left font-medium">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assignments.map((assignment) => (
-                  <tr key={assignment.id} className="border-t">
-                    <td className="py-3 px-4">{assignment.title}</td>
-                    <td className="py-3 px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN')}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        new Date(assignment.due_date) > new Date()
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {new Date(assignment.due_date) > new Date() ? 'Đang mở' : 'Đã đóng'}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px] text-xs md:text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Tiêu đề</th>
+                    <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Hạn nộp</th>
+                    <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Trạng thái</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {assignments.map((assignment) => (
+                    <tr key={assignment.id} className="border-t">
+                      <td className="py-2 px-2 md:py-3 md:px-4">{assignment.title}</td>
+                      <td className="py-2 px-2 md:py-3 md:px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN')}</td>
+                      <td className="py-2 px-2 md:py-3 md:px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          new Date(assignment.due_date) > new Date()
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {new Date(assignment.due_date) > new Date() ? 'Đang mở' : 'Đã đóng'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
 
@@ -506,38 +510,40 @@ const { id } = params
                 Đến trang Kiểm tra
               </Button>
             </div>
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">Tiêu đề</th>
-                  <th className="py-3 px-4 text-left font-medium">Thời gian</th>
-                  <th className="py-3 px-4 text-left font-medium">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {exams.map((exam) => (
-                  <tr key={exam.id} className="border-t">
-                    <td className="py-3 px-4">{exam.title}</td>
-                    <td className="py-3 px-4">{new Date(exam.start_time).toLocaleDateString('vi-VN')}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        exam.status === 'upcoming'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : exam.status === 'in-progress'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {exam.status === 'upcoming'
-                          ? 'Sắp diễn ra'
-                          : exam.status === 'in-progress'
-                          ? 'Đang diễn ra'
-                          : 'Đã kết thúc'}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px] text-xs md:text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Tiêu đề</th>
+                    <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Thời gian</th>
+                    <th className="py-2 px-2 md:py-3 md:px-4 text-left font-medium">Trạng thái</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {exams.map((exam) => (
+                    <tr key={exam.id} className="border-t">
+                      <td className="py-2 px-2 md:py-3 md:px-4">{exam.title}</td>
+                      <td className="py-2 px-2 md:py-3 md:px-4">{new Date(exam.start_time).toLocaleDateString('vi-VN')}</td>
+                      <td className="py-2 px-2 md:py-3 md:px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          exam.status === 'upcoming'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : exam.status === 'in-progress'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {exam.status === 'upcoming'
+                            ? 'Sắp diễn ra'
+                            : exam.status === 'in-progress'
+                            ? 'Đang diễn ra'
+                            : 'Đã kết thúc'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

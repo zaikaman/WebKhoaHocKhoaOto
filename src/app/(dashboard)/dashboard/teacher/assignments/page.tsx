@@ -557,16 +557,17 @@ export default function TeacherAssignmentsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      {/* Header and Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Bài tập</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Bài tập</h2>
           <p className="text-muted-foreground">Quản lý tất cả bài tập của bạn</p>
           <div className="text-sm text-muted-foreground mt-1">
             Hiển thị {filteredAssignments.length} / {assignments.length} bài tập
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button className="w-full sm:w-auto" onClick={() => setShowCreateDialog(true)}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -584,7 +585,7 @@ export default function TeacherAssignmentsPage() {
             </svg>
             Tạo bài tập
           </Button>
-          <Button variant="outline" onClick={loadData}>
+          <Button className="w-full sm:w-auto" variant="outline" onClick={loadData}>
             Làm mới
           </Button>
         </div>
@@ -828,34 +829,46 @@ export default function TeacherAssignmentsPage() {
 
       {/* Dialog xem chi tiết bài tập */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] w-full">
           <DialogHeader>
             <DialogTitle>Chi tiết bài tập</DialogTitle>
           </DialogHeader>
           {selectedAssignment && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">{selectedAssignment.title}</h3>
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  selectedAssignment.type === 'multiple_choice'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <h3 className="text-lg font-semibold break-words">{selectedAssignment.title}</h3>
+                <span
+                  className={`px-2 py-0.5 text-xs rounded-full w-fit ${
+                    selectedAssignment.type === 'multiple_choice'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-purple-100 text-purple-700'
+                  }`}
+                >
                   {selectedAssignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
                 </span>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="detail-description">Mô tả</Label>
-                <p id="detail-description" className="text-sm text-muted-foreground">{selectedAssignment.description || 'Không có mô tả'}</p>
+                <p
+                  id="detail-description"
+                  className="text-sm text-muted-foreground break-words"
+                >
+                  {selectedAssignment.description || 'Không có mô tả'}
+                </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="detail-class">Thông tin lớp học</Label>
-                <p id="detail-class" className="text-sm text-muted-foreground">{selectedAssignment.subject} - {selectedAssignment.className}</p>
+                <p
+                  id="detail-class"
+                  className="text-sm text-muted-foreground break-words"
+                >
+                  {selectedAssignment.subject} - {selectedAssignment.className}
+                </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="detail-points">Điểm tối đa</Label>
                   <p id="detail-points" className="text-sm font-medium mt-1">{selectedAssignment.maxPoints} điểm</p>
@@ -872,33 +885,50 @@ export default function TeacherAssignmentsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowDetailDialog(false)}
+                >
                   Đóng
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setShowDetailDialog(false)
-                  if (selectedAssignment) {
-                    setFormData({
-                      title: selectedAssignment.title,
-                      description: selectedAssignment.description || '',
-                      classId: '', // TODO: Need to get class ID
-                      dueDate: new Date(selectedAssignment.dueDate).toISOString().slice(0, 16),
-                      maxPoints: selectedAssignment.maxPoints.toString(),
-                      type: selectedAssignment.type
-                    })
-                    setShowCreateDialog(true)
-                  }
-                }}>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    setShowDetailDialog(false)
+                    if (selectedAssignment) {
+                      setFormData({
+                        title: selectedAssignment.title,
+                        description: selectedAssignment.description || '',
+                        classId: '', // TODO: Need to get class ID
+                        dueDate: new Date(selectedAssignment.dueDate).toISOString().slice(0, 16),
+                        maxPoints: selectedAssignment.maxPoints.toString(),
+                        type: selectedAssignment.type
+                      })
+                      setShowCreateDialog(true)
+                    }
+                  }}
+                >
                   Chỉnh sửa
                 </Button>
-                <Button variant="destructive" onClick={() => {
-                  setShowDetailDialog(false)
-                  handleDeleteAssignment(selectedAssignment.id)
-                }}>
+                <Button
+                  variant="destructive"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    setShowDetailDialog(false)
+                    handleDeleteAssignment(selectedAssignment.id)
+                  }}
+                >
                   Xóa
                 </Button>
-                <Button onClick={() => router.push(`/dashboard/teacher/assignments/${selectedAssignment.id}/submissions`)}>
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() =>
+                    router.push(`/dashboard/teacher/assignments/${selectedAssignment.id}/submissions`)
+                  }
+                >
                   Xem bài nộp
                 </Button>
               </div>
@@ -917,8 +947,8 @@ export default function TeacherAssignmentsPage() {
           <div className="divide-y">
             {assignments.map((assignment) => (
               <div key={assignment.id} className="p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="p-2 rounded-full bg-blue-100 text-blue-600 flex-shrink-0">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="20"
@@ -937,10 +967,10 @@ export default function TeacherAssignmentsPage() {
                       <line x1="10" y1="9" x2="8" y2="9" />
                     </svg>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{assignment.title}</h4>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  <div className="flex-1 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <h4 className="font-medium text-base sm:text-lg">{assignment.title}</h4>
+                      <span className={`px-2 py-0.5 text-xs rounded-full w-fit ${
                         assignment.type === 'multiple_choice'
                           ? 'bg-blue-100 text-blue-700'
                           : 'bg-purple-100 text-purple-700'
@@ -949,7 +979,7 @@ export default function TeacherAssignmentsPage() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{assignment.subject} - {assignment.className}</p>
-                    <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2 text-sm">
                       <div>
                         <p className="text-muted-foreground">Điểm tối đa</p>
                         <p className="font-medium">{assignment.maxPoints} điểm</p>
@@ -966,10 +996,11 @@ export default function TeacherAssignmentsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button 
                       variant="ghost" 
                       size="sm" 
+                      className="text-xs sm:text-sm flex-shrink-0 bg-black text-white hover:bg-black hover:text-white hover:opacity-100"
                       onClick={() => {
                         setSelectedAssignment(assignment)
                         setShowDetailDialog(true)
@@ -980,6 +1011,7 @@ export default function TeacherAssignmentsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions`)}
                     >
                       Bài nộp
