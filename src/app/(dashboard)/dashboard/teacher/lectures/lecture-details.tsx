@@ -163,58 +163,46 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
           ) : (
             // Giao diện cho File bài giảng
             <>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-primary mb-2">
-                  Thông tin file
-                </h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {lecture.original_filename && (
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground">Tên file gốc</p>
-                      <p className="font-medium break-all">{lecture.original_filename}</p>
+              <div className="bg-muted/50 p-4 rounded-lg space-y-6">
+                {(() => {
+                  // Tách file_url, file_type, original_filename
+                  const urls = lecture.file_url?.split('|||') || []
+                  const types = lecture.file_type?.split('|||') || []
+                  const names = lecture.original_filename?.split('|||') || []
+                  const sizes = typeof lecture.file_size === 'number' ? [lecture.file_size] : (String(lecture.file_size).split('|||').map((s: string) => parseInt(s)) || [])
+                  const langLabels = ['File tiếng Việt (vie)', 'File tiếng Anh (eng)']
+                  return urls.filter(Boolean).map((url, idx) => (
+                    <div key={idx} className="mb-4 border rounded-lg p-4 bg-white shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`font-semibold text-base ${idx === 0 ? 'text-blue-700' : 'text-green-700'}`}>{langLabels[idx]}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-2">
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Tên file gốc</p>
+                          <p className="font-medium break-all">{names[idx] || url.split('/').pop()}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Loại file</p>
+                          <p className="font-medium break-all">{types[idx]}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Kích thước</p>
+                          <p className="font-medium">{sizes[idx] ? (sizes[idx]/1024).toFixed(2) : '0'} MB</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const link = document.createElement('a')
+                        link.href = url
+                        link.download = names[idx] || url.split('/').pop() || 'file'
+                        link.target = '_blank'
+                        link.rel = 'noopener noreferrer'
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                      }}>Tải về {langLabels[idx]}</Button>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-muted-foreground">Loại file</p>
-                    <p className="font-medium break-all">
-                      {lecture.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-                        ? 'Word Document (.docx)'
-                        : lecture.file_type === 'application/pdf'
-                        ? 'PDF (.pdf)'
-                        : lecture.file_type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-                        ? 'PowerPoint (.pptx)'
-                        : lecture.file_type}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Kích thước</p>
-                    <p className="font-medium">{lecture.file_size}KB</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Ngày tạo</p>
-                    <p className="font-medium">
-                      {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center bg-muted/50 p-4 rounded-lg">
-                <div>
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-primary">
-                    Tải xuống
-                  </h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Nhấn nút bên để tải file
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="hover:bg-primary hover:text-white transition-colors"
-                  onClick={handleDownload}
-                >
-                  Tải xuống
-                </Button>
+                  ))
+                })()}
               </div>
             </>
           )}

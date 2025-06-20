@@ -122,18 +122,19 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           original_filename: null
         }
       } else {
-        // Upload từng file nếu có
-        const fileUrls = lecture.file_url?.split('|||') || ['', '']
-        const fileTypes = lecture.file_type?.split('|||') || ['', '']
-        const originalFilenames = lecture.original_filename?.split('|||') || ['', '']
-        let fileSizes = lecture.file_size?.split('|||') || ['', '']
+        // Lấy dữ liệu cũ
+        let fileUrls = lecture.file_url?.split('|||') || []
+        let fileTypes = lecture.file_type?.split('|||') || []
+        let originalFilenames = lecture.original_filename?.split('|||') || []
+        let fileSizes = lecture.file_size?.toString().split('|||') || []
+        let totalFileSize = 0
         // vie
         if (selectedFiles.vie) {
           const uploadedVie = await uploadLectureFile(selectedFiles.vie.file)
           fileUrls[0] = uploadedVie.url
           fileTypes[0] = uploadedVie.file_type
           originalFilenames[0] = uploadedVie.original_filename
-          fileSizes[0] = uploadedVie.file_size
+          fileSizes[0] = uploadedVie.file_size.toString()
         }
         // eng
         if (selectedFiles.eng) {
@@ -141,14 +142,30 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           fileUrls[1] = uploadedEng.url
           fileTypes[1] = uploadedEng.file_type
           originalFilenames[1] = uploadedEng.original_filename
-          fileSizes[1] = uploadedEng.file_size
+          fileSizes[1] = uploadedEng.file_size.toString()
         }
-        lectureData = {
-          ...lectureData,
-          file_url: fileUrls.join('|||'),
-          file_type: fileTypes.join('|||'),
-          file_size: fileSizes.join('|||'),
-          original_filename: originalFilenames.join('|||')
+        // Tính tổng dung lượng
+        totalFileSize = fileSizes.reduce((sum: number, size: string) => sum + (parseInt(size) || 0), 0)
+        // Xử lý trường hợp chỉ có 1 file
+        const filteredUrls = fileUrls.filter(Boolean)
+        const filteredTypes = fileTypes.filter(Boolean)
+        const filteredNames = originalFilenames.filter(Boolean)
+        if (filteredUrls.length === 1) {
+          lectureData = {
+            ...lectureData,
+            file_url: filteredUrls[0],
+            file_type: filteredTypes[0],
+            file_size: totalFileSize,
+            original_filename: filteredNames[0]
+          }
+        } else {
+          lectureData = {
+            ...lectureData,
+            file_url: filteredUrls.join('|||'),
+            file_type: filteredTypes.join('|||'),
+            file_size: totalFileSize,
+            original_filename: filteredNames.join('|||')
+          }
         }
       }
       await updateLecture(params.id, lectureData)

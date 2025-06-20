@@ -612,8 +612,6 @@ export default function TeacherLecturesPage() {
                 {lecture.file_url && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileIcon className="h-4 w-4" />
-                    <span>{lecture.file_url.split('|||').length} file</span>
-                    <span>•</span>
                     <span>{formatFileSize(lecture.file_size)}</span>
                   </div>
                 )}
@@ -663,7 +661,7 @@ export default function TeacherLecturesPage() {
                         onClick={() => setCurrentFileIndex(index)}
                         className="whitespace-nowrap"
                       >
-                        File {index + 1}
+                        {index === 0 ? 'File tiếng Việt (vie)' : index === 1 ? 'File tiếng Anh (eng)' : `File ${index + 1}`}
                       </Button>
                     ))}
                   </div>
@@ -687,6 +685,9 @@ export default function TeacherLecturesPage() {
                             <div>
                               <p className="font-medium break-all">
                                 {selectedLecture.original_filename?.split('|||')[index] || url.split('/').pop()}
+                              </p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                {index === 0 ? 'Tiếng Việt (vie)' : index === 1 ? 'Tiếng Anh (eng)' : `File ${index + 1}`}
                               </p>
                               <p className="text-xs sm:text-sm text-muted-foreground">
                                 {formatFileSize(selectedLecture.file_size / (selectedLecture.file_url.split('|||').length || 1))}
