@@ -29,6 +29,7 @@ type Assignment = {
   description: string | null
   subject: string
   className: string
+  classId: string
   dueDate: string
   type: 'multiple_choice' | 'essay'
   totalQuestions?: number
@@ -54,6 +55,7 @@ export default function TeacherAssignmentsPage() {
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
   const [classes, setClasses] = useState<Array<{id: string, name: string}>>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [questions, setQuestions] = useState<Array<{
@@ -297,6 +299,7 @@ export default function TeacherAssignmentsPage() {
             description: a.description,
             subject: classItem.subject.name,
             className: classItem.name,
+            classId: classItem.id,
             dueDate: a.due_date,
             type: (a as any).type || 'multiple_choice',
             totalStudents,
@@ -330,61 +333,94 @@ export default function TeacherAssignmentsPage() {
       setIsLoading(true)
 
       // Validate form data
-      console.error('Form data:', formData)
       if (!formData.title || !formData.description || !formData.classId || !formData.dueDate) {
-        console.error('Missing required fields:', {
-          title: !formData.title,
-          description: !formData.description,
-          classId: !formData.classId,
-          dueDate: !formData.dueDate
-        })
         throw new Error('Vui lòng điền đầy đủ thông tin')
       }
 
       if (formData.type === 'multiple_choice' && questions.length === 0) {
-        console.error('No questions found for multiple choice assignment')
         throw new Error('Vui lòng thêm câu hỏi cho bài tập trắc nghiệm')
       }
 
-      // Create assignment
-      const assignmentData: CreateAssignmentData = {
-        title: formData.title,
-        description: sanitizeDescription(formData.description),
-        class_id: formData.classId,
-        due_date: formData.dueDate,
-        total_points: Number(formData.maxPoints),
-        file_url: null,
-        type: formData.type
-      }
-      console.error('Assignment data to be created:', assignmentData)
+      if (editingAssignmentId) {
+        // Update existing assignment
+        const { error: updateError } = await supabase
+          .from('assignments')
+          .update({
+            title: formData.title,
+            description: sanitizeDescription(formData.description),
+            class_id: formData.classId,
+            due_date: formData.dueDate,
+            total_points: Number(formData.maxPoints),
+            type: formData.type,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingAssignmentId)
 
-      // Create assignment using the helper function
-      console.error('Calling createAssignment...')
-      const assignment = await createAssignment(assignmentData)
-      console.error('Assignment created:', assignment)
+        if (updateError) throw updateError
 
-      // If multiple choice, create questions
-      if (formData.type === 'multiple_choice' && questions.length > 0) {
-        const questionsData = questions.map(q => ({
-          assignment_id: assignment.id,
-          content: q.content,
-          type: 'multiple_choice',
-          options: q.options ? JSON.stringify(q.options) : null,
-          correct_answer: q.correct_answer,
-          points: q.points,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }))
-        console.error('Questions data to be inserted:', questionsData)
+        // Update questions if multiple choice
+        if (formData.type === 'multiple_choice' && questions.length > 0) {
+          // Delete existing questions
+          await supabase
+            .from('assignment_questions')
+            .delete()
+            .eq('assignment_id', editingAssignmentId)
 
-        const { error: questionsError } = await supabase
-          .from('assignment_questions')
-          .insert(questionsData)
+          // Insert new questions
+          const questionsData = questions.map(q => ({
+            assignment_id: editingAssignmentId,
+            content: q.content,
+            options: q.options,
+            correct_answer: q.correct_answer,
+            points: q.points
+          }))
 
-        if (questionsError) {
-          console.error('Error inserting questions:', questionsError)
-          throw questionsError
+          const { error: questionsError } = await supabase
+            .from('assignment_questions')
+            .insert(questionsData)
+
+          if (questionsError) throw questionsError
         }
+
+        toast({
+          title: "Thành công",
+          description: "Đã cập nhật bài tập"
+        })
+      } else {
+        // Create new assignment
+        const assignmentData: CreateAssignmentData = {
+          title: formData.title,
+          description: sanitizeDescription(formData.description),
+          class_id: formData.classId,
+          due_date: formData.dueDate,
+          total_points: Number(formData.maxPoints),
+          file_url: null,
+          type: formData.type
+        }
+
+        const assignment = await createAssignment(assignmentData)
+
+        // If multiple choice, create questions
+        if (formData.type === 'multiple_choice' && questions.length > 0) {
+          const questionsData = questions.map(q => ({
+            assignment_id: assignment.id,
+            content: q.content,
+            options: q.options,
+            correct_answer: q.correct_answer,
+            points: q.points
+          }))
+
+          const { error: questionsError } = await supabase
+            .from('assignment_questions')
+            .insert(questionsData)
+
+          if (questionsError) throw questionsError
+        }
+
+        toast({
+          title: "Thành công",
+          description: "Đã tạo bài tập mới"
+        })
       }
 
       // Reset form and close dialog
@@ -398,21 +434,16 @@ export default function TeacherAssignmentsPage() {
       })
       setQuestions([])
       setSelectedFile(null)
+      setEditingAssignmentId(null)
       setShowCreateDialog(false)
-
-      // Show success message and reload data
-      toast({
-        title: "Thành công",
-        description: "Đã tạo bài tập mới"
-      })
       await loadData()
 
     } catch (error: any) {
-      console.error('Lỗi khi tạo bài tập:', error)
+      console.error('Lỗi khi xử lý bài tập:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error.message || "Không thể tạo bài tập"
+        description: error.message || "Không thể xử lý bài tập"
       })
     } finally {
       setIsLoading(false)
@@ -597,7 +628,20 @@ export default function TeacherAssignmentsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="w-full sm:w-auto" onClick={() => setShowCreateDialog(true)}>
+          <Button className="w-full sm:w-auto" onClick={() => {
+            setEditingAssignmentId(null)
+            setFormData({
+              title: '',
+              description: '',
+              classId: '',
+              dueDate: '',
+              maxPoints: '100',
+              type: 'multiple_choice'
+            })
+            setQuestions([])
+            setSelectedFile(null)
+            setShowCreateDialog(true)
+          }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -633,7 +677,7 @@ export default function TeacherAssignmentsPage() {
         <DialogContent className="sm:max-w-[600px]">
           <form onSubmit={handleCreateAssignment}>
             <DialogHeader>
-              <DialogTitle>Tạo bài tập mới</DialogTitle>
+              <DialogTitle>{editingAssignmentId ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}</DialogTitle>
               <DialogDescription>
                 Chọn loại bài tập bạn muốn tạo
               </DialogDescription>
@@ -828,7 +872,9 @@ export default function TeacherAssignmentsPage() {
               <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
                 Hủy
               </Button>
-              <Button type="submit">Tạo bài tập</Button>
+                              <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (editingAssignmentId ? "Đang cập nhật..." : "Đang tạo...") : (editingAssignmentId ? "Cập nhật bài tập" : "Tạo bài tập")}
+                </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -926,17 +972,43 @@ export default function TeacherAssignmentsPage() {
                 <Button
                   variant="outline"
                   className="w-full sm:w-auto"
-                  onClick={() => {
+                  onClick={async () => {
                     setShowDetailDialog(false)
                     if (selectedAssignment) {
+                      setEditingAssignmentId(selectedAssignment.id)
                       setFormData({
                         title: selectedAssignment.title,
                         description: selectedAssignment.description || '',
-                        classId: '', // TODO: Need to get class ID
+                        classId: selectedAssignment.classId,
                         dueDate: new Date(selectedAssignment.dueDate).toISOString().slice(0, 16),
                         maxPoints: selectedAssignment.maxPoints.toString(),
                         type: selectedAssignment.type
                       })
+
+                      // Load existing questions if multiple choice
+                      if (selectedAssignment.type === 'multiple_choice') {
+                        try {
+                          const { data: questionsData, error } = await supabase
+                            .from('assignment_questions')
+                            .select('*')
+                            .eq('assignment_id', selectedAssignment.id)
+                            .order('created_at', { ascending: true })
+
+                          if (!error && questionsData) {
+                            setQuestions(questionsData.map(q => ({
+                              content: q.content,
+                              options: q.options,
+                              correct_answer: q.correct_answer,
+                              points: q.points
+                            })))
+                          }
+                        } catch (error) {
+                          console.error('Error loading questions:', error)
+                        }
+                      } else {
+                        setQuestions([])
+                      }
+
                       setShowCreateDialog(true)
                     }
                   }}
