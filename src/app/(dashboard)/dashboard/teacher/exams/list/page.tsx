@@ -239,7 +239,17 @@ export default function TeacherExamsListPage() {
       const allExams: Exam[] = []
       for (const classItem of classes) {
         const exams = await getClassExams(classItem.id)
-        allExams.push(...exams.map(e => {
+        
+        // Lấy tổng số sinh viên trong lớp
+        const { data: classStudents, error: studentsError } = await supabase
+          .from('enrollments')
+          .select('student_id')
+          .eq('class_id', classItem.id)
+          .eq('status', 'enrolled')
+        
+        const totalStudents = classStudents?.length || 0
+        
+        for (const e of exams) {
           const now = new Date()
           const startTime = new Date(e.start_time)
           const endTime = new Date(e.end_time)
@@ -264,7 +274,21 @@ export default function TeacherExamsListPage() {
               })
           }
 
-          return {
+          // Lấy thống kê bài nộp
+          const { data: submissions, error: submissionsError } = await supabase
+            .from('exam_submissions')
+            .select('score')
+            .eq('exam_id', e.id)
+          
+          const submittedCount = submissions?.length || 0
+          
+          // Tính điểm trung bình từ các bài đã chấm
+          const gradedSubmissions = submissions?.filter(s => s.score !== null) || []
+          const averageScore = gradedSubmissions.length > 0 
+            ? gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions.length
+            : null
+
+          allExams.push({
             id: e.id,
             title: e.title,
             subject: classItem.subject.name,
@@ -272,12 +296,12 @@ export default function TeacherExamsListPage() {
             start_time: e.start_time,
             end_time: e.end_time,
             duration: e.duration,
-            totalStudents: 0, // TODO: Implement later
-            submittedCount: 0, // TODO: Implement later
-            averageScore: null, // TODO: Implement later
+            totalStudents,
+            submittedCount,
+            averageScore,
             status
-          }
-        }))
+          })
+        }
       }
 
       // Sắp xếp theo thời gian mới nhất

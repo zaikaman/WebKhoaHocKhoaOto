@@ -32,7 +32,9 @@ type Assignment = {
   dueDate: string
   type: 'multiple_choice' | 'essay'
   totalQuestions?: number
+  totalStudents: number
   submittedCount: number
+  averageScore: number | null
   maxPoints: number
 }
 
@@ -264,17 +266,45 @@ export default function TeacherAssignmentsPage() {
       const allAssignments: Assignment[] = []
       for (const classItem of teacherClasses) {
         const assignments = await getClassAssignments(classItem.id)
-        allAssignments.push(...assignments.map(a => ({
-          id: a.id,
-          title: a.title,
-          description: a.description,
-          subject: classItem.subject.name,
-          className: classItem.name,
-          dueDate: a.due_date,
-          type: (a as any).type || 'multiple_choice',
-          submittedCount: 0,
-          maxPoints: a.total_points
-        })))
+        
+        // Lấy tổng số sinh viên trong lớp
+        const { data: classStudents, error: studentsError } = await supabase
+          .from('enrollments')
+          .select('student_id')
+          .eq('class_id', classItem.id)
+          .eq('status', 'enrolled')
+        
+        const totalStudents = classStudents?.length || 0
+        
+        for (const a of assignments) {
+          // Lấy thống kê bài nộp cho từng assignment
+          const { data: submissions, error: submissionsError } = await supabase
+            .from('assignment_submissions')
+            .select('score')
+            .eq('assignment_id', a.id)
+          
+          const submittedCount = submissions?.length || 0
+          
+          // Tính điểm trung bình từ các bài đã chấm
+          const gradedSubmissions = submissions?.filter(s => s.score !== null) || []
+          const averageScore = gradedSubmissions.length > 0 
+            ? gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions.length
+            : null
+          
+          allAssignments.push({
+            id: a.id,
+            title: a.title,
+            description: a.description,
+            subject: classItem.subject.name,
+            className: classItem.name,
+            dueDate: a.due_date,
+            type: (a as any).type || 'multiple_choice',
+            totalStudents,
+            submittedCount,
+            averageScore,
+            maxPoints: a.total_points
+          })
+        }
       }
 
       // Sắp xếp theo thời gian mới nhất
@@ -979,7 +1009,7 @@ export default function TeacherAssignmentsPage() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{assignment.subject} - {assignment.className}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mt-2 text-sm">
                       <div>
                         <p className="text-muted-foreground">Điểm tối đa</p>
                         <p className="font-medium">{assignment.maxPoints} điểm</p>
@@ -991,8 +1021,16 @@ export default function TeacherAssignmentsPage() {
                         </p>
                       </div>
                       <div>
+                        <p className="text-muted-foreground">Tổng số SV</p>
+                        <p className="font-medium">{assignment.totalStudents}</p>
+                      </div>
+                      <div>
                         <p className="text-muted-foreground">Đã nộp</p>
                         <p className="font-medium">{assignment.submittedCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Điểm TB</p>
+                        <p className="font-medium">{assignment.averageScore?.toFixed(1) || 'N/A'}</p>
                       </div>
                     </div>
                   </div>

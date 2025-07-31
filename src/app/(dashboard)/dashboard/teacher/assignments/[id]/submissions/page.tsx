@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { getCurrentUser, supabase } from "@/lib/supabase"
+import KahootLeaderboard from "@/app/(dashboard)/dashboard/components/KahootLeaderboard"
 
 interface AssignmentSubmission {
   id: string
@@ -61,6 +63,8 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
     score: "",
     feedback: ""
   })
+  const [viewMode, setViewMode] = useState<'leaderboard' | 'table'>('leaderboard')
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc' | 'none'>('none')
 
   useEffect(() => {
     loadData()
@@ -191,91 +195,166 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
 
   return (
     <div className="container py-8 space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight break-words">{assignment.title}</h2>
           <p className="text-muted-foreground break-words">
             {assignment.class.subject.name} - {assignment.class.name}
           </p>
         </div>
-        <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/assignments')}>
-          Quay lại
-        </Button>
+        <div className="flex gap-2 flex-col sm:flex-row">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <Button
+              variant={viewMode === 'leaderboard' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('leaderboard')}
+              className="text-sm"
+            >
+              🏆 Bảng xếp hạng
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="text-sm"
+            >
+              📊 Bảng chi tiết
+            </Button>
+          </div>
+          <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/assignments')}>
+            Quay lại
+          </Button>
+        </div>
       </div>
 
-      <div className="rounded-lg border overflow-x-auto">
-        <table className="w-full min-w-[600px]">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3 px-4 whitespace-nowrap">Sinh viên</th>
-              <th className="text-left py-3 px-4 whitespace-nowrap">Thời gian nộp</th>
-              <th className="text-left py-3 px-4 whitespace-nowrap">Trạng thái</th>
-              <th className="text-left py-3 px-4 whitespace-nowrap">Điểm</th>
-              <th className="text-left py-3 px-4 whitespace-nowrap"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {submissions.map((submission) => (
-              <tr key={submission.id} className="border-b last:border-0">
-                <td className="py-3 px-4 max-w-[160px] break-words">
-                  <div className="font-medium">{submission.student.full_name}</div>
-                </td>
-                <td className="py-3 px-4 whitespace-nowrap">
-                  {new Date(submission.submitted_at).toLocaleString('vi-VN')}
-                </td>
-                <td className="py-3 px-4">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    submission.graded_at
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {submission.graded_at ? 'Đã chấm' : 'Chưa chấm'}
-                  </span>
-                </td>
-                <td className="py-3 px-4 whitespace-nowrap">
-                  {submission.score !== null ? `${submission.score}/${assignment.total_points}` : 'Chưa có điểm'}
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      {viewMode === 'leaderboard' ? (
+        <KahootLeaderboard
+          submissions={submissions.map(s => ({
+            ...s,
+            total_points: assignment.total_points
+          }))}
+          title={`${assignment.class.subject.name} - ${assignment.class.name}`}
+          onViewDetails={(leaderboardEntry) => {
+            // Find the original submission from submissions array
+            const originalSubmission = submissions.find(s => s.id === leaderboardEntry.id)
+            if (originalSubmission) {
+              setSelectedSubmission(originalSubmission)
+              setGradeData({
+                score: originalSubmission.score?.toString() || "",
+                feedback: originalSubmission.feedback || ""
+              })
+              setShowGradeDialog(true)
+            }
+          }}
+        />
+      ) : (
+        <div className="rounded-lg border overflow-x-auto">
+          {sortDirection !== 'none' && (
+            <div className="px-4 py-2 bg-blue-50 border-b text-sm text-blue-700 flex items-center gap-2">
+              {sortDirection === 'desc' ? '↓' : '↑'} Đang sắp xếp theo điểm {sortDirection === 'desc' ? 'từ cao đến thấp' : 'từ thấp đến cao'}
+            </div>
+          )}
+          <table className="w-full min-w-[600px]">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-3 px-4 whitespace-nowrap">Sinh viên</th>
+                <th className="text-left py-3 px-4 whitespace-nowrap">Thời gian nộp</th>
+                <th className="text-left py-3 px-4 whitespace-nowrap">Trạng thái</th>
+                <th className="text-left py-3 px-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span>Điểm</span>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="w-full sm:w-auto"
+                      className="h-6 w-6 p-0 hover:bg-gray-100"
+                      title={sortDirection === 'none' ? 'Sắp xếp theo điểm' : sortDirection === 'desc' ? 'Điểm cao đến thấp - Click để đảo ngược' : 'Điểm thấp đến cao - Click để reset'}
                       onClick={() => {
-                        setSelectedSubmission(submission)
-                        setGradeData({
-                          score: submission.score?.toString() || "",
-                          feedback: submission.feedback || ""
-                        })
-                        setShowGradeDialog(true)
+                        if (sortDirection === 'none') {
+                          setSortDirection('desc')
+                        } else if (sortDirection === 'desc') {
+                          setSortDirection('asc')
+                        } else {
+                          setSortDirection('none')
+                        }
                       }}
                     >
-                      {submission.graded_at ? 'Sửa điểm' : 'Chấm điểm'}
+                      {sortDirection === 'none' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                      {sortDirection === 'desc' && <ArrowDown className="h-4 w-4 text-blue-600" />}
+                      {sortDirection === 'asc' && <ArrowUp className="h-4 w-4 text-blue-600" />}
                     </Button>
-                    {assignment.type === 'essay' && (
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 whitespace-nowrap"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(sortDirection === 'none' ? submissions : [...submissions].sort((a, b) => {
+                if (sortDirection === 'desc') {
+                  return (b.score || 0) - (a.score || 0)
+                }
+                return (a.score || 0) - (b.score || 0)
+              })).map((submission) => (
+                <tr key={submission.id} className="border-b last:border-0">
+                  <td className="py-3 px-4 max-w-[160px] break-words">
+                    <div className="font-medium">{submission.student.full_name}</div>
+                  </td>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    {new Date(submission.submitted_at).toLocaleString('vi-VN')}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      submission.graded_at
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {submission.graded_at ? 'Đã chấm' : 'Chưa chấm'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    {submission.score !== null ? `${submission.score}/${assignment.total_points}` : 'Chưa có điểm'}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         className="w-full sm:w-auto"
-                        onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions/${submission.id}`)}
+                        onClick={() => {
+                          setSelectedSubmission(submission)
+                          setGradeData({
+                            score: submission.score?.toString() || "",
+                            feedback: submission.feedback || ""
+                          })
+                          setShowGradeDialog(true)
+                        }}
                       >
-                        Xem chi tiết
+                        {submission.graded_at ? 'Sửa điểm' : 'Chấm điểm'}
                       </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {submissions.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                  Chưa có bài nộp nào
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                      {assignment.type === 'essay' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => router.push(`/dashboard/teacher/assignments/${assignment.id}/submissions/${submission.id}`)}
+                        >
+                          Xem chi tiết
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {submissions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                    Chưa có bài nộp nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
         <DialogContent className="max-w-[95vw] sm:max-w-[700px] w-full max-h-[80vh] overflow-y-auto">
