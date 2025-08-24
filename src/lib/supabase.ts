@@ -724,6 +724,38 @@ export async function createSubject(subjectData: Omit<Subject, 'id' | 'created_a
   }
 } 
 
+export async function updateSubject(id: string, subjectData: Partial<Omit<Subject, 'id' | 'created_at' | 'updated_at'>>) {
+  try {
+    const { data, error } = await supabase
+      .from('subjects')
+      .update({
+        ...subjectData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Chi tiết lỗi:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      if (error.code === '23505') {
+          throw new Error(`Lỗi khi cập nhật môn học: Mã môn học "${subjectData.code}" đã tồn tại.`)
+      }
+      throw new Error(`Lỗi khi cập nhật môn học: ${error.message}`)
+    }
+
+    return data
+  } catch (error) {
+    console.error('Lỗi khi cập nhật môn học:', error)
+    throw error
+  }
+}
+
 // Cập nhật hàm createEnrollment - hỗ trợ cả class_id (UUID) và class_code
 export async function createEnrollment(data: {
   student_id: string

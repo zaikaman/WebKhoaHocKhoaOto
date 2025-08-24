@@ -4,7 +4,12 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getSubjects, createSubject } from "@/lib/supabase"
+import {
+  createSubject,
+  getCurrentUser,
+  getSubjects,
+  updateSubject,
+} from "@/lib/supabase"
 import type { Subject } from "@/lib/supabase"
 import {
   Dialog,
@@ -59,7 +64,9 @@ export default function TeacherSubjectsPage() {
     }
   }
 
-  const handleCreateSubject = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault()
     setIsLoading(true)
 
@@ -69,22 +76,32 @@ export default function TeacherSubjectsPage() {
         code: formData.get("code") as string,
         name: formData.get("name") as string,
         description: formData.get("description") as string,
-        credits: parseInt(formData.get("credits") as string)
+        credits: parseInt(formData.get("credits") as string),
       }
 
-      await createSubject(subjectData)
+      if (selectedSubject) {
+        await updateSubject(selectedSubject.id, subjectData)
+        toast({
+          title: "Thành công",
+          description: "Đã cập nhật môn học.",
+        })
+      } else {
+        await createSubject(subjectData)
+        toast({
+          title: "Thành công",
+          description: "Đã tạo môn học mới.",
+        })
+      }
+
       await loadData()
       setIsDialogOpen(false)
-      toast({
-        title: "Thành công",
-        description: "Đã tạo môn học mới"
-      })
+      setSelectedSubject(null)
     } catch (error: any) {
-      console.error('Lỗi khi tạo môn học:', error)
+      console.error("Lỗi khi lưu môn học:", error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error.message || "Không thể tạo môn học mới"
+        description: error.message || "Không thể lưu môn học.",
       })
     } finally {
       setIsLoading(false)
@@ -234,75 +251,75 @@ export default function TeacherSubjectsPage() {
                 : "Nhập thông tin để thêm môn học mới"}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateSubject} className="space-y-4 pt-4">
-          <div className="flex items-center gap-4">
-          <p className="w-28">Mã môn học:</p>
-  <Input
-    id="code"
-    name="code"
-    defaultValue={selectedSubject?.code}
-    required
-    className="flex-1"
-  />
-</div>
+          <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
+            <div className="flex items-center gap-4">
+              <p className="w-28">Mã môn học:</p>
+              <Input
+                id="code"
+                name="code"
+                defaultValue={selectedSubject?.code}
+                required
+                className="flex-1"
+              />
+            </div>
 
-<div className="flex items-center gap-4 mt-4">
-<p className="w-28">Tên môn học:</p>
-  <Input
-    id="name"
-    name="name"
-    defaultValue={selectedSubject?.name}
-    required
-    className="flex-1"
-  />
-</div>
+            <div className="flex items-center gap-4 mt-4">
+              <p className="w-28">Tên môn học:</p>
+              <Input
+                id="name"
+                name="name"
+                defaultValue={selectedSubject?.name}
+                required
+                className="flex-1"
+              />
+            </div>
 
-<div className="flex items-center gap-4 mt-4">
-<p className="w-28">Số tín chỉ:</p>
-  <Input
-    id="credits"
-    name="credits"
-    type="number"
-    min="1"
-    max="10"
-    defaultValue={selectedSubject?.credits}
-    required
-    className="flex-1"
-  />
-</div>
+            <div className="flex items-center gap-4 mt-4">
+              <p className="w-28">Số tín chỉ:</p>
+              <Input
+                id="credits"
+                name="credits"
+                type="number"
+                min="1"
+                max="10"
+                defaultValue={selectedSubject?.credits}
+                required
+                className="flex-1"
+              />
+            </div>
 
-<div className="flex items-start gap-4 mt-4">
-  <p className="w-28 pt-1">Mô tả:</p>
-  <Textarea
-    id="description"
-    name="description"
-    defaultValue={selectedSubject?.description || ''}
-    rows={3}
-    className="flex-1"
-  />
-</div>
+            <div className="flex items-start gap-4 mt-4">
+              <p className="w-28 pt-1">Mô tả:</p>
+              <Textarea
+                id="description"
+                name="description"
+                defaultValue={selectedSubject?.description || ''}
+                rows={3}
+                className="flex-1"
+              />
+            </div>
 
             <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4">
-  <Button
-    type="button"
-    variant="outline"
-    className="w-full sm:w-auto"
-    onClick={() => setIsDialogOpen(false)}
-  >
-    Hủy
-  </Button>
-  <Button
-    type="submit"
-    disabled={isLoading}
-    className="w-full sm:w-auto"
-  >
-    {selectedSubject ? "Cập nhật" : "Thêm mới"}
-  </Button>
-</DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full sm:w-auto"
+              >
+                {selectedSubject ? "Cập nhật" : "Thêm mới"}
+              </Button>
+            </DialogFooter>
 
           </form>
         </DialogContent>
       </Dialog>
     </div>
   )
-} 
+}
