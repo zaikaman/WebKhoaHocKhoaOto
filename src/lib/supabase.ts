@@ -391,6 +391,24 @@ export async function createClass(classData: Omit<Class, 'id' | 'created_at' | '
   return data
 }
 
+export async function deleteClass(classId: string) {
+  const { error } = await supabase
+    .from('classes')
+    .delete()
+    .eq('id', classId);
+
+  if (error) {
+    console.error('Error deleting class:', error);
+    // Check for foreign key violation
+    if (error.code === '23503') {
+      throw new Error('Không thể xóa lớp học này vì vẫn còn dữ liệu liên quan (sinh viên, bài tập, v.v.). Vui lòng xóa các dữ liệu liên quan trước.');
+    }
+    throw new Error(error.message);
+  }
+
+  return true;
+}
+
 export async function getClassById(classId: string) {
   const { data, error } = await supabase
     .from('classes')

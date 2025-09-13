@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getTeacherClasses, createClass, getSubjects } from "@/lib/supabase"
+import { getCurrentUser, getTeacherClasses, createClass, getSubjects, deleteClass } from "@/lib/supabase"
 import type { Class, Subject } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import {
@@ -272,19 +272,19 @@ export default function TeacherClassesPage() {
 
     try {
       setIsLoading(true)
-      // Thêm hàm xóa lớp học ở đây
+      await deleteClass(selectedClass.id)
       await loadData()
       setIsDeleteDialogOpen(false)
       toast({
         title: "Thành công",
-        description: "Đã xóa lớp học"
+        description: "Đã xóa lớp học."
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi xóa lớp học:', error)
       toast({
         variant: "destructive",
-        title: "Lỗi",
-        description: "Không thể xóa lớp học"
+        title: "Lỗi khi xóa lớp học",
+        description: error.message || "Không thể xóa lớp học. Vui lòng thử lại."
       })
     } finally {
       setIsLoading(false)
