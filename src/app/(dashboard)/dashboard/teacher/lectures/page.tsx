@@ -25,7 +25,7 @@ import { FileIcon, Paperclip, Download } from "lucide-react"
 type Lecture = {
   id: string
   title: string
-  description: string
+  description: string | null
   created_at: string
   lecture_files: any[]
   class: {
