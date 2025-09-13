@@ -220,7 +220,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
 
           <form ref={formRef} onSubmit={handleFileUpload} className="space-y-6 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="title" className="font-semibold">Tiêu đề</Label>
+              <Label htmlFor="title">Tiêu đề</Label>
               <Input
                 id="title"
                 name="title"
