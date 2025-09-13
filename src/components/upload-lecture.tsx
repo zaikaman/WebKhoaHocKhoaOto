@@ -56,7 +56,7 @@ const FileUploadSlot = ({ title, accept, file, setFile, disabled }: { title: str
 
   return (
     <div className="space-y-1">
-      <Label>{title}</Label>
+      <p className="text-sm font-medium text-gray-800">{title}</p>
       <div className="mt-1">
         {!file ? (
           <label
