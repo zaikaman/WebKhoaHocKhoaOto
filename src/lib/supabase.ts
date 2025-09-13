@@ -63,18 +63,24 @@ export type Class = {
   }
 }
 
+export type LectureFile = {
+  id: string;
+  lecture_id: string;
+  file_path: string;
+  original_filename: string | null;
+  file_type: 'VIE' | 'ENG' | 'SIM';
+  download_count: number;
+  created_at: string;
+}
+
 export type Lecture = {
   id: string
   class_id: string
   title: string
   description: string | null
-  file_url: string
-  file_type: string
-  file_size: number
-  download_count: number
-  original_filename: string | null
   created_at: string
   updated_at: string
+  lecture_files: LectureFile[]
 }
 
 export type Exam = {
@@ -482,7 +488,7 @@ export async function getClassLectures(classId: string): Promise<Lecture[]> {
   try {
     const { data, error } = await supabase
       .from('lectures')
-      .select('*')
+      .select('*, lecture_files(*)')
       .eq('class_id', classId)
       .order('created_at', { ascending: false })
 
@@ -496,21 +502,24 @@ export async function getClassLectures(classId: string): Promise<Lecture[]> {
       throw new Error(`Lỗi khi lấy danh sách bài giảng: ${error.message}`)
     }
 
-    return data || []
+    return data as Lecture[] || []
   } catch (error) {
     console.error('Lỗi khi lấy danh sách bài giảng:', error)
     throw error
   }
 }
 
-export async function createLecture(lecture: Omit<Lecture, 'id' | 'download_count' | 'created_at' | 'updated_at'>) {
+export async function createLecture(lecture: { class_id: string; title: string; description: string | null }) {
   const { data, error } = await supabase
     .from('lectures')
     .insert([lecture])
-    .select()
+    .select('id, title, description, class_id, created_at, updated_at')
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating lecture:', error)
+    throw error
+  }
   return data
 }
 
@@ -1002,7 +1011,7 @@ export async function getClassDetailsById(courseId: string): Promise<ClassDetail
         *,
         teacher:profiles!teacher_id(id, full_name),
         subjects(id, name, code, credits),
-        lectures(id, title, description, file_url, created_at),
+        lectures(*, lecture_files(*)),
         assignments(id, title, description, due_date),
         exams(id, title, description, start_time, end_time, duration, status),
         enrollments(count)
@@ -1109,74 +1118,57 @@ export async function listBuckets() {
   return data
 }
 
-export async function uploadLectureFile(file: File): Promise<{ url: string; file_type: string; file_size: number; original_filename: string }> {
+export async function uploadLectureFile(file: File): Promise<{ path: string; original_filename: string }> {
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
-  const filePath = `lectures/${fileName}`
+  const currentDate = new Date().toISOString().split('T')[0];
+  const filePath = `${currentDate}/${fileName}`
 
   const { error: uploadError } = await supabase.storage
     .from('lectures')
     .upload(filePath, file)
 
   if (uploadError) {
-    throw new Error('Không thể tải lên file')
+    throw new Error(`Không thể tải lên file: ${uploadError.message}`)
   }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('lectures')
-    .getPublicUrl(filePath)
 
   return {
-    url: publicUrl,
-    file_type: file.type,
-    file_size: file.size,
+    path: filePath,
     original_filename: file.name
   }
+}
+
+export async function createLectureFiles(files: Omit<LectureFile, 'id' | 'download_count' | 'created_at'>[]) {
+  const { data, error } = await supabase
+    .from('lecture_files')
+    .insert(files)
+    .select()
+
+  if (error) {
+    console.error('Error creating lecture files:', error)
+    throw error
+  }
+  return data
 }
 
 //Hàm lấy chi tiết bài giảng
 export async function getLecture(lectureId: string): Promise<Lecture> {
   const { data, error } = await supabase
     .from('lectures')
-    .select('*')
+    .select('*, lecture_files(*)')
     .eq('id', lectureId)
     .single()
   if (error) throw error
-  return data
+  return data as Lecture
 } 
 
 // Hàm xóa file bài giảng
-export async function deleteLectureFile(fileUrl: string) {
-  try {
-    // Kiểm tra nếu là URL YouTube thì không cần xóa file
-    if (fileUrl.includes('youtube.com') || fileUrl.includes('youtu.be')) {
-      return true
-    }
-
-    // Lấy đường dẫn file từ URL
-    const url = new URL(fileUrl)
-    const pathSegments = url.pathname.split('/')
-    
-    // Đúng vị trí bucket và file name
-    const bucketName = pathSegments[5] // "lectures"
-    const fileName = pathSegments.slice(6).join('/') // "lectures/0.43643969707262675.docx"
-
-    console.log('Deleting file:', { bucketName, fileName })
-
-    // Xóa file từ storage bucket
-    const { error: storageError } = await supabase.storage
-      .from(bucketName)
-      .remove([fileName])
-
-    if (storageError) {
-      console.error('Error deleting file:', storageError)
-      throw storageError
-    }
-
-    return true
-  } catch (error) {
-    console.error('Error in deleteLectureFile:', error)
-    throw error
+export async function deleteLectureFile(filePath: string) {
+  if (!filePath) return;
+  const { error } = await supabase.storage.from('lectures').remove([filePath]);
+  if (error) {
+    console.error('Error deleting lecture file:', error);
+    // Don't throw an error, just log it, as the file might already be deleted
   }
 }
 
