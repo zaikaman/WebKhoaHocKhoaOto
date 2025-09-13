@@ -14,6 +14,7 @@ import {
   supabase
 } from "@/lib/supabase"
 import type { Lecture as SupabaseLecture, LectureFile } from "@/lib/supabase"
+import { Download } from "lucide-react"
 
 // Types
 type Stats = {
