@@ -127,7 +127,7 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                     <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleDownload(file.file_path, file.original_filename)}
+                        onClick={() => handleDownload(file.file_path, file.original_filename || 'download')}
                     >
                         <Download size={14} className="mr-1.5"/>
                         Tải về
