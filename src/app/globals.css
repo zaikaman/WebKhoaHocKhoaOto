@@ -36,7 +36,7 @@
 
   .peer:focus ~ .form-textarea-label,
   .peer:not(:placeholder-shown) ~ .form-textarea-label {
-    @apply -top-3 -translate-y-0 text-sm text-blue-500;
+    @apply top-0 -translate-y-0 text-sm text-blue-500;
   }
 }
 
