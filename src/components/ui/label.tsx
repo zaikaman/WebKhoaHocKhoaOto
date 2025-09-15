@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface LabelProps {
   children: React.ReactNode;
-  htmlFor: string;
+  htmlFor?: string;
   className?: string;
 }
 
