@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus, RefreshCw, Upload, File as FileIcon } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { supabase, createAssignment, Assignment as DBAssignment } from '@/lib/supabase'
 import { sanitizeDescription } from '@/lib/utils'
@@ -73,7 +73,7 @@ export default function TeacherAssignmentsPage() {
     type: 'multiple_choice' as 'multiple_choice' | 'essay'
   })
 
-  // Tạo filter options từ dữ liệu assignments
+  // Filter options from assignments data
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjects = [...new Set(assignments.map(a => a.subject))]
     const classNames = [...new Set(assignments.map(a => a.className))]
@@ -141,11 +141,11 @@ export default function TeacherAssignmentsPage() {
     loadData()
   }, [])
 
-  // Lọc assignments dựa trên search query và filters
+  // Filter assignments based on search query and filters
   useEffect(() => {
     let filtered = assignments
 
-    // Tìm kiếm theo text
+    // Text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(assignment => 
@@ -156,7 +156,7 @@ export default function TeacherAssignmentsPage() {
       )
     }
 
-    // Áp dụng filters
+    // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
 
@@ -250,26 +250,22 @@ export default function TeacherAssignmentsPage() {
     try {
       setIsLoading(true)
       
-      // Lấy thông tin người dùng hiện tại
       const currentUser = await getCurrentUser()
       if (!currentUser || currentUser.profile.role !== 'teacher') {
         router.push('/login')
         return
       }
 
-      // Lấy danh sách lớp học
       const teacherClasses = await getTeacherClasses(currentUser.profile.id)
       setClasses(teacherClasses.map(c => ({
         id: c.id,
         name: `${c.name} - ${c.subject.name}`
       })))
       
-      // Lấy bài tập từ tất cả các lớp
       const allAssignments: Assignment[] = []
       for (const classItem of teacherClasses) {
         const assignments = await getClassAssignments(classItem.id)
         
-        // Lấy tổng số sinh viên trong lớp
         const { data: classStudents, error: studentsError } = await supabase
           .from('enrollments')
           .select('student_id')
@@ -279,7 +275,6 @@ export default function TeacherAssignmentsPage() {
         const totalStudents = classStudents?.length || 0
         
         for (const a of assignments) {
-          // Lấy thống kê bài nộp cho từng assignment
           const { data: submissions, error: submissionsError } = await supabase
             .from('assignment_submissions')
             .select('score')
@@ -287,7 +282,6 @@ export default function TeacherAssignmentsPage() {
           
           const submittedCount = submissions?.length || 0
           
-          // Tính điểm trung bình từ các bài đã chấm
           const gradedSubmissions = submissions?.filter(s => s.score !== null) || []
           const averageScore = gradedSubmissions.length > 0 
             ? gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions.length
@@ -310,11 +304,13 @@ export default function TeacherAssignmentsPage() {
         }
       }
 
-      // Sắp xếp theo thời gian mới nhất
       allAssignments.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
       setAssignments(allAssignments)
       setFilteredAssignments(allAssignments)
-
+      toast({
+        title: "Đã làm mới",
+        description: "Dữ liệu bài tập đã được cập nhật.",
+      })
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
       toast({
@@ -332,7 +328,6 @@ export default function TeacherAssignmentsPage() {
     try {
       setIsLoading(true)
 
-      // Validate form data
       if (!formData.title || !formData.description || !formData.classId || !formData.dueDate) {
         throw new Error('Vui lòng điền đầy đủ thông tin')
       }
@@ -342,7 +337,6 @@ export default function TeacherAssignmentsPage() {
       }
 
       if (editingAssignmentId) {
-        // Update existing assignment
         const { error: updateError } = await supabase
           .from('assignments')
           .update({
@@ -358,15 +352,12 @@ export default function TeacherAssignmentsPage() {
 
         if (updateError) throw updateError
 
-        // Update questions if multiple choice
         if (formData.type === 'multiple_choice' && questions.length > 0) {
-          // Delete existing questions
           await supabase
             .from('assignment_questions')
             .delete()
             .eq('assignment_id', editingAssignmentId)
 
-          // Insert new questions
           const questionsData = questions.map(q => ({
             assignment_id: editingAssignmentId,
             content: q.content,
@@ -387,7 +378,6 @@ export default function TeacherAssignmentsPage() {
           description: "Đã cập nhật bài tập"
         })
       } else {
-        // Create new assignment
         const assignmentData: CreateAssignmentData = {
           title: formData.title,
           description: sanitizeDescription(formData.description),
@@ -400,7 +390,6 @@ export default function TeacherAssignmentsPage() {
 
         const assignment = await createAssignment(assignmentData)
 
-        // If multiple choice, create questions
         if (formData.type === 'multiple_choice' && questions.length > 0) {
           const questionsData = questions.map(q => ({
             assignment_id: assignment.id,
@@ -423,7 +412,6 @@ export default function TeacherAssignmentsPage() {
         })
       }
 
-      // Reset form and close dialog
       setFormData({
         title: '',
         description: '',
@@ -522,7 +510,6 @@ export default function TeacherAssignmentsPage() {
     try {
       setIsLoading(true)
       
-      // Thêm logic xóa bài tập ở đây
       await deleteAssignment(assignmentId)
       
       toast({
@@ -628,6 +615,10 @@ export default function TeacherAssignmentsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={loadData}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Làm mới
+          </Button>
           <Button className="w-full sm:w-auto" onClick={() => {
             setEditingAssignmentId(null)
             setFormData({
@@ -642,25 +633,8 @@ export default function TeacherAssignmentsPage() {
             setSelectedFile(null)
             setShowCreateDialog(true)
           }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 mr-2"
-            >
-              <path d="M5 12h14" />
-              <path d="M12 5v14" />
-            </svg>
+            <Plus className="w-4 h-4 mr-2" />
             Tạo bài tập
-          </Button>
-          <Button className="w-full sm:w-auto" variant="outline" onClick={loadData}>
-            Làm mới
           </Button>
         </div>
       </div>
@@ -672,7 +646,7 @@ export default function TeacherAssignmentsPage() {
         onSearch={handleSearch}
       />
 
-      {/* Dialog tạo bài tập */}
+      {/* Create Assignment Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <form onSubmit={handleCreateAssignment}>
@@ -692,9 +666,7 @@ export default function TeacherAssignmentsPage() {
                   <div className="space-y-2">
                     {selectedFile ? (
                       <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors flex flex-col items-center justify-center space-y-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
-                        </svg>
+                        <Upload className="h-12 w-12 text-blue-400" />
                         <div className="text-center">
                           <p className="text-base font-medium text-blue-600">Đã chọn file:</p>
                           <p className="text-sm font-medium mt-1">{selectedFile.name}</p>
@@ -710,9 +682,7 @@ export default function TeacherAssignmentsPage() {
                       </div>
                     ) : (
                       <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors text-center flex flex-col items-center justify-center space-y-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
-                        </svg>
+                        <Upload className="h-12 w-12 text-blue-500" />
                         <div className="text-center">
                           <p className="text-base font-medium text-blue-600">Chọn file Excel để tải lên</p>
                           <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
@@ -880,7 +850,7 @@ export default function TeacherAssignmentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xem mẫu file */}
+      {/* Template File Dialog */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -903,7 +873,7 @@ export default function TeacherAssignmentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xem chi tiết bài tập */}
+      {/* Assignment Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="sm:max-w-[600px] w-full">
           <DialogHeader>
@@ -985,7 +955,6 @@ export default function TeacherAssignmentsPage() {
                         type: selectedAssignment.type
                       })
 
-                      // Load existing questions if multiple choice
                       if (selectedAssignment.type === 'multiple_choice') {
                         try {
                           const { data: questionsData, error } = await supabase
@@ -1039,7 +1008,7 @@ export default function TeacherAssignmentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Danh sách bài tập */}
+      {/* Assignment List */}
       {assignments.length === 0 && !isLoading ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Chưa có bài tập nào</p>
@@ -1051,23 +1020,7 @@ export default function TeacherAssignmentsPage() {
               <div key={assignment.id} className="p-4 hover:bg-muted/50 transition-colors">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="p-2 rounded-full bg-blue-100 text-blue-600 flex-shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <line x1="10" y1="9" x2="8" y2="9" />
-                    </svg>
+                    <FileIcon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -1135,4 +1088,4 @@ export default function TeacherAssignmentsPage() {
       )}
     </div>
   )
-} 
+}

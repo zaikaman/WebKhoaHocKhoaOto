@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { getCurrentUser, getStudentClasses, createEnrollment } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
+import { RefreshCw } from "lucide-react"
 
 interface Course {
   id: string
@@ -40,7 +41,7 @@ export default function StudentCoursesPage() {
   const [isJoining, setIsJoining] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  // Tạo filter options từ dữ liệu courses
+  // Filter options from courses data
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjects = [...new Set(courses.map(c => c.subject.name))]
     const teachers = [...new Set(courses.map(c => c.teacher.full_name))]
@@ -99,11 +100,11 @@ export default function StudentCoursesPage() {
     loadCourses()
   }, [])
 
-  // Lọc courses dựa trên search query và filters
+  // Filter courses based on search query and filters
   useEffect(() => {
     let filtered = courses
 
-    // Tìm kiếm theo text
+    // Text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(course => 
@@ -114,7 +115,7 @@ export default function StudentCoursesPage() {
       )
     }
 
-    // Áp dụng filters
+    // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
 
@@ -178,6 +179,10 @@ export default function StudentCoursesPage() {
       const coursesData = await getStudentClasses(currentUser.profile.id)
       setCourses(coursesData)
       setFilteredCourses(coursesData)
+      toast({
+        title: "Đã làm mới",
+        description: "Dữ liệu lớp học đã được cập nhật.",
+      })
     } catch (error) {
       console.error('Lỗi khi tải danh sách lớp học:', error)
       toast({
@@ -222,7 +227,7 @@ export default function StudentCoursesPage() {
         })
         setClassCode("")
         setIsDialogOpen(false)
-        loadCourses() // Tải lại danh sách lớp học
+        loadCourses() // Reload courses list
       } else {
         toast({
           variant: "destructive",
@@ -303,35 +308,41 @@ export default function StudentCoursesPage() {
             Hiển thị {filteredCourses.length} / {courses.length} lớp học
           </div>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="text-sm sm:text-base px-4 py-2">Tham gia lớp học</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-xs sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">Tham gia lớp học</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2 sm:py-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                <p className="text-xs sm:text-sm">Mã lớp học :</p>
-                <Input
-                  id="class-code"
-                  placeholder="Nhập mã lớp học"
-                  value={classCode}
-                  onChange={(e) => setClassCode(e.target.value)}
-                  className="flex-1 text-sm sm:text-base"
-                />
-              </div>
-              <Button 
-                className="w-full text-sm sm:text-base py-2"
-                onClick={handleJoinClass}
-                disabled={isJoining}
-              >
-                {isJoining ? "Đang xử lý..." : "Tham gia"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={loadCourses}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Làm mới
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="text-sm sm:text-base px-4 py-2">Tham gia lớp học</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xs sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-lg sm:text-xl">Tham gia lớp học</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2 sm:py-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                    <p className="text-xs sm:text-sm">Mã lớp học :</p>
+                    <Input
+                      id="class-code"
+                      placeholder="Nhập mã lớp học"
+                      value={classCode}
+                      onChange={(e) => setClassCode(e.target.value)}
+                      className="flex-1 text-sm sm:text-base"
+                    />
+                  </div>
+                  <Button 
+                    className="w-full text-sm sm:text-base py-2"
+                    onClick={handleJoinClass}
+                    disabled={isJoining}
+                  >
+                    {isJoining ? "Đang xử lý..." : "Tham gia"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+        </div>
       </div>
 
       {/* Search and Filter */}
@@ -383,4 +394,4 @@ export default function StudentCoursesPage() {
       </div>
     </div>
   )
-} 
+}

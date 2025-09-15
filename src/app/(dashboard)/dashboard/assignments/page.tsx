@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { getCurrentUser, getStudentClasses, supabase } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
+import { RefreshCw } from "lucide-react"
 
 interface Assignment {
   id: string
@@ -226,6 +227,10 @@ export default function AssignmentsPage() {
 
       setAssignments(assignmentsWithSubmissions)
       setFilteredAssignments(assignmentsWithSubmissions)
+      toast({
+        title: "Đã làm mới",
+        description: "Dữ liệu bài tập đã được cập nhật.",
+      })
 
     } catch (error) {
       console.error('Lỗi khi tải danh sách bài tập:', error)
@@ -366,8 +371,14 @@ export default function AssignmentsPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight w-full sm:w-auto sm:text-left">Bài tập</h2>
-        <div className="text-sm text-muted-foreground w-full  sm:w-auto sm:text-right">
-          Hiển thị {filteredAssignments.length} / {assignments.length} bài tập
+        <div className="flex gap-2 items-center">
+            <div className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
+              Hiển thị {filteredAssignments.length} / {assignments.length} bài tập
+            </div>
+            <Button variant="outline" onClick={loadAssignments}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Làm mới
+            </Button>
         </div>
       </div>
 

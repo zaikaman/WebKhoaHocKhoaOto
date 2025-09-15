@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Plus, MoreVertical, Users, Book, FileCheck, RefreshCw } from "lucide-react"
 
 export default function TeacherClassesPage() {
   const router = useRouter()
@@ -35,7 +36,7 @@ export default function TeacherClassesPage() {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
-  // Tạo filter options từ dữ liệu classes
+  // Create filter options from classes data
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjectNames = [...new Set(classes.map(c => c.subject?.name).filter(Boolean))] as string[]
     const semesters = [...new Set(classes.map(c => c.semester).filter(Boolean))] as string[]
@@ -98,11 +99,11 @@ export default function TeacherClassesPage() {
     loadData()
   }, [])
 
-  // Lọc classes dựa trên search query và filters
+  // Filter classes based on search query and filters
   useEffect(() => {
     let filtered = classes
 
-    // Tìm kiếm theo text
+    // Text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(classItem => 
@@ -113,7 +114,7 @@ export default function TeacherClassesPage() {
       )
     }
 
-    // Áp dụng filters
+    // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
 
@@ -197,8 +198,11 @@ export default function TeacherClassesPage() {
       
       setClasses(classesData)
       setFilteredClasses(classesData)
-      console.log("Dữ liệu lớp học:", classesData)
       setSubjects(subjectsData)
+      toast({
+        title: "Đã làm mới",
+        description: "Dữ liệu lớp học đã được cập nhật.",
+      })
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
       toast({
@@ -394,36 +398,32 @@ export default function TeacherClassesPage() {
             Hiển thị {filteredClasses.length} / {classes.length} lớp học
           </div>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedClass(null)
-            setIsDialogOpen(true)
-          }}
-          className="w-full sm:w-auto"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-4 h-4 mr-2"
-          >
-            <path d="M5 12h14" />
-            <path d="M12 5v14" />
-          </svg>
-          Tạo lớp mới
-        </Button>
-        <Button
-          onClick={() => router.push('/dashboard/teacher/quick-add')}
-          className="w-full sm:w-auto"
-        >
-          Thêm nhanh
-        </Button>
+        <div className="flex gap-2">
+            <Button
+              onClick={() => loadData()}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Làm mới
+            </Button>
+            <Button
+              onClick={() => {
+                setSelectedClass(null)
+                setIsDialogOpen(true)
+              }}
+              className="w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Tạo lớp mới
+            </Button>
+            <Button
+              onClick={() => router.push('/dashboard/teacher/quick-add')}
+              className="w-full sm:w-auto"
+            >
+              Thêm nhanh
+            </Button>
+        </div>
       </div>
 
       {/* Search and Filter */}
@@ -433,7 +433,7 @@ export default function TeacherClassesPage() {
         onSearch={handleSearch}
       />
 
-      {/* Danh sách lớp học */}
+      {/* Class List */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredClasses.map((classItem) => (
           <div
@@ -454,22 +454,7 @@ export default function TeacherClassesPage() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                      >
-                        <circle cx="12" cy="12" r="1" />
-                        <circle cx="12" cy="5" r="1" />
-                        <circle cx="12" cy="19" r="1" />
-                      </svg>
+                      <MoreVertical className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
@@ -496,58 +481,15 @@ export default function TeacherClassesPage() {
 
               <div className="mt-4 space-y-2">
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-4 h-4 mr-2"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
+                  <Users className="w-4 h-4 mr-2" />
                   {(classItem.enrollments as any)?.count ?? 0} sinh viên
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-4 h-4 mr-2"
-                  >
-                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                  </svg>
+                  <Book className="w-4 h-4 mr-2" />
                   {(classItem.assignments as any)?.count ?? 0} bài tập
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-4 h-4 mr-2"
-                  >
-                    <path d="M9 11l3 3L22 4" />
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                  </svg>
+                  <FileCheck className="w-4 h-4 mr-2" />
                   {(classItem.exams as any)?.count ?? 0} bài kiểm tra
                 </div>
               </div>
@@ -579,7 +521,7 @@ export default function TeacherClassesPage() {
           </div>
         ))}
 
-        {/* Thêm lớp mới */}
+        {/* Add New Class */}
         {filteredClasses.length === classes.length && (
           <button
             className="rounded-lg border border-dashed hover:border-primary hover:bg-primary/5 transition-colors h-full min-h-[250px] flex flex-col items-center justify-center p-6"
@@ -589,21 +531,7 @@ export default function TeacherClassesPage() {
             }}
           >
             <div className="rounded-full bg-primary/10 p-3 mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-6 h-6 text-primary"
-              >
-                <path d="M5 12h14" />
-                <path d="M12 5v14" />
-              </svg>
+              <Plus className="w-6 h-6 text-primary" />
             </div>
             <p className="font-medium mb-1">Tạo lớp học mới</p>
             <p className="text-sm text-muted-foreground text-center">
@@ -612,7 +540,7 @@ export default function TeacherClassesPage() {
           </button>
         )}
 
-        {/* Không tìm thấy kết quả */}
+        {/* No Results */}
         {filteredClasses.length === 0 && (
           <div className="col-span-full text-center py-12">
             <div className="text-muted-foreground">
@@ -622,7 +550,7 @@ export default function TeacherClassesPage() {
         )}
       </div>
 
-      {/* Dialog tạo/chỉnh sửa lớp học */}
+      {/* Dialog for creating/editing class */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-full sm:max-w-lg p-4 sm:p-8">
           <DialogHeader>
@@ -729,7 +657,7 @@ export default function TeacherClassesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xác nhận xóa */}
+      {/* Dialog for delete confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>

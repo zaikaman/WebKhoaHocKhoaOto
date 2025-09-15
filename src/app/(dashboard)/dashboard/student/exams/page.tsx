@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { getCurrentUser, getStudentClasses, supabase } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
+import { RefreshCw } from "lucide-react"
 
 interface Exam {
   id: string
@@ -40,7 +41,7 @@ export default function ExamsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<Record<string, any>>({})
 
-  // Tạo filter options từ dữ liệu exams
+  // Filter options from exams data
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjects = [...new Set(exams.map(e => e.class.subject.name))]
     const classes = [...new Set(exams.map(e => e.class.name))]
@@ -103,11 +104,11 @@ export default function ExamsPage() {
     loadExams()
   }, [])
 
-  // Lọc exams dựa trên search query và filters
+  // Filter exams based on search query and filters
   useEffect(() => {
     let filtered = exams
 
-    // Tìm kiếm theo text
+    // Text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(exam => 
@@ -118,7 +119,7 @@ export default function ExamsPage() {
       )
     }
 
-    // Áp dụng filters
+    // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
 
@@ -213,10 +214,8 @@ export default function ExamsPage() {
         return
       }
 
-      // Lấy danh sách lớp học của sinh viên
       const classes = await getStudentClasses(currentUser.profile.id)
       
-      // Lấy danh sách bài kiểm tra từ các lớp học và submissions
       const { data: examsData, error } = await supabase
         .from('exams')
         .select(`
@@ -231,7 +230,6 @@ export default function ExamsPage() {
 
       if (error) throw error
 
-      // Lấy submissions của sinh viên
       const { data: submissionsData, error: submissionsError } = await supabase
         .from('exam_submissions')
         .select('*')
@@ -240,7 +238,6 @@ export default function ExamsPage() {
 
       if (submissionsError) throw submissionsError
 
-      // Kết hợp thông tin bài thi và submission
       const examsWithSubmissions = examsData.map(exam => ({
         ...exam,
         submission: submissionsData?.find(s => s.exam_id === exam.id) || null
@@ -248,7 +245,10 @@ export default function ExamsPage() {
 
       setExams(examsWithSubmissions)
       setFilteredExams(examsWithSubmissions)
-
+      toast({
+        title: "Đã làm mới",
+        description: "Dữ liệu bài kiểm tra đã được cập nhật.",
+      })
     } catch (error) {
       console.error('Lỗi khi tải danh sách bài kiểm tra:', error)
       toast({
@@ -266,7 +266,6 @@ export default function ExamsPage() {
     const startTime = new Date(new Date(exam.start_time).getTime() - 7 * 60 * 60 * 1000)
     const endTime = new Date(new Date(exam.end_time).getTime() - 7 * 60 * 60 * 1000)
 
-    // Nếu đã có bài nộp
     if (exam.submission?.submitted_at) {
       if (exam.submission.score !== null) {
         return {
@@ -284,7 +283,6 @@ export default function ExamsPage() {
       }
     }
 
-    // Nếu chưa có bài nộp
     if (now < startTime) {
       return {
         label: 'Sắp diễn ra',
@@ -410,8 +408,14 @@ export default function ExamsPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight w-full sm:w-auto sm:text-left">Bài kiểm tra</h2>
-        <div className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
-          Hiển thị {filteredExams.length} / {exams.length} bài kiểm tra
+        <div className="flex gap-2 items-center">
+            <div className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
+              Hiển thị {filteredExams.length} / {exams.length} bài kiểm tra
+            </div>
+            <Button variant="outline" onClick={loadExams}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Làm mới
+            </Button>
         </div>
       </div>
 
@@ -504,4 +508,4 @@ export default function ExamsPage() {
       </div>
     </div>
   )
-} 
+}

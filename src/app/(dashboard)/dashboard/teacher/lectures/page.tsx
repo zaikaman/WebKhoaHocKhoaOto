@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { FileIcon, Paperclip, Download } from "lucide-react"
+import { FileIcon, Paperclip, Download, Plus, RefreshCw, MoreHorizontal, Calendar } from "lucide-react"
 import { LectureListSkeleton } from "../components/LectureListSkeleton";
 
 type Lecture = {
@@ -90,6 +90,7 @@ export default function TeacherLecturesPage() {
 
       allLectures.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       setLectures(allLectures)
+      toast({ title: "Đã làm mới", description: "Dữ liệu bài giảng đã được cập nhật." })
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
       toast({ variant: "destructive", title: "Lỗi", description: "Không thể tải danh sách bài giảng" })
@@ -143,7 +144,7 @@ export default function TeacherLecturesPage() {
   const getYouTubeEmbedUrl = (url: string | null) => {
     if (!url) return null;
     let videoId = '';
-    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const regex = new RegExp('(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/\n\s]+/\S+/|(?:v|e(?:mbed)?)/|\S*?[?&]v=)|youtu\.be/)([a-zA-Z0-9_-]{11})');
     const match = url.match(regex);
     if (match) {
       videoId = match[1];
@@ -169,8 +170,14 @@ export default function TeacherLecturesPage() {
           <p className="text-muted-foreground text-sm sm:text-base">Quản lý tất cả bài giảng của bạn</p>
         </div>
         <div className="flex gap-2">
-            <Button onClick={() => router.push("/dashboard/teacher/lectures/create")}>Tạo bài giảng mới</Button>
-            <Button variant="outline" onClick={loadLectures}>Làm mới</Button>
+            <Button variant="outline" onClick={loadLectures}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Làm mới
+            </Button>
+            <Button onClick={() => router.push("/dashboard/teacher/lectures/create")}>
+                <Plus className="w-4 h-4 mr-2" />
+                Tạo bài giảng mới
+            </Button>
         </div>
       </div>
 
@@ -191,11 +198,11 @@ export default function TeacherLecturesPage() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
+                        <MoreHorizontal className="w-5 h-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { setSelectedLecture(lecture); setIsDetailDialogOpen(true); }}>Xem chi tiết</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {{ setSelectedLecture(lecture); setIsDetailDialogOpen(true); }}}>Xem chi tiết</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push(`/dashboard/teacher/lectures/${lecture.id}/edit`)}>Chỉnh sửa</DropdownMenuItem>
                     <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteLecture(lecture.id)}>Xóa</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -206,7 +213,7 @@ export default function TeacherLecturesPage() {
 
               <div className="mt-4 pt-4 border-t">
                  <div className="flex items-center text-sm text-muted-foreground">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                    <Calendar className="w-4 h-4 mr-2" />
                     {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
@@ -283,7 +290,6 @@ export default function TeacherLecturesPage() {
                 <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>Đóng</Button>
             </DialogFooter>
         </DialogContent>
-      </Dialog>}
-    </div>
+      </Dialog>}</div>
   )
 }

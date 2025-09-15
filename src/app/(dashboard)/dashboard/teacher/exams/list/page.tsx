@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
+import { Plus, RefreshCw, Check, Loader, Clock } from "lucide-react"
 
 type Exam = {
   id: string
@@ -41,7 +42,7 @@ export default function TeacherExamsListPage() {
   const [editEndTime, setEditEndTime] = useState('')
   const [editDuration, setEditDuration] = useState('')
 
-  // Tạo filter options từ dữ liệu exams
+  // Filter options from exams data
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjects = [...new Set(exams.map(e => e.subject))]
     const classNames = [...new Set(exams.map(e => e.className))]
@@ -112,11 +113,11 @@ export default function TeacherExamsListPage() {
     loadExams()
   }, [])
 
-  // Lọc exams dựa trên search query và filters
+  // Filter exams based on search query and filters
   useEffect(() => {
     let filtered = exams
 
-    // Tìm kiếm theo text
+    // Text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(exam => 
@@ -126,7 +127,7 @@ export default function TeacherExamsListPage() {
       )
     }
 
-    // Áp dụng filters
+    // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
 
@@ -225,22 +226,18 @@ export default function TeacherExamsListPage() {
     try {
       setIsLoading(true)
       
-      // Lấy thông tin người dùng hiện tại
       const currentUser = await getCurrentUser()
       if (!currentUser || currentUser.profile.role !== 'teacher') {
         router.push('/login')
         return
       }
 
-      // Lấy danh sách lớp học
       const classes = await getTeacherClasses(currentUser.profile.id)
       
-      // Lấy bài kiểm tra từ tất cả các lớp
       const allExams: Exam[] = []
       for (const classItem of classes) {
         const exams = await getClassExams(classItem.id)
         
-        // Lấy tổng số sinh viên trong lớp
         const { data: classStudents, error: studentsError } = await supabase
           .from('enrollments')
           .select('student_id')
@@ -261,7 +258,6 @@ export default function TeacherExamsListPage() {
             status = 'in-progress'
           }
 
-          // Cập nhật trạng thái trong database nếu khác với trạng thái hiện tại
           if (status !== e.status) {
             supabase
               .from('exams')
@@ -274,7 +270,6 @@ export default function TeacherExamsListPage() {
               })
           }
 
-          // Lấy thống kê bài nộp
           const { data: submissions, error: submissionsError } = await supabase
             .from('exam_submissions')
             .select('score')
@@ -282,7 +277,6 @@ export default function TeacherExamsListPage() {
           
           const submittedCount = submissions?.length || 0
           
-          // Tính điểm trung bình từ các bài đã chấm
           const gradedSubmissions = submissions?.filter(s => s.score !== null) || []
           const averageScore = gradedSubmissions.length > 0 
             ? gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions.length
@@ -304,11 +298,13 @@ export default function TeacherExamsListPage() {
         }
       }
 
-      // Sắp xếp theo thời gian mới nhất
       allExams.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
       setExams(allExams)
       setFilteredExams(allExams)
-
+      toast({
+        title: "Đã làm mới",
+        description: "Dữ liệu bài kiểm tra đã được cập nhật.",
+      })
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
       toast({
@@ -356,7 +352,6 @@ export default function TeacherExamsListPage() {
     }
 
     try {
-      // Chuyển đổi thời gian local thành UTC
       const startTimeUTC = new Date(editStartTime).toISOString();
       const endTimeUTC = new Date(editEndTime).toISOString();
 
@@ -517,29 +512,13 @@ export default function TeacherExamsListPage() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2">
-          <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/exams')}>
-          <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 mr-2"
-            >
-              <path d="M5 12h14" />
-              <path d="M12 5v14" />
-            </svg>
-            Tạo bài kiểm tra
+          <Button variant="outline" onClick={loadExams} disabled={isLoading}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Làm mới
           </Button>
-          {/* <Button onClick={() => router.back()}>
-            Quay lại
-          </Button> */}
-          <Button className="w-full sm:w-auto" variant="outline" onClick={loadExams} disabled={isLoading}>
-            {isLoading ? "Đang tải..." : "Làm mới"}
+          <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/exams')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Tạo bài kiểm tra
           </Button>
         </div>
       </div>
@@ -564,25 +543,11 @@ export default function TeacherExamsListPage() {
                     : 'bg-orange-100 text-orange-600'
                 }`}>
                   {exam.status === 'completed' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
+                    <Check className="w-5 h-5" />
                   ) : exam.status === 'in-progress' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2v4" />
-                      <path d="M12 18v4" />
-                      <path d="M4.93 4.93l2.83 2.83" />
-                      <path d="M16.24 16.24l2.83 2.83" />
-                      <path d="M2 12h4" />
-                      <path d="M18 12h4" />
-                      <path d="M4.93 19.07l2.83-2.83" />
-                      <path d="M16.24 7.76l2.83-2.83" />
-                    </svg>
+                    <Loader className="w-5 h-5 animate-spin" />
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 8v4l3 3" />
-                      <circle cx="12" cy="12" r="10" />
-                    </svg>
+                    <Clock className="w-5 h-5" />
                   )}
                 </div>
                 <div className="flex-1">
