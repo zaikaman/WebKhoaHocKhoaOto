@@ -383,7 +383,7 @@ export default function QuickAddPage() {
                           <p>{i + 1}. {q.content}</p>
                           {q.type === 'multiple_choice' && (
                             <ul className="list-disc pl-5">
-                              {q.options?.map((opt, j) => (
+                              {q.options?.map((opt: string, j: number) => (
                                 <li key={j} className={q.correct_answer === opt ? 'font-bold' : ''}>{opt}</li>
                               ))}
                             </ul>
@@ -568,7 +568,7 @@ export default function QuickAddPage() {
                           <p>{i + 1}. {q.content}</p>
                           {q.type === 'multiple_choice' && (
                             <ul className="list-disc pl-5">
-                              {q.options?.map((opt, j) => (
+                              {q.options?.map((opt: string, j: number) => (
                                 <li key={j} className={q.correct_answer === opt ? 'font-bold' : ''}>{opt}</li>
                               ))}
                             </ul>
