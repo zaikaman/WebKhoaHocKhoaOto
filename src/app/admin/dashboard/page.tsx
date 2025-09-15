@@ -111,9 +111,11 @@ export default function AdminDashboardPage() {
     try {
       setIsLoading(true)
 
+      const lastName = formData.get("lastName") as string;
+      const firstName = formData.get("firstName") as string;
       const accountData = {
         student_id: formData.get("username") as string,
-        full_name: formData.get("fullName") as string,
+        full_name: `${lastName} ${firstName}`,
         role: formData.get("role") as Role,
         status: "active" as const,
         class_code: formData.get("class") as string,

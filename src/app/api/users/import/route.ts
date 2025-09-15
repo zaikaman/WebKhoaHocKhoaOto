@@ -17,10 +17,13 @@ export async function POST(req: Request) {
   const errors: { user: string, error: string }[] = [];
 
   for (const user of users) {
-    if (!user.email || !user.student_id || !user.full_name || !user.role) {
-        errors.push({ user: user.student_id || 'N/A', error: 'Thiếu thông tin (email, mã số, họ tên, vai trò).' });
+    if (!user.student_id || !user.last_name || !user.first_name || !user.role) {
+        errors.push({ user: user.student_id || 'N/A', error: 'Thiếu thông tin (mã số, họ và tên đệm, tên, vai trò).' });
         continue;
     }
+
+    const email = `${user.student_id}@aptech.edu.vn`;
+    const full_name = `${user.last_name} ${user.first_name}`;
 
     try {
       // 1. Check if profile with student_id already exists
@@ -35,36 +38,25 @@ export async function POST(req: Request) {
       }
 
       if (existingProfile) {
-        // User with this student_id exists. Verify email from auth table.
-        const { data: authUserResponse, error: authUserError } = await adminSupabase.auth.admin.getUserById(existingProfile.id);
-
-        if (authUserError) {
-            throw new Error(`Lỗi lấy thông tin người dùng: ${authUserError.message}`);
-        }
-
-        if (authUserResponse.user.email?.toLowerCase() !== user.email.toLowerCase()) {
-           errors.push({ user: user.student_id, error: `Mã số đã tồn tại nhưng được liên kết với một email khác.` });
-           continue;
-        }
-        // If we are here, it means student_id and email match, so we can consider it "processed"
+        // User with this student_id exists. We can consider it "processed"
         processedUsers.push(user);
 
       } else {
         // New user based on student_id. Create them.
         const password = user.password || generateRandomPassword();
         const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-          email: user.email.trim(),
+          email: email.trim(),
           password: password,
           email_confirm: true,
           user_metadata: {
-            full_name: user.full_name,
+            full_name: full_name,
             role: user.role,
           }
         });
 
         if (authError) {
           if (authError.message.toLowerCase().includes('email address already exists')) {
-              errors.push({ user: user.student_id, error: `Email ${user.email} đã được sử dụng.` });
+              errors.push({ user: user.student_id, error: `Email ${email} đã được sử dụng.` });
               continue;
           }
           throw new Error(`Lỗi tạo tài khoản: ${authError.message}`);
@@ -79,7 +71,7 @@ export async function POST(req: Request) {
           .from('profiles')
           .update({
             student_id: user.student_id,
-            full_name: user.full_name,
+            full_name: full_name,
             role: user.role,
             class_code: user.class_code,
             status: 'active',
