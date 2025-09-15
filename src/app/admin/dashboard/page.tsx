@@ -142,7 +142,7 @@ export default function AdminDashboardPage() {
           throw new Error(`Lỗi khi cập nhật: ${error.message}`)
         }
 
-        toast({ 
+        toast({
           title: "Thành công",
           description: "Cập nhật tài khoản thành công"
         })
@@ -194,7 +194,7 @@ export default function AdminDashboardPage() {
             throw new Error(`Lỗi khi cập nhật thông tin: ${updateError.message}`)
           }
 
-          toast({ 
+          toast({
             title: "Thành công",
             description: "Thêm tài khoản mới thành công"
           })
@@ -244,7 +244,7 @@ export default function AdminDashboardPage() {
           throw new Error(`Lỗi khi xóa: ${error.message}`)
         }
 
-        toast({ 
+        toast({
           title: "Thành công",
           description: "Xóa tài khoản thành công"
         })
@@ -324,13 +324,13 @@ export default function AdminDashboardPage() {
       complete: async (results) => {
         try {
           const users = results.data.map((row: any) => ({
-            email: row.email?.trim(),
-            password: row.password?.trim(),
             student_id: row.student_id?.trim(),
-            full_name: row.full_name?.trim(),
+            last_name: row.last_name?.trim(),
+            first_name: row.first_name?.trim(),
             role: row.role?.trim(),
             class_code: row.class_code?.trim(),
-          })).filter(u => u.email && u.student_id && u.full_name && u.role)
+            password: row.password?.trim(),
+          })).filter(u => u.student_id && u.last_name && u.first_name && u.role)
 
           if (users.length === 0) {
             throw new Error("File không có dữ liệu hợp lệ.")
@@ -444,7 +444,7 @@ export default function AdminDashboardPage() {
                   {account.full_name}
                 </td>
                 <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ 
                     account.role === 'student' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-blue-100 text-blue-800'
@@ -496,7 +496,7 @@ export default function AdminDashboardPage() {
         </table>
       </div>
 
-      {/* Phân trang */}
+      {/* Phân trang */} 
       <div className="mt-4 flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2">
         <Button
           variant="outline"
@@ -519,7 +519,7 @@ export default function AdminDashboardPage() {
         </Button>
       </div>
 
-      {/* Dialog thêm/sửa tài khoản */}
+      {/* Dialog thêm/sửa tài khoản */} 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-xs sm:max-w-lg w-full">
           <DialogHeader>
@@ -540,8 +540,12 @@ export default function AdminDashboardPage() {
                   <label className="form-label" htmlFor="username">Mã số</label>
                 </div>
                 <div className="form-field">
-                  <input id="fullName" name="fullName" defaultValue={selectedAccount?.full_name} className="form-input peer" required placeholder="Họ và tên" />
-                  <label className="form-label" htmlFor="fullName">Họ và tên</label>
+                  <input id="lastName" name="lastName" defaultValue={selectedAccount?.full_name?.split(' ').slice(0, -1).join(' ')} className="form-input peer" required placeholder="Họ và tên đệm" />
+                  <label className="form-label" htmlFor="lastName">Họ và tên đệm</label>
+                </div>
+                <div className="form-field">
+                  <input id="firstName" name="firstName" defaultValue={selectedAccount?.full_name?.split(' ').slice(-1).join(' ')} className="form-input peer" required placeholder="Tên" />
+                  <label className="form-label" htmlFor="firstName">Tên</label>
                 </div>
                 <div className="form-field">
                   <label className="absolute -top-3 left-3 text-sm text-blue-500" htmlFor="role">Vai trò</label>
@@ -594,7 +598,7 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xác nhận xóa */}
+      {/* Dialog xác nhận xóa */} 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-xs sm:max-w-md w-full">
           <DialogHeader>
@@ -614,7 +618,7 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xác nhận reset mật khẩu */}
+      {/* Dialog xác nhận reset mật khẩu */} 
       <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <DialogContent className="max-w-xs sm:max-w-md w-full">
           <DialogHeader>
@@ -636,4 +640,4 @@ export default function AdminDashboardPage() {
       </Dialog>
     </div>
   )
-} 
+}
