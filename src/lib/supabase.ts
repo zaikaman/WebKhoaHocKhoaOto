@@ -681,9 +681,13 @@ export async function createAssignmentForClasses(assignment: Omit<Assignment, 'i
 }
 
 export async function createAssignmentQuestions(questions: Omit<AssignmentQuestion, 'id' | 'created_at' | 'updated_at'>[]) {
+  const questionsToInsert = questions.map(q => ({
+    ...q,
+    options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options,
+  }));
   const { data, error } = await supabase
     .from('assignment_questions')
-    .insert(questions)
+    .insert(questionsToInsert)
     .select()
 
   if (error) throw error
@@ -1134,9 +1138,13 @@ export async function uploadAssignmentFile(file: File) {
 }
 
 export async function createExamQuestion(question: Omit<ExamQuestion, 'id' | 'created_at' | 'updated_at'>) {
+  const questionToInsert = {
+    ...question,
+    options: Array.isArray(question.options) ? JSON.stringify(question.options) : question.options,
+  };
   const { data, error } = await supabase
     .from('exam_questions')
-    .insert([question])
+    .insert([questionToInsert])
     .select()
     .single()
 
@@ -1341,13 +1349,17 @@ export async function deleteExamQuestion(questionId: string) {
   return data;
 }
 export async function updateExamQuestion(question: ExamQuestion) {
+  const questionToUpdate = {
+    ...question,
+    options: Array.isArray(question.options) ? JSON.stringify(question.options) : question.options,
+  };
   const { data, error } = await supabase
     .from('exam_questions')
     .update({
-      content: question.content,
-      points: question.points,
-      options: question.options,
-      correct_answer: question.correct_answer,
+      content: questionToUpdate.content,
+      points: questionToUpdate.points,
+      options: questionToUpdate.options,
+      correct_answer: questionToUpdate.correct_answer,
       updated_at: new Date().toISOString()
     })
     .eq('id', question.id)

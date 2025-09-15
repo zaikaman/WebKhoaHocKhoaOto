@@ -370,7 +370,7 @@ export default function TeacherAssignmentsPage() {
           const questionsData = questions.map(q => ({
             assignment_id: editingAssignmentId,
             content: q.content,
-            options: q.options,
+            options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options,
             correct_answer: q.correct_answer,
             points: q.points
           }))
@@ -405,7 +405,7 @@ export default function TeacherAssignmentsPage() {
           const questionsData = questions.map(q => ({
             assignment_id: assignment.id,
             content: q.content,
-            options: q.options,
+            options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options,
             correct_answer: q.correct_answer,
             points: q.points
           }))

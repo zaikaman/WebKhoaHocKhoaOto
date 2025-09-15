@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
+import { sanitizeDescription } from '@/lib/utils'
 import { getCurrentUser, getTeacherClasses, createAssignmentForClasses, createExamForClasses, createExamQuestion, createAssignmentQuestions } from '@/lib/supabase'
 import type { Class, ExamQuestion, AssignmentQuestion } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
@@ -152,7 +153,7 @@ export default function QuickAddPage() {
       if (addType === 'assignment') {
         const assignmentData = {
           title: formData.get('title') as string,
-          description: formData.get('description') as string,
+          description: sanitizeDescription(formData.get('description') as string),
           due_date: formData.get('due_date') as string,
           total_points: parseInt(formData.get('total_points') as string, 10),
         }
@@ -171,7 +172,7 @@ export default function QuickAddPage() {
       } else {
         const examData = {
           title: formData.get('title') as string,
-          description: formData.get('description') as string,
+          description: sanitizeDescription(formData.get('description') as string),
           type: formData.get('type') as 'quiz' | 'midterm' | 'final',
           duration: parseInt(formData.get('duration') as string, 10),
           total_points: parseInt(formData.get('total_points') as string, 10),
