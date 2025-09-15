@@ -156,6 +156,7 @@ export default function QuickAddPage() {
           description: sanitizeDescription(formData.get('description') as string),
           due_date: formData.get('due_date') as string,
           total_points: parseInt(formData.get('total_points') as string, 10),
+          file_url: null
         }
         const newAssignments = await createAssignmentForClasses(assignmentData, selectedClasses)
         if (newAssignments) {
