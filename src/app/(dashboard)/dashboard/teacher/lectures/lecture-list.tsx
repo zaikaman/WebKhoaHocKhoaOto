@@ -128,34 +128,20 @@ export function LectureList({ classId, onUploadSuccess }: LectureListProps) {
                     </span>
                   </td>
                   <td className="py-2 px-2 md:py-4 md:px-4">
-                  <div className="flex flex-wrap justify-center items-center gap-2">
-                    <LectureDetail 
-                      lecture={lecture}
-                      onDelete={handleLectureDelete}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => router.push(`/dashboard/teacher/lectures/${lecture.id}/edit`)}
-                    >
-                      Chỉnh sửa
-                    </Button>
-                    {lecture.lecture_files.find((file: any) => file.file_type === 'SIM') && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                const simFile = lecture.lecture_files.find((file: any) => file.file_type === 'SIM');
-                                if (simFile) {
-                                    handleSimulationDownload(simFile.file_path, simFile.original_filename);
-                                }
-                            }}
-                        >
-                            Tải phần mềm mô phỏng
-                        </Button>
-                    )}
-                  </div>
-                </td>
+                    <div className="flex flex-wrap justify-start items-center gap-2">
+                      <LectureDetail 
+                        lecture={lecture}
+                        onDelete={handleLectureDelete}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/teacher/lectures/${lecture.id}/edit`)}
+                      >
+                        Chỉnh sửa
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
