@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getTeacherClasses, getClassAssignments } from "@/lib/supabase"
+import { getCurrentUser, getTeacherClasses, getClassAssignments, deleteAssignment } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import {
   Dialog,
@@ -523,7 +523,7 @@ export default function TeacherAssignmentsPage() {
       setIsLoading(true)
       
       // Thêm logic xóa bài tập ở đây
-      // await deleteAssignment(assignmentId)
+      await deleteAssignment(assignmentId)
       
       toast({
         title: "Thành công",

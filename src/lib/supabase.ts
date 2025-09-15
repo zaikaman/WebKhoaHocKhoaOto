@@ -728,6 +728,43 @@ export async function gradeAssignmentSubmission(
   return data
 }
 
+export async function deleteAssignment(assignmentId: string) {
+  // First, delete all submissions for the assignment
+  const { error: submissionsError } = await supabase
+    .from('assignment_submissions')
+    .delete()
+    .eq('assignment_id', assignmentId);
+
+  if (submissionsError) {
+    console.error('Error deleting assignment submissions:', submissionsError);
+    throw new Error('Could not delete assignment submissions.');
+  }
+
+  // Then, delete all questions for the assignment
+  const { error: questionsError } = await supabase
+    .from('assignment_questions')
+    .delete()
+    .eq('assignment_id', assignmentId);
+
+  if (questionsError) {
+    console.error('Error deleting assignment questions:', questionsError);
+    throw new Error('Could not delete assignment questions.');
+  }
+
+  // Finally, delete the assignment itself
+  const { error: assignmentError } = await supabase
+    .from('assignments')
+    .delete()
+    .eq('id', assignmentId);
+
+  if (assignmentError) {
+    console.error('Error deleting assignment:', assignmentError);
+    throw new Error('Could not delete assignment.');
+  }
+
+  return true;
+}
+
 // Hàm thống kê
 export async function getTeacherStats(teacherId: string) {
   const { data: classes, error: classError } = await supabase
