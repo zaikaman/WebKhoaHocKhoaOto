@@ -132,6 +132,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
     const formData = new FormData(event.currentTarget)
     const title = formData.get('title') as string
     const description = formData.get('description') as string
+    const video_url = formData.get('video_url') as string
     
     const filesToUpload: FileState[] = [];
     if (vieFile) filesToUpload.push({ file: vieFile, type: 'VIE' });
@@ -142,8 +143,8 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
       toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng nhập tiêu đề bài giảng." });
       return;
     }
-    if (filesToUpload.length === 0) {
-        toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng chọn ít nhất một file để tải lên." });
+    if (filesToUpload.length === 0 && !video_url) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng chọn ít nhất một file để tải lên hoặc cung cấp link video." });
         return;
     }
 
@@ -154,6 +155,7 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
         class_id: classId,
         title,
         description: sanitizeDescription(description),
+        video_url,
       });
 
       if (!newLecture || !newLecture.id) {
@@ -162,22 +164,24 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
       
       const lectureId = newLecture.id;
 
-      // Step 2: Upload files in parallel
-      const uploadPromises = filesToUpload.map(fileState => 
-        uploadLectureFile(fileState.file!)
-      );
-      
-      const uploadedFiles = await Promise.all(uploadPromises);
+      if (filesToUpload.length > 0) {
+        // Step 2: Upload files in parallel
+        const uploadPromises = filesToUpload.map(fileState => 
+          uploadLectureFile(fileState.file!)
+        );
+        
+        const uploadedFiles = await Promise.all(uploadPromises);
 
-      // Step 3: Create lecture_files records
-      const lectureFilesData = filesToUpload.map((fileState, index) => ({
-        lecture_id: lectureId,
-        file_path: uploadedFiles[index].path,
-        original_filename: uploadedFiles[index].original_filename,
-        file_type: fileState.type,
-      }));
+        // Step 3: Create lecture_files records
+        const lectureFilesData = filesToUpload.map((fileState, index) => ({
+          lecture_id: lectureId,
+          file_path: uploadedFiles[index].path,
+          original_filename: uploadedFiles[index].original_filename,
+          file_type: fileState.type,
+        }));
 
-      await createLectureFiles(lectureFilesData);
+        await createLectureFiles(lectureFilesData);
+      }
 
       toast({
         title: "Thành công",
@@ -238,6 +242,17 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
                 name="description"
                 placeholder="Nhập mô tả ngắn gọn về nội dung bài giảng"
                 rows={3}
+                disabled={isLoading}
+                className="mt-1"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="video_url">Link video YouTube</Label>
+              <Input
+                id="video_url"
+                name="video_url"
+                placeholder="Dán link video YouTube vào đây"
                 disabled={isLoading}
                 className="mt-1"
               />

@@ -23,6 +23,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
 
   // File state
   const [vieFile, setVieFile] = useState<FileState | null>(null);
@@ -42,6 +43,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
       
       setTitle(lectureData.title);
       setDescription(lectureData.description || '');
+      setVideoUrl(lectureData.video_url || '');
       setInitialFiles(lectureData.lecture_files || []);
 
       // Populate file states
@@ -68,7 +70,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
 
     try {
         // 1. Update lecture title and description
-        await updateLecture(params.id, { title, description });
+        await updateLecture(params.id, { title, description, video_url: videoUrl });
 
         const currentFiles: (FileState | null)[] = [vieFile, engFile, simFile];
         const fileTypes: ('VIE' | 'ENG' | 'SIM')[] = ['VIE', 'ENG', 'SIM'];
@@ -139,6 +141,11 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           <div className="space-y-2">
             <label className="text-sm font-medium">Mô tả</label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="min-h-[120px]" />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Link video YouTube</label>
+            <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
           </div>
 
           <div className="space-y-4 pt-4 border-t">

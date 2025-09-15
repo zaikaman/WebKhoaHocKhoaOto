@@ -78,6 +78,7 @@ export type Lecture = {
   class_id: string
   title: string
   description: string | null
+  video_url: string | null
   created_at: string
   updated_at: string
   lecture_files: LectureFile[]
@@ -536,11 +537,11 @@ export async function getClassLectures(classId: string): Promise<Lecture[]> {
   }
 }
 
-export async function createLecture(lecture: { class_id: string; title: string; description: string | null }) {
+export async function createLecture(lecture: { class_id: string; title: string; description: string | null; video_url: string | null }) {
   const { data, error } = await supabase
     .from('lectures')
     .insert([lecture])
-    .select('id, title, description, class_id, created_at, updated_at')
+    .select('id, title, description, class_id, video_url, created_at, updated_at')
     .single()
 
   if (error) {
@@ -548,6 +549,44 @@ export async function createLecture(lecture: { class_id: string; title: string; 
     throw error
   }
   return data
+}
+
+export async function createLectureForClasses(
+  lectureData: { title: string; description: string | null; video_url: string | null },
+  classIds: string[],
+  files: { vie: File | null; eng: File | null; sim: File | null }
+) {
+  const createdLectures = [];
+
+  for (const class_id of classIds) {
+    const newLecture = await createLecture({ ...lectureData, class_id });
+    if (newLecture) {
+      const filesToUpload: { file: File; type: 'VIE' | 'ENG' | 'SIM' }[] = [];
+      if (files.vie) filesToUpload.push({ file: files.vie, type: 'VIE' });
+      if (files.eng) filesToUpload.push({ file: files.eng, type: 'ENG' });
+      if (files.sim) filesToUpload.push({ file: files.sim, type: 'SIM' });
+
+      if (filesToUpload.length > 0) {
+        const uploadPromises = filesToUpload.map(fileState => 
+          uploadLectureFile(fileState.file!)
+        );
+        
+        const uploadedFiles = await Promise.all(uploadPromises);
+  
+        const lectureFilesData = filesToUpload.map((fileState, index) => ({
+          lecture_id: newLecture.id,
+          file_path: uploadedFiles[index].path,
+          original_filename: uploadedFiles[index].original_filename,
+          file_type: fileState.type,
+        }));
+  
+        await createLectureFiles(lectureFilesData);
+      }
+      createdLectures.push(newLecture);
+    }
+  }
+
+  return createdLectures;
 }
 
 // Hàm xử lý bài kiểm tra

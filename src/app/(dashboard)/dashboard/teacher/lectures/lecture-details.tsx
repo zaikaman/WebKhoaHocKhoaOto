@@ -81,6 +81,25 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
 
   
 
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return null;
+    let videoId = '';
+    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regex);
+    if (match) {
+      videoId = match[1];
+    } else {
+      if (url.length === 11) {
+        videoId = url;
+      } else {
+        return null;
+      }
+    }
+    return `https://www.youtube.com/embed/${videoId}`;
+  };
+
+  const videoUrl = getYouTubeEmbedUrl(lecture.video_url || '');
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)}>
@@ -98,6 +117,19 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {videoUrl && (
+            <div className="aspect-video">
+              <iframe
+                width="100%"
+                height="100%"
+                src={videoUrl}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          )}
           <div className="bg-muted/50 p-4 rounded-lg">
             <h4 className="text-sm font-semibold uppercase tracking-wide text-primary mb-2">
               Mô tả
@@ -107,22 +139,22 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
             </p>
           </div>
 
-          <div className="bg-muted/50 p-4 rounded-lg">
-             <h4 className="text-sm font-semibold uppercase tracking-wide text-primary mb-3">
-              Tài liệu đính kèm
-            </h4>
-            <div className="space-y-3">
-            {lecture.lecture_files && lecture.lecture_files.length > 0 ? (
-                lecture.lecture_files.map(file => (
-                <div key={file.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+          {lecture.lecture_files && lecture.lecture_files.length > 0 && (
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-primary mb-3">
+                Tài liệu đính kèm
+              </h4>
+              <div className="space-y-3">
+                {lecture.lecture_files.map(file => (
+                  <div key={file.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
                     <div className="flex items-center gap-3">
-                        <Paperclip className="w-5 h-5 text-gray-500" />
-                        <div>
-                            <p className="text-sm font-medium text-gray-800">{file.original_filename}</p>
-                            <p className="text-xs text-gray-500">
-                                Loại: {getFileTypeLabel(file.file_type)}
-                            </p>
-                        </div>
+                      <Paperclip className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{file.original_filename}</p>
+                        <p className="text-xs text-gray-500">
+                          Loại: {getFileTypeLabel(file.file_type)}
+                        </p>
+                      </div>
                     </div>
                     <Button 
                         variant="outline" 
@@ -132,13 +164,11 @@ export function LectureDetail({ lecture, onDelete }: LectureDetailProps) {
                         <Download size={14} className="mr-1.5"/>
                         Tải về
                     </Button>
-                </div>
-                ))
-            ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">Không có tài liệu nào.</p>
-            )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

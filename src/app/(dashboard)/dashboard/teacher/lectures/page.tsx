@@ -26,6 +26,7 @@ type Lecture = {
   id: string
   title: string
   description: string | null
+  video_url: string | null
   created_at: string
   lecture_files: any[]
   class: {
@@ -138,6 +139,23 @@ export default function TeacherLecturesPage() {
     }
   }
 
+  const getYouTubeEmbedUrl = (url: string | null) => {
+    if (!url) return null;
+    let videoId = '';
+    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regex);
+    if (match) {
+      videoId = match[1];
+    } else {
+      if (url.length === 11) {
+        videoId = url;
+      } else {
+        return null;
+      }
+    }
+    return `https://www.youtube.com/embed/${videoId}`;
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center">Đang tải dữ liệu bài giảng...</div>
   }
@@ -213,34 +231,52 @@ export default function TeacherLecturesPage() {
                 <DialogDescription>{selectedLecture.class.name} - {selectedLecture.class.subject.name}</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
+                {getYouTubeEmbedUrl(selectedLecture.video_url) && (
+                  <div className="aspect-video">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={getYouTubeEmbedUrl(selectedLecture.video_url)!}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                )}
                 <div className="bg-muted/50 p-4 rounded-lg">
                     <h4 className="text-base font-semibold uppercase tracking-wider text-primary mb-2">Mô tả</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{selectedLecture.description || "Chưa có mô tả"}</p>
                 </div>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                    <h4 className="text-base font-semibold uppercase tracking-wider text-primary mb-3">Tài liệu đính kèm</h4>
-                    <div className="space-y-3">
-                        {selectedLecture.lecture_files && selectedLecture.lecture_files.length > 0 ? (
-                            selectedLecture.lecture_files.map(file => (
-                                <div key={file.id} className="flex items-center justify-between p-3 bg-white border rounded-lg shadow-sm">
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                                        <Paperclip className="w-6 h-6 text-gray-500 flex-shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-800 truncate">{file.original_filename}</p>
-                                            <p className="text-xs text-gray-500">Loại: {getFileTypeLabel(file.file_type)}</p>
-                                        </div>
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={() => handleDownload(file.file_path, file.original_filename)} className="ml-4 flex-shrink-0">
-                                        <Download size={14} className="mr-1.5"/>
-                                        Tải về
-                                    </Button>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">Không có tài liệu nào.</p>
-                        )}
-                    </div>
-                </div>
+                
+                {selectedLecture.lecture_files && selectedLecture.lecture_files.length > 0 && (
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                      <h4 className="text-base font-semibold uppercase tracking-wider text-primary mb-3">Tài liệu đính kèm</h4>
+                      <div className="space-y-3">
+                          {selectedLecture.lecture_files.map(file => (
+                              <div key={file.id} className="flex items-center justify-between p-3 bg-white border rounded-lg shadow-sm">
+                                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                                      <Paperclip className="w-6 h-6 text-gray-500 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium text-gray-800 truncate">{file.original_filename}</p>
+                                          <p className="text-xs text-gray-500">Loại: {getFileTypeLabel(file.file_type)}</p>
+                                      </div>
+                                  </div>
+                                  <Button variant="outline" size="sm" onClick={() => handleDownload(file.file_path, file.original_filename)} className="ml-4 flex-shrink-0">
+                                      <Download size={14} className="mr-1.5"/>
+                                      Tải về
+                                  </Button>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+                )}
+
+                {!getYouTubeEmbedUrl(selectedLecture.video_url) && (!selectedLecture.lecture_files || selectedLecture.lecture_files.length === 0) && (
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground text-center py-4">Không có video hoặc tài liệu nào.</p>
+                  </div>
+                )}
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>Đóng</Button>

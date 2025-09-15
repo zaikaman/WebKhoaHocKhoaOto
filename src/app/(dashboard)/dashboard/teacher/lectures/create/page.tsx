@@ -56,6 +56,7 @@ export default function CreateLecturePage() {
     const title = formData.get('title') as string
     const description = formData.get('description') as string
     const class_id = formData.get('class_id') as string
+    const video_url = formData.get('video_url') as string
 
     if (!class_id) {
         toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng chọn một lớp học." });
@@ -71,8 +72,8 @@ export default function CreateLecturePage() {
       toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng nhập tiêu đề bài giảng." });
       return;
     }
-    if (filesToUpload.length === 0) {
-        toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng chọn ít nhất một file để tải lên." });
+    if (filesToUpload.length === 0 && !video_url) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Vui lòng chọn ít nhất một file để tải lên hoặc cung cấp link video." });
         return;
     }
 
@@ -82,6 +83,7 @@ export default function CreateLecturePage() {
         class_id: class_id,
         title,
         description,
+        video_url,
       });
 
       if (!newLecture || !newLecture.id) {
@@ -90,20 +92,22 @@ export default function CreateLecturePage() {
       
       const lectureId = newLecture.id;
 
-      const uploadPromises = filesToUpload.map(fileState => 
-        uploadLectureFile(fileState.file!)
-      );
-      
-      const uploadedFiles = await Promise.all(uploadPromises);
+      if (filesToUpload.length > 0) {
+        const uploadPromises = filesToUpload.map(fileState => 
+          uploadLectureFile(fileState.file!)
+        );
+        
+        const uploadedFiles = await Promise.all(uploadPromises);
 
-      const lectureFilesData = filesToUpload.map((fileState, index) => ({
-        lecture_id: lectureId,
-        file_path: uploadedFiles[index].path,
-        original_filename: uploadedFiles[index].original_filename,
-        file_type: fileState.type,
-      }));
+        const lectureFilesData = filesToUpload.map((fileState, index) => ({
+          lecture_id: lectureId,
+          file_path: uploadedFiles[index].path,
+          original_filename: uploadedFiles[index].original_filename,
+          file_type: fileState.type,
+        }));
 
-      await createLectureFiles(lectureFilesData);
+        await createLectureFiles(lectureFilesData);
+      }
 
       toast({
         title: "Thành công",
@@ -195,6 +199,11 @@ export default function CreateLecturePage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Link video YouTube</label>
+            <Input name="video_url" className="w-full" />
           </div>
 
           <div className="space-y-4 pt-4 border-t">

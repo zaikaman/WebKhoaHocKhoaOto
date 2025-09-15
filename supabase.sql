@@ -140,6 +140,7 @@ CREATE TABLE public.lectures (
   class_id uuid,
   title text NOT NULL,
   description text,
+  video_url text,
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),

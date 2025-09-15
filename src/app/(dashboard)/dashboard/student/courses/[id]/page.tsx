@@ -87,6 +87,23 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     }
   }
 
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return null;
+    let videoId = '';
+    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regex);
+    if (match) {
+      videoId = match[1];
+    } else {
+      if (url.length === 11) {
+        videoId = url;
+      } else {
+        return null;
+      }
+    }
+    return `https://www.youtube.com/embed/${videoId}`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -134,38 +151,62 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
         <TabsContent value="lectures" className="space-y-4">
             {classData.lectures.length > 0 ? (
-                classData.lectures.map((lecture) => (
-                    <div key={lecture.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
-                        <h4 className="font-semibold text-base sm:text-lg">{lecture.title}</h4>
-                        {lecture.description && (
-                            <p className="text-sm text-muted-foreground mt-1 mb-4 line-clamp-3">{lecture.description}</p>
-                        )}
-                        <div className="space-y-2 mt-3 pt-3 border-t">
-                            {lecture.lecture_files && lecture.lecture_files.length > 0 ? (
-                                lecture.lecture_files.map(file => (
-                                    <div key={file.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                                        <div className="flex items-center gap-3">
-                                            <FileIcon className="h-5 w-5 text-primary" />
-                                            <div>
-                                                <p className="text-sm font-medium">{file.original_filename}</p>
-                                                <p className="text-xs text-muted-foreground">{getFileTypeLabel(file.file_type)}</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="secondary" size="sm" onClick={() => handleDownload(file)}>
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Tải về
-                                        </Button>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-2">Không có file đính kèm.</p>
+                classData.lectures.map((lecture) => {
+                    const videoUrl = getYouTubeEmbedUrl(lecture.video_url || '');
+                    return (
+                        <div key={lecture.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
+                            <h4 className="font-semibold text-base sm:text-lg">{lecture.title}</h4>
+                            {lecture.description && (
+                                <p className="text-sm text-muted-foreground mt-1 mb-4 line-clamp-3">{lecture.description}</p>
                             )}
+
+                            {videoUrl && (
+                                <div className="aspect-video mt-4">
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        src={videoUrl}
+                                        title="YouTube video player"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                        className="rounded-lg"
+                                    ></iframe>
+                                </div>
+                            )}
+
+                            {(lecture.lecture_files && lecture.lecture_files.length > 0) &&
+                                <div className="space-y-2 mt-3 pt-3 border-t">
+                                    {lecture.lecture_files.map(file => (
+                                        <div key={file.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                            <div className="flex items-center gap-3">
+                                                <FileIcon className="h-5 w-5 text-primary" />
+                                                <div>
+                                                    <p className="text-sm font-medium">{file.original_filename}</p>
+                                                    <p className="text-xs text-muted-foreground">{getFileTypeLabel(file.file_type)}</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="secondary" size="sm" onClick={() => handleDownload(file)}>
+                                                <Download className="h-4 w-4 mr-2" />
+                                                Tải về
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+
+                            {!videoUrl && (!lecture.lecture_files || lecture.lecture_files.length === 0) &&
+                                <div className="space-y-2 mt-3 pt-3 border-t">
+                                    <p className="text-sm text-muted-foreground text-center py-2">Không có tài liệu nào.</p>
+                                </div>
+                            }
+                            
+                            <div className="text-xs text-muted-foreground pt-3 mt-3 border-t">
+                                Ngày đăng: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
+                            </div>
                         </div>
-                        <div className="text-xs text-muted-foreground pt-3 mt-3 border-t">
-                            Ngày đăng: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
-                        </div>
-                    </div>
-                ))
+                    )
+                })
             ) : (
                 <div className="col-span-full text-center py-8 sm:py-12">
                     <div className="text-sm sm:text-base text-muted-foreground">Chưa có bài giảng nào.</div>
