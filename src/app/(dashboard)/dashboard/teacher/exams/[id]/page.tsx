@@ -13,7 +13,7 @@ import {
   getExamSubmissions,
   getCurrentUser
 } from "@/lib/supabase"
-import { ExamDetailSkeleton } from "../components/ExamDetailSkeleton";
+import { ExamDetailSkeleton } from "../../components/ExamDetailSkeleton";
 
 export default function ExamDetailPage() {
   const router = useRouter()
