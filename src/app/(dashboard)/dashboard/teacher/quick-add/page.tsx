@@ -16,20 +16,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import * as XLSX from 'xlsx'
 
+// Define student type for creation
+interface Student {
+  student_code: string;
+  full_name: string;
+  email: string;
+  date_of_birth?: string;
+}
+
 export default function QuickAddPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [classes, setClasses] = useState<Class[]>([])
   const [selectedClasses, setSelectedClasses] = useState<string[]>([])
-  const [addType, setAddType] = useState<'assignment' | 'exam'>('assignment')
+  const [addType, setAddType] = useState<'assignment' | 'exam' | 'student'>('assignment')
+  
+  // State for questions
   const [questions, setQuestions] = useState<Partial<ExamQuestion | AssignmentQuestion>[]>([])
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [newQuestion, setNewQuestion] = useState<Partial<ExamQuestion | AssignmentQuestion>>({ type: 'multiple_choice', options: ['', '', '', ''] })
 
-  useEffect(() => {
+  // State for student management
+  const [studentAddMode, setStudentAddMode] = useState('import'); // 'import' or 'enroll'
+  const [studentsToCreate, setStudentsToCreate] = useState<Student[]>([])
+  const [studentIdInput, setStudentIdInput] = useState('');
+  const [studentsToEnroll, setStudentsToEnroll] = useState<string[]>([]);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+    useEffect(() => {
     loadData()
   }, [])
+
+  // Reset states when addType changes
+  useEffect(() => {
+    setSelectedFile(null);
+    setQuestions([]);
+    setStudentsToCreate([]);
+    setStudentsToEnroll([]);
+    setStudentIdInput('');
+    setNewQuestion({ type: 'multiple_choice', options: ['', '', '', ''] });
+  }, [addType]);
 
   async function loadData() {
     try {
@@ -109,6 +136,47 @@ export default function QuickAddPage() {
     }
   }
 
+  const handleStudentCreateFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[worksheetName];
+      const json = XLSX.utils.sheet_to_json<Student>(worksheet);
+      setStudentsToCreate(json);
+      toast({
+        title: "Thành công",
+        description: `Đã phân tích ${json.length} sinh viên từ file. Nhấn nút gửi để hoàn tất.`,
+      });
+    } catch (error) {
+      console.error("Error reading student file:", error);
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể đọc file." });
+    }
+  };
+
+  const handleAddStudentToEnrollList = () => {
+    if (studentIdInput && !studentsToEnroll.includes(studentIdInput)) {
+      setStudentsToEnroll([...studentsToEnroll, studentIdInput]);
+      setStudentIdInput('');
+    }
+  };
+
+  const handleRemoveStudentFromEnrollList = (idToRemove: string) => {
+    setStudentsToEnroll(studentsToEnroll.filter(id => id !== idToRemove));
+  };
+
+  const handleDownloadStudentTemplate = () => {
+    const link = document.createElement('a');
+    link.href = '/mau_danh_sach_sinh_vien.csv';
+    link.setAttribute('download', 'mau_danh_sach_sinh_vien.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleDownloadTemplate = () => {
     const templateData = [
       {
@@ -145,62 +213,86 @@ export default function QuickAddPage() {
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setIsLoading(true)
+    event.preventDefault();
+    if (selectedClasses.length === 0) {
+      toast({ variant: 'destructive', title: 'Lỗi', description: 'Vui lòng chọn ít nhất một lớp học.' });
+      return;
+    }
+    setIsLoading(true);
 
     try {
-      const formData = new FormData(event.currentTarget)
-      if (addType === 'assignment') {
-        const assignmentData = {
-          title: formData.get('title') as string,
-          description: sanitizeDescription(formData.get('description') as string),
-          due_date: formData.get('due_date') as string,
-          total_points: parseInt(formData.get('total_points') as string, 10),
-          file_url: null
-        }
-        const newAssignments = await createAssignmentForClasses(assignmentData, selectedClasses)
-        if (newAssignments) {
-          for (const assignment of newAssignments) {
-            for (const q of questions) {
-              await createAssignmentQuestions([{ ...q, assignment_id: assignment.id } as Omit<AssignmentQuestion, 'id' | 'created_at' | 'updated_at'>])
-            }
+      if (addType === 'student') {
+        if (studentAddMode === 'import') {
+          if (studentsToCreate.length === 0) {
+            toast({ variant: "destructive", title: "Lỗi", description: "Không có sinh viên nào trong file để tạo mới." });
+            setIsLoading(false);
+            return;
           }
+          const response = await fetch('/api/students/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ students: studentsToCreate, classIds: selectedClasses }),
+          });
+          const result = await response.json();
+
+          if (!response.ok) {
+            let errorMessage = result.message || 'Có lỗi xảy ra khi tạo sinh viên.';
+            if (result.errors && Array.isArray(result.errors)) {
+              const errorDetails = result.errors.map((err: { student: any; error: any; }) => `
+- Sinh viên ${err.student}: ${err.error}`).join('');
+              errorMessage += ` Chi tiết:${errorDetails}`;
+            }
+            throw new Error(errorMessage);
+          }
+          
+          toast({ title: 'Thành công', description: result.message });
+
+        } else if (studentAddMode === 'enroll') {
+          if (studentsToEnroll.length === 0) {
+            toast({ variant: "destructive", title: "Lỗi", description: "Chưa có mã số sinh viên nào trong danh sách để ghi danh." });
+            setIsLoading(false);
+            return;
+          }
+          const response = await fetch('/api/enrollments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentIds: studentsToEnroll, classIds: selectedClasses }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || 'Có lỗi xảy ra khi ghi danh.');
+          toast({ title: 'Thành công', description: result.message });
         }
-        toast({
-          title: 'Thành công',
-          description: 'Đã tạo bài tập cho các lớp đã chọn.',
-        })
+        router.push('/dashboard/teacher/classes');
+
       } else {
-        const examData = {
-          title: formData.get('title') as string,
-          description: sanitizeDescription(formData.get('description') as string),
-          type: formData.get('type') as 'quiz' | 'midterm' | 'final',
-          duration: parseInt(formData.get('duration') as string, 10),
-          total_points: parseInt(formData.get('total_points') as string, 10),
-          start_time: formData.get('start_time') as string,
-          end_time: formData.get('end_time') as string,
-          status: 'upcoming' as const,
-        }
-        const newExams = await createExamForClasses(examData, selectedClasses)
-        if (newExams) {
-          for (const exam of newExams) {
-            for (const q of questions) {
-              await createExamQuestion({ ...q, exam_id: exam.id } as Omit<ExamQuestion, 'id' | 'created_at' | 'updated_at'>)
+        const formData = new FormData(event.currentTarget)
+        if (addType === 'assignment') {
+          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null }
+          const newAssignments = await createAssignmentForClasses(assignmentData, selectedClasses)
+          if (newAssignments) {
+            for (const assignment of newAssignments) {
+              if (questions.length > 0) {
+                await createAssignmentQuestions(questions.map(q => ({ ...q, assignment_id: assignment.id })) as Omit<AssignmentQuestion, 'id' | 'created_at' | 'updated_at'>[])
+              }
             }
           }
+          toast({ title: 'Thành công', description: 'Đã tạo bài tập cho các lớp đã chọn.' })
+        } else if (addType === 'exam') {
+          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, }
+          const newExams = await createExamForClasses(examData, selectedClasses)
+          if (newExams) {
+            for (const exam of newExams) {
+              for (const q of questions) {
+                 await createExamQuestion({ ...q, exam_id: exam.id } as Omit<ExamQuestion, 'id' | 'created_at' | 'updated_at'>)
+              }
+            }
+          }
+          toast({ title: 'Thành công', description: 'Đã tạo bài kiểm tra cho các lớp đã chọn.' })
         }
-        toast({
-          title: 'Thành công',
-          description: 'Đã tạo bài kiểm tra cho các lớp đã chọn.',
-        })
+        router.push('/dashboard/teacher/classes')
       }
-      router.push('/dashboard/teacher/classes')
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: error.message || 'Không thể tạo. Vui lòng thử lại sau.',
-      })
+      toast({ variant: 'destructive', title: 'Lỗi', description: error.message || 'Thao tác thất bại.' })
     } finally {
       setIsLoading(false)
     }
@@ -217,13 +309,13 @@ export default function QuickAddPage() {
   return (
     <div className='space-y-8 container mx-auto py-10'>
       <div className="flex items-center justify-between">
-          <div>
-            <h1 className='text-2xl font-bold'>Thêm nhanh bài tập/bài kiểm tra</h1>
-            <p className="text-muted-foreground">
-              Thêm bài tập hoặc bài kiểm tra cho nhiều lớp học cùng một lúc.
-            </p>
-          </div>
+        <div>
+          <h1 className='text-2xl font-bold'>Thêm nhanh</h1>
+          <p className="text-muted-foreground">
+            Thêm bài tập, bài kiểm tra, hoặc sinh viên cho nhiều lớp học cùng một lúc.
+          </p>
         </div>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-8">
         <Card>
           <CardHeader>
@@ -275,6 +367,13 @@ export default function QuickAddPage() {
               >
                 Bài kiểm tra
               </Button>
+              <Button
+                type='button'
+                variant={addType === 'student' ? 'default' : 'outline'}
+                onClick={() => setAddType('student')}
+              >
+                Sinh viên
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -284,7 +383,7 @@ export default function QuickAddPage() {
             <CardTitle>3. Nhập thông tin</CardTitle>
           </CardHeader>
           <CardContent>
-            {addType === 'assignment' ? (
+            {addType === 'assignment' && (
               <div className='space-y-4'>
                 <h3 className='text-lg font-medium'>Thông tin bài tập</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -436,8 +535,8 @@ export default function QuickAddPage() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-4">
                       File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
-                      <Button 
-                        variant="link" 
+                      <Button
+                        variant="link"
                         className="h-auto p-0 text-blue-600 underline"
                         onClick={handleDownloadTemplate}
                         type="button"
@@ -448,7 +547,9 @@ export default function QuickAddPage() {
                   </TabsContent>
                 </Tabs>
               </div>
-            ) : (
+            )}
+
+            {addType === 'exam' && (
               <div className='space-y-4'>
                 <h3 className='text-lg font-medium'>Thông tin bài kiểm tra</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -621,8 +722,8 @@ export default function QuickAddPage() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-4">
                       File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
-                      <Button 
-                        variant="link" 
+                      <Button
+                        variant="link"
                         className="h-auto p-0 text-blue-600 underline"
                         onClick={handleDownloadTemplate}
                         type="button"
@@ -634,11 +735,90 @@ export default function QuickAddPage() {
                 </Tabs>
               </div>
             )}
+
+            {addType === 'student' && (
+              <Tabs defaultValue="import" onValueChange={(value) => setStudentAddMode(value)}>
+                <TabsList>
+                  <TabsTrigger value="import">Tạo & Ghi danh bằng File</TabsTrigger>
+                  <TabsTrigger value="enroll">Ghi danh bằng MSSV</TabsTrigger>
+                </TabsList>
+                <TabsContent value="import">
+                  <div className="space-y-4 pt-4">
+                    <h3 className="text-lg font-medium">Tạo mới và ghi danh sinh viên vào các lớp đã chọn</h3>
+                    <div className="space-y-2">
+                      {selectedFile ? (
+                        <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors flex flex-col items-center justify-center space-y-4">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="text-center">
+                            <p className="text-base font-medium text-blue-600">Đã chọn file:</p>
+                            <p className="text-sm font-medium mt-1">{selectedFile.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                             <p className="text-sm font-medium mt-2 text-green-600">{studentsToCreate.length} sinh viên đã được phân tích.</p>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => { setSelectedFile(null); setStudentsToCreate([]); }}>
+                            Xóa file
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors text-center flex flex-col items-center justify-center space-y-4">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+                          </svg>
+                          <div className="text-center">
+                            <p className="text-base font-medium text-blue-600">Chọn file Excel để tải lên</p>
+                            <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                          </div>
+                          <input id="student-file-upload" type="file" accept=".xlsx,.xls,.csv" onChange={handleStudentCreateFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-4">
+                      File phải có các cột: <code>student_code</code>, <code>full_name</code>, <code>email</code>, và (tùy chọn) <code>date_of_birth</code>.{' '}
+                      <Button variant="link" className="h-auto p-0 text-blue-600 underline" onClick={handleDownloadStudentTemplate} type="button">
+                        Tải file mẫu (.csv)
+                      </Button>
+                    </p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="enroll">
+                  <div className="space-y-4 pt-4">
+                    <h3 className="text-lg font-medium">Ghi danh sinh viên đã có tài khoản vào các lớp đã chọn</h3>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        type="text"
+                        placeholder="Nhập Mã số sinh viên"
+                        value={studentIdInput}
+                        onChange={(e) => setStudentIdInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddStudentToEnrollList()}
+                      />
+                      <Button type="button" onClick={handleAddStudentToEnrollList}>Thêm</Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Danh sách sinh viên sẽ được ghi danh:</Label>
+                      {studentsToEnroll.length > 0 ? (
+                        <ul className="border rounded-md p-2 space-y-1">
+                          {studentsToEnroll.map((studentId) => (
+                            <li key={studentId} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                              <span>{studentId}</span>
+                              <Button variant="ghost" size="sm" onClick={() => handleRemoveStudentFromEnrollList(studentId)}>Xóa</Button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Chưa có sinh viên nào trong danh sách.</p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
 
         <Button type='submit' disabled={selectedClasses.length === 0 || isLoading}>
-          {isLoading ? 'Đang thêm...' : 'Thêm'}
+          {isLoading ? 'Đang xử lý...' : (addType === 'student' ? 'Ghi danh/Tạo sinh viên' : 'Thêm')}
         </Button>
       </form>
     </div>
