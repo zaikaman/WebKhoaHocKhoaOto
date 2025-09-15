@@ -521,47 +521,45 @@ export default function ExamQuestionPage() {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleQuestionSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="content">
+                <div className="relative pt-5">
+                  <Textarea 
+                    id="content" 
+                    name="content" 
+                    defaultValue={currentQuestion?.content || ''} 
+                    className="form-textarea peer"
+                    placeholder="Nội dung câu hỏi"
+                    required 
+                    rows={4}
+                  />
+                  <Label htmlFor="content" className="form-textarea-label">
                     <span className="text-sm font-medium flex items-center gap-2">
                       Nội dung câu hỏi <span className="text-red-500">*</span>
                     </span>
                   </Label>
-                  <div className="w-full h-auto">
-                    <Textarea 
-                      id="content" 
-                      name="content" 
-                      defaultValue={currentQuestion?.content || ''} 
-                      className="w-full h-full resize-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Nhập nội dung câu hỏi..."
-                      required 
-                      rows={4}
-                    />
-                  </div>
                 </div>
 
                 {examType === 'multiple_choice' && (
                   <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[1, 2, 3, 4].map((num) => (
-                        <div key={num} className="space-y-2">
-                          <Label htmlFor={`option${num}`}>
+                        <div key={num} className="form-field">
+                          <Input
+                            name={`option${num}`}
+                            className="form-input peer"
+                            placeholder={`Đáp án ${num}`}
+                            defaultValue={currentQuestion?.options ? JSON.parse(currentQuestion.options)[num - 1] : ''}
+                            required
+                          />
+                          <Label htmlFor={`option${num}`} className="form-label">
                             <span className="text-sm font-medium flex items-center gap-2">
                               Đáp án {num} <span className="text-red-500">*</span>
                             </span>
                           </Label>
-                          <Input
-                            name={`option${num}`}
-                            className="w-full focus:ring-2 focus:ring-blue-500"
-                            placeholder={`Nhập đáp án ${num}...`}
-                            defaultValue={currentQuestion?.options ? JSON.parse(currentQuestion.options)[num - 1] : ''}
-                            required
-                          />
                         </div>
                       ))}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="correctOption">
+                    <div className="form-field">
+                      <Label htmlFor="correctOption" className="absolute -top-3 left-3 text-sm text-blue-500">
                         <span className="text-sm font-medium flex items-center gap-2">
                           Đáp án đúng <span className="text-red-500">*</span>
                         </span>
@@ -582,42 +580,41 @@ export default function ExamQuestionPage() {
                 )}
 
                 {examType === 'essay' && (
-                  <div className="space-y-2 border rounded-lg p-4 bg-gray-50">
-                    <Label htmlFor="correctAnswer">
+                  <div className="relative pt-5 border rounded-lg p-4 bg-gray-50">
+                    <Textarea
+                      id="correctAnswer"
+                      name="correctAnswer"
+                      className="form-textarea peer"
+                      defaultValue={currentQuestion?.correct_answer || ''}
+                      placeholder="Đáp án mẫu"
+                      required
+                      rows={4}
+                    />
+                    <Label htmlFor="correctAnswer" className="form-textarea-label">
                       <span className="text-sm font-medium flex items-center gap-2">
                         Đáp án mẫu <span className="text-red-500">*</span>
                       </span>
                     </Label>
-                    <div className="w-full h-auto">
-                      <Textarea
-                        id="correctAnswer"
-                        name="correctAnswer"
-                        className="w-full h-full resize-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={currentQuestion?.correct_answer || ''}
-                        placeholder="Nhập đáp án mẫu cho câu hỏi tự luận..."
-                        required
-                        rows={4}
-                      />
-                    </div>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="points">
-                    <span className="text-sm font-medium flex items-center gap-2">
-                      Điểm <span className="text-red-500">*</span>
-                    </span>
-                  </Label>
+                <div className="form-field">
                   <Input
                     type="number"
                     id="points"
                     name="points"
                     min="0"
                     step="0.5"
-                    className="w-full focus:ring-2 focus:ring-blue-500"
+                    className="form-input peer"
                     defaultValue={currentQuestion?.points || 1}
                     required
+                    placeholder="Điểm"
                   />
+                  <Label htmlFor="points" className="form-label">
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      Điểm <span className="text-red-500">*</span>
+                    </span>
+                  </Label>
                 </div>
 
                 <DialogFooter className="flex-col sm:flex-row justify-end gap-2 pt-4">

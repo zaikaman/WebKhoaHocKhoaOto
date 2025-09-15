@@ -96,16 +96,17 @@ export default function CreateExamPage() {
       </div>
 
       <form onSubmit={handleManualCreate} className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Tiêu đề</label>
+        <div className="form-field">
           <input
             name="title"
-            className="w-full px-3 py-2 border rounded-md"
+            className="form-input peer"
             required
+            placeholder="Tiêu đề"
           />
+          <label className="form-label">Tiêu đề</label>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Lớp học</label>
+        <div className="form-field">
+          <label className="absolute -top-3 left-3 text-sm text-blue-500">Lớp học</label>
           <select
             name="class_id"
             className="w-full px-3 py-2 border rounded-md"
@@ -119,46 +120,49 @@ export default function CreateExamPage() {
             ))}
           </select>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Mô tả</label>
+        <div className="relative pt-5">
           <Textarea 
             name="description"
             placeholder="Nhập mô tả bài kiểm tra"
-            className="w-full"
+            className="form-textarea peer"
             rows={4}
           />
+          <label className="form-textarea-label">Mô tả</label>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Thời gian bắt đầu</label>
+        <div className="form-field">
           <input
             type="datetime-local"
             name="start_time"
-            className="w-full px-3 py-2 border rounded-md"
+            className="form-input peer"
             required
+            placeholder="Thời gian bắt đầu"
           />
+          <label className="form-label">Thời gian bắt đầu</label>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Thời gian kết thúc</label>
+        <div className="form-field">
           <input
             type="datetime-local"
             name="end_time"
-            className="w-full px-3 py-2 border rounded-md"
+            className="form-input peer"
             required
+            placeholder="Thời gian kết thúc"
           />
+          <label className="form-label">Thời gian kết thúc</label>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Thời gian làm bài (phút)</label>
+        <div className="form-field">
           <input
             type="number"
             name="duration"
-            className="w-full px-3 py-2 border rounded-md"
+            className="form-input peer"
             defaultValue={60}
             min={1}
             required
+            placeholder="Thời gian làm bài (phút)"
           />
+          <label className="form-label">Thời gian làm bài (phút)</label>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Loại bài kiểm tra</label>
+        <div className="form-field">
+          <label className="absolute -top-3 left-3 text-sm text-blue-500">Loại bài kiểm tra</label>
           <select
             name="type"
             className="w-full px-3 py-2 border rounded-md"

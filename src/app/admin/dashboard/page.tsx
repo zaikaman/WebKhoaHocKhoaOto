@@ -229,6 +229,10 @@ export default function AdminDashboardPage() {
           .eq('id', selectedAccount.id)
 
         if (error) {
+          // Check for foreign key violation (user enrolled in a class)
+          if (error.code === '23503') {
+            throw new Error("Không thể xóa người dùng vì họ vẫn đang được ghi danh trong một lớp học.");
+          }
           console.error('Chi tiết lỗi:', {
             message: error.message,
             details: error.details,
@@ -529,24 +533,24 @@ export default function AdminDashboardPage() {
             </TabsList>
             <TabsContent value="single">
               <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="username">Mã số</label>
-                  <input id="username" name="username" defaultValue={selectedAccount?.student_id} className="w-full px-3 py-2 border rounded-md" required />
+                <div className="form-field">
+                  <input id="username" name="username" defaultValue={selectedAccount?.student_id} className="form-input peer" required placeholder="Mã số" />
+                  <label className="form-label" htmlFor="username">Mã số</label>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="fullName">Họ và tên</label>
-                  <input id="fullName" name="fullName" defaultValue={selectedAccount?.full_name} className="w-full px-3 py-2 border rounded-md" required />
+                <div className="form-field">
+                  <input id="fullName" name="fullName" defaultValue={selectedAccount?.full_name} className="form-input peer" required placeholder="Họ và tên" />
+                  <label className="form-label" htmlFor="fullName">Họ và tên</label>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="role">Vai trò</label>
+                <div className="form-field">
+                  <label className="absolute -top-3 left-3 text-sm text-blue-500" htmlFor="role">Vai trò</label>
                   <select id="role" name="role" defaultValue={selectedAccount?.role || "student"} className="w-full px-3 py-2 border rounded-md" required>
                     <option value="student">Sinh viên</option>
                     <option value="teacher">Giảng viên</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="class">Lớp</label>
-                  <input id="class" name="class" defaultValue={selectedAccount?.class_code} className="w-full px-3 py-2 border rounded-md" />
+                <div className="form-field">
+                  <input id="class" name="class" defaultValue={selectedAccount?.class_code} className="form-input peer" placeholder="Lớp" />
+                  <label className="form-label" htmlFor="class">Lớp</label>
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">Hủy</Button>

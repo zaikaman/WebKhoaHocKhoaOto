@@ -105,40 +105,43 @@ export default function ChangePasswordPage() {
         )}
 
         <form onSubmit={handleChangePassword} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
+          <div className="form-field">
             <Input
               id="currentPassword"
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
-              className="w-full"
+              className="form-input peer"
+              placeholder="Mật khẩu hiện tại"
             />
+            <Label htmlFor="currentPassword" className="form-label">Mật khẩu hiện tại</Label>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">Mật khẩu mới</Label>
+          <div className="form-field">
             <Input
               id="newPassword"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              className="w-full"
+              className="form-input peer"
+              placeholder="Mật khẩu mới"
             />
+            <Label htmlFor="newPassword" className="form-label">Mật khẩu mới</Label>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
+          <div className="form-field">
             <Input
               id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full"
+              className="form-input peer"
+              placeholder="Xác nhận mật khẩu mới"
             />
+            <Label htmlFor="confirmPassword" className="form-label">Xác nhận mật khẩu mới</Label>
           </div>
           
           <div className="flex items-center justify-between pt-4">

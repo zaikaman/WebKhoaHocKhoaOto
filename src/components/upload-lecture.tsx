@@ -223,39 +223,39 @@ export function UploadLecture({ classId, onUploadSuccess }: UploadLectureProps) 
           </DialogHeader>
 
           <form ref={formRef} onSubmit={handleFileUpload} className="space-y-6 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Tiêu đề</Label>
+            <div className="form-field">
               <Input
                 id="title"
                 name="title"
                 placeholder="Ví dụ: Bài 1 - Giới thiệu về động cơ đốt trong"
                 required
                 disabled={isLoading}
-                className="mt-1"
+                className="form-input peer"
               />
+              <Label htmlFor="title" className="form-label">Tiêu đề</Label>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Mô tả</Label>
+            <div className="relative pt-5">
               <Textarea
                 id="description"
                 name="description"
                 placeholder="Nhập mô tả ngắn gọn về nội dung bài giảng"
                 rows={3}
                 disabled={isLoading}
-                className="mt-1"
+                className="form-textarea peer"
               />
+              <Label htmlFor="description" className="form-textarea-label">Mô tả</Label>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="video_url">Link video YouTube</Label>
+            <div className="form-field">
               <Input
                 id="video_url"
                 name="video_url"
                 placeholder="Dán link video YouTube vào đây"
                 disabled={isLoading}
-                className="mt-1"
+                className="form-input peer"
               />
+              <Label htmlFor="video_url" className="form-label">Link video YouTube</Label>
             </div>
 
             <div className="space-y-4">

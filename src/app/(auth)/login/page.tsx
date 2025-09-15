@@ -95,27 +95,24 @@ export default function LoginPage() {
           <div className="grid gap-6">
             <form onSubmit={onSubmit}>
               <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium" htmlFor="username">
-                    Mã số sinh viên/giảng viên
-                  </label>
+                <div className="form-field">
                   <input
                     id="username"
                     name="username"
-                    placeholder="Nhập mã số sinh viên/giảng viên"
+                    placeholder="Mã số sinh viên/giảng viên"
                     type="text"
                     autoCapitalize="none"
                     autoComplete="username"
                     autoCorrect="off"
                     disabled={isLoading}
                     required
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="form-input peer"
                   />
-                </div>
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium" htmlFor="password">
-                    Mật khẩu
+                  <label className="form-label" htmlFor="username">
+                    Mã số sinh viên/giảng viên
                   </label>
+                </div>
+                <div className="form-field">
                   <input
                     id="password"
                     name="password"
@@ -123,8 +120,12 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     disabled={isLoading}
                     required
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="form-input peer"
+                    placeholder="Mật khẩu"
                   />
+                  <label className="form-label" htmlFor="password">
+                    Mật khẩu
+                  </label>
                 </div>
           
                 <Button type="submit" disabled={isLoading} className="w-full">

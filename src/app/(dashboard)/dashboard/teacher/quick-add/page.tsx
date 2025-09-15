@@ -459,22 +459,22 @@ export default function QuickAddPage() {
               <div className='space-y-4'>
                 <h3 className='text-lg font-medium'>Thông tin bài tập</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor='title'>Tiêu đề</Label>
-                    <Input id='title' name='title' required />
+                  <div className="form-field">
+                    <Input id='title' name='title' required className="form-input peer" placeholder="Tiêu đề" />
+                    <Label htmlFor='title' className="form-label">Tiêu đề</Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor='total_points'>Tổng điểm</Label>
-                    <Input id='total_points' name='total_points' type='number' required />
+                  <div className="form-field">
+                    <Input id='total_points' name='total_points' type='number' required className="form-input peer" placeholder="Tổng điểm" />
+                    <Label htmlFor='total_points' className="form-label">Tổng điểm</Label>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor='description'>Mô tả</Label>
-                  <Textarea id='description' name='description' />
+                <div className="relative pt-5">
+                  <Textarea id='description' name='description' className="form-textarea peer" placeholder="Mô tả" />
+                  <Label htmlFor='description' className="form-textarea-label">Mô tả</Label>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor='due_date'>Hạn nộp</Label>
-                  <Input id='due_date' name='due_date' type='datetime-local' required />
+                <div className="form-field">
+                  <Input id='due_date' name='due_date' type='datetime-local' required className="form-input peer" placeholder="Hạn nộp" />
+                  <Label htmlFor='due_date' className="form-label">Hạn nộp</Label>
                 </div>
                 <Tabs defaultValue="manual">
                   <TabsList>
@@ -496,52 +496,52 @@ export default function QuickAddPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="new-question-points">Điểm</Label>
-                          <Input id="new-question-points" type="number" value={newQuestion.points || ''} onChange={(e) => setNewQuestion({ ...newQuestion, points: parseInt(e.target.value) })} />
+                        <div className="form-field">
+                          <Input id="new-question-points" type="number" value={newQuestion.points || ''} onChange={(e) => setNewQuestion({ ...newQuestion, points: parseInt(e.target.value) })} className="form-input peer" placeholder="Điểm" />
+                          <Label htmlFor="new-question-points" className="form-label">Điểm</Label>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="new-question-content">Nội dung câu hỏi</Label>
-                        <Textarea id="new-question-content" value={newQuestion.content || ''} onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })} />
+                      <div className="relative pt-5">
+                        <Textarea id="new-question-content" value={newQuestion.content || ''} onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })} className="form-textarea peer" placeholder="Nội dung câu hỏi" />
+                        <Label htmlFor="new-question-content" className="form-textarea-label">Nội dung câu hỏi</Label>
                       </div>
                       {newQuestion.type === 'multiple_choice' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Phương án A</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[0] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[0] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án A" />
+                            <Label className="form-label">Phương án A</Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Phương án B</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[1] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[1] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án B" />
+                            <Label className="form-label">Phương án B</Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Phương án C</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[2] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[2] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án C" />
+                            <Label className="form-label">Phương án C</Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Phương án D</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[3] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[3] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án D" />
+                            <Label className="form-label">Phương án D</Label>
                           </div>
-                          <div className="space-y-2 md:col-span-2">
-                            <Label>Đáp án đúng</Label>
-                            <Input value={newQuestion.correct_answer || ''} onChange={(e) => setNewQuestion({ ...newQuestion, correct_answer: e.target.value })} />
+                          <div className="form-field md:col-span-2">
+                            <Input value={newQuestion.correct_answer || ''} onChange={(e) => setNewQuestion({ ...newQuestion, correct_answer: e.target.value })} className="form-input peer" placeholder="Đáp án đúng" />
+                            <Label className="form-label">Đáp án đúng</Label>
                           </div>
                         </div>
                       )}
@@ -625,12 +625,12 @@ export default function QuickAddPage() {
               <div className='space-y-4'>
                 <h3 className='text-lg font-medium'>Thông tin bài kiểm tra</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor='title'>Tiêu đề</Label>
-                    <Input id='title' name='title' required />
+                  <div className="form-field">
+                    <Input id='title' name='title' required className="form-input peer" placeholder="Tiêu đề" />
+                    <Label htmlFor='title' className="form-label">Tiêu đề</Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor='type'>Loại</Label>
+                  <div className="form-field">
+                    <Label htmlFor='type' className="absolute -top-3 left-3 text-sm text-blue-500">Loại</Label>
                     <Select name="type">
                       <SelectTrigger>
                         <SelectValue placeholder="Chọn loại bài kiểm tra" />
@@ -642,26 +642,26 @@ export default function QuickAddPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor='duration'>Thời gian làm bài (phút)</Label>
-                    <Input id='duration' name='duration' type='number' required />
+                  <div className="form-field">
+                    <Input id='duration' name='duration' type='number' required className="form-input peer" placeholder="Thời gian làm bài (phút)" />
+                    <Label htmlFor='duration' className="form-label">Thời gian làm bài (phút)</Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor='total_points'>Tổng điểm</Label>
-                    <Input id='total_points' name='total_points' type='number' required />
+                  <div className="form-field">
+                    <Input id='total_points' name='total_points' type='number' required className="form-input peer" placeholder="Tổng điểm" />
+                    <Label htmlFor='total_points' className="form-label">Tổng điểm</Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor='start_time'>Thời gian bắt đầu</Label>
-                    <Input id='start_time' name='start_time' type='datetime-local' required />
+                  <div className="form-field">
+                    <Input id='start_time' name='start_time' type='datetime-local' required className="form-input peer" placeholder="Thời gian bắt đầu" />
+                    <Label htmlFor='start_time' className="form-label">Thời gian bắt đầu</Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor='end_time'>Thời gian kết thúc</Label>
-                    <Input id='end_time' name='end_time' type='datetime-local' required />
+                  <div className="form-field">
+                    <Input id='end_time' name='end_time' type='datetime-local' required className="form-input peer" placeholder="Thời gian kết thúc" />
+                    <Label htmlFor='end_time' className="form-label">Thời gian kết thúc</Label>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor='description'>Mô tả</Label>
-                  <Textarea id='description' name='description' />
+                <div className="relative pt-5">
+                  <Textarea id='description' name='description' className="form-textarea peer" placeholder="Mô tả" />
+                  <Label htmlFor='description' className="form-textarea-label">Mô tả</Label>
                 </div>
                 <Tabs defaultValue="manual">
                   <TabsList>
@@ -683,52 +683,52 @@ export default function QuickAddPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="new-question-points">Điểm</Label>
-                          <Input id="new-question-points" type="number" value={newQuestion.points || ''} onChange={(e) => setNewQuestion({ ...newQuestion, points: parseInt(e.target.value) })} />
+                        <div className="form-field">
+                          <Input id="new-question-points" type="number" value={newQuestion.points || ''} onChange={(e) => setNewQuestion({ ...newQuestion, points: parseInt(e.target.value) })} className="form-input peer" placeholder="Điểm" />
+                          <Label htmlFor="new-question-points" className="form-label">Điểm</Label>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="new-question-content">Nội dung câu hỏi</Label>
-                        <Textarea id="new-question-content" value={newQuestion.content || ''} onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })} />
+                      <div className="relative pt-5">
+                        <Textarea id="new-question-content" value={newQuestion.content || ''} onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })} className="form-textarea peer" placeholder="Nội dung câu hỏi" />
+                        <Label htmlFor="new-question-content" className="form-textarea-label">Nội dung câu hỏi</Label>
                       </div>
                       {newQuestion.type === 'multiple_choice' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Phương án A</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[0] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[0] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án A" />
+                            <Label className="form-label">Phương án A</Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Phương án B</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[1] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[1] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án B" />
+                            <Label className="form-label">Phương án B</Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Phương án C</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[2] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[2] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án C" />
+                            <Label className="form-label">Phương án C</Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Phương án D</Label>
+                          <div className="form-field">
                             <Input value={newQuestion.options?.[3] || ''} onChange={(e) => {
                               const newOptions = [...newQuestion.options!]
                               newOptions[3] = e.target.value
                               setNewQuestion({ ...newQuestion, options: newOptions })
-                            }} />
+                            }} className="form-input peer" placeholder="Phương án D" />
+                            <Label className="form-label">Phương án D</Label>
                           </div>
-                          <div className="space-y-2 md:col-span-2">
-                            <Label>Đáp án đúng</Label>
-                            <Input value={newQuestion.correct_answer || ''} onChange={(e) => setNewQuestion({ ...newQuestion, correct_answer: e.target.value })} />
+                          <div className="form-field md:col-span-2">
+                            <Input value={newQuestion.correct_answer || ''} onChange={(e) => setNewQuestion({ ...newQuestion, correct_answer: e.target.value })} className="form-input peer" placeholder="Đáp án đúng" />
+                            <Label className="form-label">Đáp án đúng</Label>
                           </div>
                         </div>
                       )}
@@ -811,17 +811,17 @@ export default function QuickAddPage() {
             {addType === 'lecture' && (
               <div className='space-y-4'>
                 <h3 className='text-lg font-medium'>Thông tin bài giảng</h3>
-                <div className="space-y-2">
-                  <Label htmlFor='new-lecture-title'>Tiêu đề</Label>
-                  <Input id='new-lecture-title' value={newLecture.title} onChange={(e) => setNewLecture({ ...newLecture, title: e.target.value })} />
+                <div className="form-field">
+                  <Input id='new-lecture-title' value={newLecture.title} onChange={(e) => setNewLecture({ ...newLecture, title: e.target.value })} className="form-input peer" placeholder="Tiêu đề" />
+                  <Label htmlFor='new-lecture-title' className="form-label">Tiêu đề</Label>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor='new-lecture-description'>Mô tả</Label>
-                  <Textarea id='new-lecture-description' value={newLecture.description} onChange={(e) => setNewLecture({ ...newLecture, description: e.target.value })} />
+                <div className="relative pt-5">
+                  <Textarea id='new-lecture-description' value={newLecture.description} onChange={(e) => setNewLecture({ ...newLecture, description: e.target.value })} className="form-textarea peer" placeholder="Mô tả" />
+                  <Label htmlFor='new-lecture-description' className="form-textarea-label">Mô tả</Label>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor='new-lecture-video-url'>Link video YouTube</Label>
-                  <Input id='new-lecture-video-url' value={newLecture.video_url} onChange={(e) => setNewLecture({ ...newLecture, video_url: e.target.value })} />
+                <div className="form-field">
+                  <Input id='new-lecture-video-url' value={newLecture.video_url} onChange={(e) => setNewLecture({ ...newLecture, video_url: e.target.value })} className="form-input peer" placeholder="Link video YouTube" />
+                  <Label htmlFor='new-lecture-video-url' className="form-label">Link video YouTube</Label>
                 </div>
                 
                 <div className="space-y-4 pt-4 border-t">
@@ -900,13 +900,17 @@ export default function QuickAddPage() {
                   <div className="space-y-4 pt-4">
                     <h3 className="text-lg font-medium">Ghi danh sinh viên đã có tài khoản vào các lớp đã chọn</h3>
                     <div className="flex items-center space-x-2">
-                      <Input
-                        type="text"
-                        placeholder="Nhập Mã số sinh viên"
-                        value={studentIdInput}
-                        onChange={(e) => setStudentIdInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddStudentToEnrollList()}
-                      />
+                      <div className="form-field flex-grow">
+                        <Input
+                          type="text"
+                          placeholder="Nhập Mã số sinh viên"
+                          value={studentIdInput}
+                          onChange={(e) => setStudentIdInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddStudentToEnrollList()}
+                          className="form-input peer"
+                        />
+                        <Label className="form-label">Nhập Mã số sinh viên</Label>
+                      </div>
                       <Button type="button" onClick={handleAddStudentToEnrollList}>Thêm</Button>
                     </div>
                     <div className="space-y-2">

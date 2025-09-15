@@ -2,6 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+@tailwind utilities;
+
+@tailwind utilities;
+
+@layer components {
+  .form-field {
+    @apply relative pt-5;
+  }
+
+  .form-input {
+    @apply w-full h-10 px-3 text-base placeholder-transparent bg-transparent border-2 border-gray-300 rounded-lg
+           focus:outline-none focus:border-blue-500;
+  }
+
+  .form-label {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-500 transition-all pointer-events-none;
+  }
+
+  .peer:focus ~ .form-label,
+  .peer:not(:placeholder-shown) ~ .form-label {
+    @apply -top-3 -translate-y-0 text-sm text-blue-500;
+  }
+
+  .form-textarea {
+    @apply w-full px-3 py-2 text-base placeholder-transparent bg-transparent border-2 border-gray-300 rounded-lg
+           focus:outline-none focus:border-blue-500;
+  }
+
+  .form-textarea-label {
+    @apply absolute left-3 top-5 -translate-y-1/2 text-base text-gray-500 transition-all pointer-events-none;
+  }
+
+  .peer:focus ~ .form-textarea-label,
+  .peer:not(:placeholder-shown) ~ .form-textarea-label {
+    @apply -top-3 -translate-y-0 text-sm text-blue-500;
+  }
+}
+
+
 @layer base {
   :root {
     --background: 0 0% 100%;

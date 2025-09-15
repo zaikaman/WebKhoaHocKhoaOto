@@ -133,19 +133,19 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
         </div>
 
         <form onSubmit={handleUpdateLecture} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tiêu đề</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <div className="form-field">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="form-input peer" placeholder="Tiêu đề" />
+            <label className="form-label">Tiêu đề</label>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Mô tả</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="min-h-[120px]" />
+          <div className="relative pt-5">
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="form-textarea peer min-h-[120px]" placeholder="Mô tả" />
+            <label className="form-textarea-label">Mô tả</label>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Link video YouTube</label>
-            <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
+          <div className="form-field">
+            <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="form-input peer" placeholder="Link video YouTube" />
+            <label className="form-label">Link video YouTube</label>
           </div>
 
           <div className="space-y-4 pt-4 border-t">

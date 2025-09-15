@@ -407,27 +407,29 @@ const { id } = params
                 onSubmit={handleAddStudent} 
                 className="space-y-4"
               >
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="student_id">
-                    Mã số sinh viên
-                  </label>
+                <div className="form-field">
                   <input
                     id="student_id"
                     name="student_id"
-                    className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
+                    className="form-input peer"
                     required
+                    placeholder="Mã số sinh viên"
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="full_name">
-                    Họ và tên
+                  <label className="form-label" htmlFor="student_id">
+                    Mã số sinh viên
                   </label>
+                </div>
+                <div className="form-field">
                   <input
                     id="full_name"
                     name="full_name"
-                    className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
+                    className="form-input peer"
                     required
+                    placeholder="Họ và tên"
                   />
+                  <label className="form-label" htmlFor="full_name">
+                    Họ và tên
+                  </label>
                 </div>
                 <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                   <Button 

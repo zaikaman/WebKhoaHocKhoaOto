@@ -179,18 +179,18 @@ export default function CreateLecturePage() {
         </div>
 
         <form onSubmit={handleCreateLecture} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tiêu đề</label>
-            <Input name="title" required className="w-full" />
+          <div className="form-field">
+            <Input name="title" required className="form-input peer" placeholder="Tiêu đề" />
+            <label className="form-label">Tiêu đề</label>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Mô tả</label>
-            <Textarea name="description" required className="w-full min-h-[120px]" />
+          <div className="relative pt-5">
+            <Textarea name="description" required className="form-textarea peer min-h-[120px]" placeholder="Mô tả" />
+            <label className="form-textarea-label">Mô tả</label>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Lớp học</label>
+          <div className="form-field">
+            <label className="absolute -top-3 left-3 text-sm text-blue-500">Lớp học</label>
             <select name="class_id" required className="w-full px-3 py-2 border rounded-md bg-background">
               <option value="">Chọn lớp học</option>
               {classes.map(c => (
@@ -201,9 +201,9 @@ export default function CreateLecturePage() {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Link video YouTube</label>
-            <Input name="video_url" className="w-full" />
+          <div className="form-field">
+            <Input name="video_url" className="form-input peer" placeholder="Link video YouTube" />
+            <label className="form-label">Link video YouTube</label>
           </div>
 
           <div className="space-y-4 pt-4 border-t">

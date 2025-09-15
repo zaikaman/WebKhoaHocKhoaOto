@@ -567,8 +567,8 @@ export default function TeacherClassesPage() {
             onSubmit={handleSaveClass}
             className="space-y-4"
           >
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="subject_id">
+            <div className="form-field">
+              <label className="absolute -top-3 left-3 text-sm text-blue-500" htmlFor="subject_id">
                 Môn học
               </label>
               <select
@@ -586,54 +586,58 @@ export default function TeacherClassesPage() {
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="code">
-                Mã lớp
-              </label>
+            <div className="form-field">
               <input
                 id="code"
                 name="code"
                 defaultValue={selectedClass?.code}
-                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
+                className="form-input peer"
                 required
+                placeholder="Mã lớp"
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="name">
-                Tên lớp
+              <label className="form-label" htmlFor="code">
+                Mã lớp
               </label>
+            </div>
+            <div className="form-field">
               <input
                 id="name"
                 name="name"
                 defaultValue={selectedClass?.name}
-                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
+                className="form-input peer"
                 required
+                placeholder="Tên lớp"
               />
+              <label className="form-label" htmlFor="name">
+                Tên lớp
+              </label>
             </div>
             <div className="flex flex-col sm:flex-row sm:gap-4">
-              <div className="space-y-2 flex-1">
-                <label className="text-sm font-medium" htmlFor="semester">
-                  Học kỳ
-                </label>
+              <div className="form-field flex-1">
                 <input
                   id="semester"
                   name="semester"
                   defaultValue={selectedClass?.semester}
-                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
+                  className="form-input peer"
                   required
+                  placeholder="Học kỳ"
                 />
-              </div>
-              <div className="space-y-2 flex-1">
-                <label className="text-sm font-medium" htmlFor="academic_year">
-                  Năm học
+                <label className="form-label" htmlFor="semester">
+                  Học kỳ
                 </label>
+              </div>
+              <div className="form-field flex-1">
                 <input
                   id="academic_year"
                   name="academic_year"
                   defaultValue={selectedClass?.academic_year}
-                  className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
+                  className="form-input peer"
                   required
+                  placeholder="Năm học"
                 />
+                <label className="form-label" htmlFor="academic_year">
+                  Năm học
+                </label>
               </div>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
