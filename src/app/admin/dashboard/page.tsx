@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -13,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import Papa from "papaparse"
 
 // Types
 type Role = "student" | "teacher"
@@ -45,6 +52,8 @@ export default function AdminDashboardPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Tải danh sách tài khoản
   useEffect(() => {
@@ -267,7 +276,7 @@ export default function AdminDashboardPage() {
           throw new Error(`Lỗi khi reset mật khẩu: ${error.message}`)
         }
 
-        toast({ 
+        toast({
           title: "Thành công",
           description: "Reset mật khẩu thành công. Mật khẩu mới là: password123"
         })
@@ -284,6 +293,89 @@ export default function AdminDashboardPage() {
         setIsLoading(false)
       }
     }
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedFile(event.target.files[0])
+    }
+  }
+
+  const handleImport = () => {
+    if (!selectedFile) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Vui lòng chọn một file để nhập.",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    Papa.parse(selectedFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const users = results.data.map((row: any) => ({
+            email: row.email?.trim(),
+            password: row.password?.trim(),
+            student_id: row.student_id?.trim(),
+            full_name: row.full_name?.trim(),
+            role: row.role?.trim(),
+            class_code: row.class_code?.trim(),
+          })).filter(u => u.email && u.student_id && u.full_name && u.role)
+
+          if (users.length === 0) {
+            throw new Error("File không có dữ liệu hợp lệ.")
+          }
+
+          const response = await fetch('/api/users/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ users }),
+          })
+
+          const data = await response.json()
+
+          if (!response.ok) {
+            let errorMessage = data.message || "Nhập tài khoản thất bại."
+            if (data.errors) {
+                const errorDetails = data.errors.map((e: any) => `${e.user}: ${e.error}`).join("\n")
+                errorMessage += `\nChi tiết:\n${errorDetails}`
+            }
+            throw new Error(errorMessage)
+          }
+          
+          toast({
+            title: "Thành công",
+            description: data.message,
+          })
+
+          await loadAccounts()
+          setIsDialogOpen(false)
+          setSelectedFile(null)
+          if(fileInputRef.current) fileInputRef.current.value = ""
+
+        } catch (error: any) {
+          toast({
+            variant: "destructive",
+            title: "Lỗi nhập file",
+            description: error.message,
+          })
+        } finally {
+          setIsLoading(false)
+        }
+      },
+      error: (error: any) => {
+        toast({
+          variant: "destructive",
+          title: "Lỗi xử lý file",
+          description: error.message,
+        })
+        setIsLoading(false)
+      },
+    })
   }
 
   return (
@@ -425,73 +517,74 @@ export default function AdminDashboardPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-xs sm:max-w-lg w-full">
           <DialogHeader>
-            <DialogTitle>{selectedAccount ? "Chỉnh sửa tài khoản" : "Thêm tài khoản mới"}</DialogTitle>
+            <DialogTitle>{selectedAccount ? "Chỉnh sửa tài khoản" : "Thêm tài khoản"}</DialogTitle>
             <DialogDescription>
-              {selectedAccount 
-                ? "Cập nhật thông tin tài khoản người dùng" 
-                : "Nhập thông tin để tạo tài khoản mới"}
+              {selectedAccount ? "Cập nhật thông tin tài khoản người dùng." : "Chọn phương thức để thêm tài khoản mới."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="username">
-                Mã số
-              </label>
-              <input
-                id="username"
-                name="username"
-                defaultValue={selectedAccount?.student_id}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="fullName">
-                Họ và tên
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                defaultValue={selectedAccount?.full_name}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="role">
-                Vai trò
-              </label>
-              <select
-                id="role"
-                name="role"
-                defaultValue={selectedAccount?.role || "student"}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-              >
-                <option value="student">Sinh viên</option>
-                <option value="teacher">Giảng viên</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="class">
-                Lớp
-              </label>
-              <input
-                id="class"
-                name="class"
-                defaultValue={selectedAccount?.class_code}
-                className="w-full px-3 py-2 border rounded-md"
-              />
-            </div>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                {selectedAccount ? "Cập nhật" : "Thêm mới"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <Tabs defaultValue="single" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="single">Thêm một tài khoản</TabsTrigger>
+              <TabsTrigger value="import">Nhập từ file</TabsTrigger>
+            </TabsList>
+            <TabsContent value="single">
+              <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="username">Mã số</label>
+                  <input id="username" name="username" defaultValue={selectedAccount?.student_id} className="w-full px-3 py-2 border rounded-md" required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="fullName">Họ và tên</label>
+                  <input id="fullName" name="fullName" defaultValue={selectedAccount?.full_name} className="w-full px-3 py-2 border rounded-md" required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="role">Vai trò</label>
+                  <select id="role" name="role" defaultValue={selectedAccount?.role || "student"} className="w-full px-3 py-2 border rounded-md" required>
+                    <option value="student">Sinh viên</option>
+                    <option value="teacher">Giảng viên</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="class">Lớp</label>
+                  <input id="class" name="class" defaultValue={selectedAccount?.class_code} className="w-full px-3 py-2 border rounded-md" />
+                </div>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">Hủy</Button>
+                  <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">{selectedAccount ? "Cập nhật" : "Thêm mới"}</Button>
+                </DialogFooter>
+              </form>
+            </TabsContent>
+            <TabsContent value="import">
+                <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Tải file mẫu</label>
+                        <p className="text-sm text-muted-foreground">
+                            Tải file CSV mẫu để điền thông tin tài khoản.
+                        </p>
+                        <a href="/mau_danh_sach_tai_khoan.csv" download>
+                            <Button variant="outline" className="w-full">Tải mẫu</Button>
+                        </a>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium" htmlFor="file-upload">Chọn file</label>
+                        <input 
+                            id="file-upload" 
+                            type="file" 
+                            accept=".csv" 
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+                        />
+                    </div>
+                    <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">Hủy</Button>
+                        <Button onClick={handleImport} disabled={isLoading || !selectedFile} className="w-full sm:w-auto">
+                            {isLoading ? "Đang xử lý..." : "Nhập tài khoản"}
+                        </Button>
+                    </DialogFooter>
+                </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

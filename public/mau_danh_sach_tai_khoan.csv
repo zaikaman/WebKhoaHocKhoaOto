@@ -1,0 +1,3 @@
+email,password,student_id,full_name,role,class_code
+student.test@example.com,password123,SV001,"Nguyen Van A",student,SE101
+teacher.test@example.com,password123,GV001,"Tran Thi B",teacher,
