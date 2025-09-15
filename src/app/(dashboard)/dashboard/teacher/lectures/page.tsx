@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { FileIcon, Paperclip, Download } from "lucide-react"
+import { LectureListSkeleton } from "../components/LectureListSkeleton";
 
 type Lecture = {
   id: string
@@ -157,7 +158,7 @@ export default function TeacherLecturesPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center">Đang tải dữ liệu bài giảng...</div>
+    return <LectureListSkeleton />;
   }
 
   return (

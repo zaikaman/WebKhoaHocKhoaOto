@@ -6,6 +6,7 @@ import { getClassLectures, supabase } from "@/lib/supabase"
 import { LectureDetail } from "./lecture-details"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { TableSkeleton } from "../components/TableSkeleton";
 interface LectureListProps {
   classId: string;
   onUploadSuccess: () => Promise<void>;
@@ -78,8 +79,8 @@ export function LectureList({ classId, onUploadSuccess }: LectureListProps) {
         />
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-8">Đang tải...</div>
+            {isLoading ? (
+        <TableSkeleton rows={5} cells={5} />
       ) : lectures.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           Chưa có bài giảng nào

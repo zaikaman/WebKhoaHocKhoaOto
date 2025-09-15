@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import * as XLSX from 'xlsx'
 import { FileUpIcon, XIcon } from 'lucide-react'
+import { QuickAddSkeleton } from "../components/QuickAddSkeleton";
 
 // Define student type for creation
 interface Student {
@@ -367,11 +368,7 @@ export default function QuickAddPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    )
+    return <QuickAddSkeleton />;
   }
 
   return (

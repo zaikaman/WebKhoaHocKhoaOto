@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase"
 import type { Lecture as SupabaseLecture, LectureFile } from "@/lib/supabase"
 import { Download } from "lucide-react"
+import { DashboardSkeleton } from "./components/DashboardSkeleton";
 
 // Types
 type Stats = {
@@ -153,7 +154,7 @@ export default function TeacherDashboardPage() {
   }
 
   if (isLoading) {
-      return <div className="p-8 text-center">Đang tải trang tổng quan...</div>
+      return <DashboardSkeleton />
   }
 
   return (
