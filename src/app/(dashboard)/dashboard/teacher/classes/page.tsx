@@ -418,6 +418,12 @@ export default function TeacherClassesPage() {
           </svg>
           Tạo lớp mới
         </Button>
+        <Button
+          onClick={() => router.push('/dashboard/teacher/quick-add')}
+          className="w-full sm:w-auto"
+        >
+          Thêm nhanh
+        </Button>
       </div>
 
       {/* Search and Filter */}
@@ -744,4 +750,4 @@ export default function TeacherClassesPage() {
       </Dialog>
     </div>
   )
-} 
+}

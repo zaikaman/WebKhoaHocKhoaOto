@@ -135,6 +135,18 @@ export type Assignment = {
   updated_at: string
 }
 
+export type AssignmentQuestion = {
+  id: string
+  assignment_id: string
+  content: string
+  type: 'multiple_choice' | 'essay'
+  points: number
+  options: any | null
+  correct_answer: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type AssignmentSubmission = {
   id: string
   assignment_id: string
@@ -575,6 +587,17 @@ export async function createExam(exam: Omit<Exam, 'id' | 'created_at' | 'updated
   return data
 }
 
+export async function createExamForClasses(exam: Omit<Exam, 'id' | 'created_at' | 'updated_at' | 'class_id'>, classIds: string[]) {
+  const exams = classIds.map(class_id => ({ ...exam, class_id }))
+  const { data, error } = await supabase
+    .from('exams')
+    .insert(exams)
+    .select()
+
+  if (error) throw error
+  return data
+}
+
 export async function getExamSubmissions(examId: string) {
   const { data, error } = await supabase
     .from('exam_submissions')
@@ -641,6 +664,27 @@ export async function createAssignment(assignment: Omit<Assignment, 'id' | 'crea
     .insert([assignment])
     .select()
     .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function createAssignmentForClasses(assignment: Omit<Assignment, 'id' | 'created_at' | 'updated_at' | 'class_id'>, classIds: string[]) {
+  const assignments = classIds.map(class_id => ({ ...assignment, class_id }))
+  const { data, error } = await supabase
+    .from('assignments')
+    .insert(assignments)
+    .select()
+
+  if (error) throw error
+  return data
+}
+
+export async function createAssignmentQuestions(questions: Omit<AssignmentQuestion, 'id' | 'created_at' | 'updated_at'>[]) {
+  const { data, error } = await supabase
+    .from('assignment_questions')
+    .insert(questions)
+    .select()
 
   if (error) throw error
   return data
@@ -1095,6 +1139,16 @@ export async function createExamQuestion(question: Omit<ExamQuestion, 'id' | 'cr
     .insert([question])
     .select()
     .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function createExamQuestions(questions: Omit<ExamQuestion, 'id' | 'created_at' | 'updated_at'>[]) {
+  const { data, error } = await supabase
+    .from('exam_questions')
+    .insert(questions)
+    .select()
 
   if (error) throw error
   return data
