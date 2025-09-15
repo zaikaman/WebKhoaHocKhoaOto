@@ -397,6 +397,21 @@ export async function createClass(classData: Omit<Class, 'id' | 'created_at' | '
   return data
 }
 
+export async function updateClass(classId: string, classData: Partial<Omit<Class, 'id' | 'created_at' | 'updated_at'>>) {
+  const { data, error } = await supabase
+    .from('classes')
+    .update({
+      ...classData,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', classId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function deleteClass(classId: string) {
   const { error } = await supabase
     .from('classes')

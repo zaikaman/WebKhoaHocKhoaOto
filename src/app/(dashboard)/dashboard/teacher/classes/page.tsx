@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getTeacherClasses, createClass, getSubjects, deleteClass } from "@/lib/supabase"
+import { getCurrentUser, getTeacherClasses, createClass, updateClass, getSubjects, deleteClass } from "@/lib/supabase"
 import type { Class, Subject } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import {
@@ -211,7 +211,7 @@ export default function TeacherClassesPage() {
     }
   }
 
-  const handleCreateClass = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveClass = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsLoading(true)
 
@@ -235,13 +235,21 @@ export default function TeacherClassesPage() {
       }
 
       try {
-        await createClass(classData)
+        if (selectedClass) {
+          await updateClass(selectedClass.id, classData)
+          toast({
+            title: "Thành công",
+            description: "Đã cập nhật lớp học"
+          })
+        } else {
+          await createClass(classData)
+          toast({
+            title: "Thành công",
+            description: "Đã tạo lớp học mới"
+          })
+        }
         await loadData()
         setIsDialogOpen(false)
-        toast({
-          title: "Thành công",
-          description: "Đã tạo lớp học mới"
-        })
       } catch (error: any) {
         console.error('Chi tiết lỗi:', {
           message: error.message,
@@ -251,16 +259,16 @@ export default function TeacherClassesPage() {
         })
         toast({
           variant: "destructive",
-          title: "Lỗi khi tạo lớp học",
-          description: error.message || "Không thể tạo lớp học mới. Vui lòng thử lại sau."
+          title: selectedClass ? "Lỗi khi cập nhật lớp học" : "Lỗi khi tạo lớp học",
+          description: error.message || (selectedClass ? "Không thể cập nhật lớp học. Vui lòng thử lại sau." : "Không thể tạo lớp học mới. Vui lòng thử lại sau.")
         })
       }
     } catch (error: any) {
-      console.error('Lỗi khi tạo lớp học:', error)
+      console.error(selectedClass ? 'Lỗi khi cập nhật lớp học:' : 'Lỗi khi tạo lớp học:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error.message || "Không thể tạo lớp học mới"
+        description: error.message || (selectedClass ? "Không thể cập nhật lớp học" : "Không thể tạo lớp học mới")
       })
     } finally {
       setIsLoading(false)
@@ -622,7 +630,7 @@ export default function TeacherClassesPage() {
             </DialogDescription>
           </DialogHeader>
           <form
-            onSubmit={handleCreateClass}
+            onSubmit={handleSaveClass}
             className="space-y-4"
           >
             <div className="space-y-2">
