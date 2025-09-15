@@ -14,7 +14,7 @@ import {
   supabase
 } from "@/lib/supabase"
 import type { Lecture as SupabaseLecture, LectureFile } from "@/lib/supabase"
-import { Download } from "lucide-react"
+import { Book, Users, BookOpen, ClipboardList, Download } from "lucide-react"
 import { DashboardSkeleton } from "./components/DashboardSkeleton";
 
 // Types
@@ -164,10 +164,10 @@ export default function TeacherDashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Lớp học" value={stats.totalClasses} />
-        <StatCard title="Sinh viên" value={stats.totalStudents} />
-        <StatCard title="Bài giảng" value={stats.totalLectures} />
-        <StatCard title="Bài kiểm tra" value={stats.totalExams} />
+        <StatCard title="Lớp học" value={stats.totalClasses} icon={Book} color="blue" />
+        <StatCard title="Sinh viên" value={stats.totalStudents} icon={Users} color="yellow" />
+        <StatCard title="Bài giảng" value={stats.totalLectures} icon={BookOpen} color="green" />
+        <StatCard title="Bài kiểm tra" value={stats.totalExams} icon={ClipboardList} color="red" />
       </div>
 
       <div>
@@ -201,12 +201,30 @@ export default function TeacherDashboardPage() {
 }
 
 // Sub-components for cleaner rendering
-const StatCard = ({ title, value }: { title: string, value: number | null }) => (
-    <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg p-4 sm:p-6">
-        <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
-        <h3 className="text-2xl sm:text-3xl font-bold">{value ?? 0}</h3>
-    </div>
-);
+const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: number | null, icon: React.ElementType, color: string }) => {
+    const colorClasses: { [key: string]: string } = {
+        blue: 'bg-blue-100 text-blue-600',
+        yellow: 'bg-yellow-100 text-yellow-600',
+        green: 'bg-green-100 text-green-600',
+        red: 'bg-red-100 text-red-600',
+    };
+    const iconBgClass = colorClasses[color] || 'bg-muted';
+    const iconColorClass = color ? colorClasses[color].split(' ')[1] : 'text-muted-foreground';
+
+    return (
+        <div className="rounded-lg sm:rounded-xl border bg-card text-card-foreground shadow transition-all hover:shadow-lg p-4 sm:p-6">
+            <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full ${iconBgClass}`}>
+                    <Icon className={`w-6 h-6 ${iconColorClass}`} />
+                </div>
+                <div>
+                    <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
+                    <h3 className="text-2xl sm:text-3xl font-bold">{value ?? 0}</h3>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const EventCard = ({ event }: { event: UpcomingEvent }) => (
     <div className="p-3 sm:p-4 hover:bg-muted/50 transition-colors flex items-center gap-4">
