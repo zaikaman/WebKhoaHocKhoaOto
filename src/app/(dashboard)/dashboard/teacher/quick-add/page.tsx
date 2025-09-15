@@ -90,7 +90,7 @@ export default function QuickAddPage() {
         ].filter(option => option.trim() !== ''),
         correct_answer: row['Đáp án đúng'] || row['Correct Answer'] || '',
         points: Number(row['Điểm'] || row['Points'] || 10),
-        type: 'multiple_choice'
+        type: 'multiple_choice' as 'multiple_choice' | 'essay'
       })).filter(q => q.content && q.correct_answer)
 
       setQuestions(newQuestions)
