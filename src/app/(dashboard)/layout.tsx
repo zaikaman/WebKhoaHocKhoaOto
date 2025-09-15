@@ -20,7 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Download } from "lucide-react"
 
 export default function DashboardLayout({
   children,
@@ -63,6 +63,15 @@ export default function DashboardLayout({
       console.error('Lỗi khi kiểm tra xác thực:', error)
       router.push('/login')
     }
+  }
+
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = '/SAFlashPlayer.rar';
+    link.setAttribute('download', 'SAFlashPlayer.rar');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const handleSignOut = async () => {
@@ -191,6 +200,12 @@ export default function DashboardLayout({
                   </nav>
                 </SheetContent>
               </Sheet>
+
+              {/* Download Button */}
+              <Button variant="ghost" size="sm" className="gap-2 px-2 sm:px-3" onClick={handleDownload}>
+                <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline text-sm">Tải mô phỏng</span>
+              </Button>
 
               {/* User Dropdown */}
               <DropdownMenu modal={false}>
