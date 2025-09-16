@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, getClassDetailsById, supabase } from "@/lib/supabase"
-import { FileIcon, Download } from "lucide-react"
+import { FileIcon, Download, Eye } from "lucide-react"
 import type { ClassDetails as SupabaseClassDetails, Lecture as SupabaseLecture, LectureFile } from "@/lib/supabase"
 
 // Use the types from supabase lib and extend if necessary
@@ -20,6 +21,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [classData, setClassData] = useState<ClassDetails | null>(null)
+  const [isViewerOpen, setIsViewerOpen] = useState(false)
+  const [viewingFile, setViewingFile] = useState<{ url: string; type: string; name: string; } | null>(null)
 
   useEffect(() => {
     loadClassDetails()
@@ -78,6 +81,22 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     }
   };
 
+  const handleViewFile = (file: LectureFile) => {
+    const publicUrl = getPublicUrl(file.file_path);
+    const fileExtension = file.original_filename.split('.').pop()?.toLowerCase();
+    let viewUrl = publicUrl;
+
+    if (fileExtension === 'docx') {
+      viewUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(publicUrl)}`;
+    } else if (fileExtension !== 'pdf' && fileExtension !== 'html') {
+      toast({ variant: "default", title: "Không hỗ trợ", description: "Định dạng file này không hỗ trợ xem trực tiếp." });
+      return;
+    }
+
+    setViewingFile({ url: viewUrl, type: fileExtension, name: file.original_filename });
+    setIsViewerOpen(true);
+  };
+
   const getFileTypeLabel = (type: string) => {
     switch (type) {
       case 'VIE': return 'Tiếng Việt';
@@ -89,19 +108,25 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
   const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return null;
-    let videoId = '';
-    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-    const match = url.match(regex);
-    if (match) {
-      videoId = match[1];
-    } else {
+    let videoId = null;
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.hostname === 'youtu.be') {
+        videoId = urlObj.pathname.slice(1);
+      } else if (urlObj.hostname.includes('youtube.com')) {
+        videoId = urlObj.searchParams.get('v');
+      }
+    } catch (e) {
+      // Not a valid URL, maybe it's just the ID
       if (url.length === 11) {
         videoId = url;
-      } else {
-        return null;
       }
     }
-    return `https://www.youtube.com/embed/${videoId}`;
+    
+    if (videoId && videoId.length === 11) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return null; // Return null if no valid ID was found
   };
 
   if (isLoading) {
@@ -123,162 +148,197 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     )
   }
 
+  const supportedViewExtensions = ['pdf', 'html', 'docx'];
+
   return (
-    <div className="space-y-6 sm:space-y-8 px-2 sm:px-4 md:px-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Môn học : {classData.subjects.name}</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-            Mã lớp: {classData.code} | Giảng viên: {classData.teacher.full_name}
-          </p>
+    <>
+      <div className="space-y-6 sm:space-y-8 px-2 sm:px-4 md:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Môn học : {classData.subjects.name}</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+              Mã lớp: {classData.code} | Giảng viên: {classData.teacher.full_name}
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => router.push('/dashboard/student/courses')} className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
+            Quay lại
+          </Button>
         </div>
-        <Button variant="outline" onClick={() => router.push('/dashboard/student/courses')} className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
-          Quay lại
-        </Button>
+
+        <Tabs defaultValue="lectures">
+          <TabsList>
+            <TabsTrigger value="info">Thông tin</TabsTrigger>
+            <TabsTrigger value="lectures">Bài giảng</TabsTrigger>
+            <TabsTrigger value="assignments">Bài tập</TabsTrigger>
+            <TabsTrigger value="exams">Bài kiểm tra</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info" className="space-y-6">
+              <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4">Thông tin chi tiết</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                          <p className="text-sm text-muted-foreground">Học kỳ</p>
+                          <p className="font-medium">{classData.semester}</p>
+                      </div>
+                      <div>
+                          <p className="text-sm text-muted-foreground">Năm học</p>
+                          <p className="font-medium">{classData.academic_year}</p>
+                      </div>
+                      <div>
+                          <p className="text-sm text-muted-foreground">Sĩ số</p>
+                          <p className="font-medium">{(classData.enrollments as any)[0]?.count || 0} sinh viên</p>
+                      </div>
+                  </div>
+              </div>
+          </TabsContent>
+
+          <TabsContent value="lectures" className="space-y-4">
+              {classData.lectures.length > 0 ? (
+                  classData.lectures.map((lecture) => {
+                      const videoUrl = getYouTubeEmbedUrl(lecture.video_url || '');
+                      return (
+                          <div key={lecture.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
+                              <h4 className="font-semibold text-base sm:text-lg">{lecture.title}</h4>
+                              {lecture.description && (
+                                  <p className="text-sm text-muted-foreground mt-1 mb-4 line-clamp-3">{lecture.description}</p>
+                              )}
+
+                              {videoUrl && (
+                                  <div className="aspect-video mt-4">
+                                      <iframe
+                                          width="100%"
+                                          height="100%"
+                                          src={videoUrl}
+                                          title="YouTube video player"
+                                          frameBorder="0"
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                          allowFullScreen
+                                          className="rounded-lg"
+                                      ></iframe>
+                                  </div>
+                              )}
+
+                              {(lecture.lecture_files && lecture.lecture_files.length > 0) &&
+                                  <div className="space-y-2 mt-3 pt-3 border-t">
+                                      {lecture.lecture_files.map(file => {
+                                        const fileExtension = file.original_filename.split('.').pop()?.toLowerCase();
+                                        const canView = supportedViewExtensions.includes(fileExtension || '');
+                                        return (
+                                          <div key={file.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                              <div className="flex items-center gap-3">
+                                                  <FileIcon className="h-5 w-5 text-primary" />
+                                                  <div>
+                                                      <p className="text-sm font-medium">{file.original_filename}</p>
+                                                      <p className="text-xs text-muted-foreground">{getFileTypeLabel(file.file_type)}</p>
+                                                  </div>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                {canView && (
+                                                  <Button variant="outline" size="sm" onClick={() => handleViewFile(file)}>
+                                                      <Eye className="h-4 w-4 mr-2" />
+                                                      Xem
+                                                  </Button>
+                                                )}
+                                                <Button variant="secondary" size="sm" onClick={() => handleDownload(file)}>
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Tải về
+                                                </Button>
+                                              </div>
+                                          </div>
+                                        )
+                                      })}
+                                  </div>
+                              }
+
+                              {!videoUrl && (!lecture.lecture_files || lecture.lecture_files.length === 0) &&
+                                  <div className="space-y-2 mt-3 pt-3 border-t">
+                                      <p className="text-sm text-muted-foreground text-center py-2">Không có tài liệu nào.</p>
+                                  </div>
+                              }
+                              
+                              <div className="text-xs text-muted-foreground pt-3 mt-3 border-t">
+                                  Ngày đăng: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
+                              </div>
+                          </div>
+                      )
+                  })
+              ) : (
+                  <div className="col-span-full text-center py-8 sm:py-12">
+                      <div className="text-sm sm:text-base text-muted-foreground">Chưa có bài giảng nào.</div>
+                  </div>
+              )}
+          </TabsContent>
+
+          <TabsContent value="assignments">
+              <div className="space-y-4">
+                  {classData.assignments && classData.assignments.length > 0 ? (
+                  classData.assignments.map((assignment) => (
+                      <div key={assignment.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
+                      <div>
+                          <h4 className="font-semibold">{assignment.title}</h4>
+                          <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                          <p className="text-sm text-muted-foreground">Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}</p>
+                      </div>
+                      <Button onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}>Làm bài</Button>
+                      </div>
+                  ))
+                  ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                      Chưa có bài tập nào.
+                  </div>
+                  )}
+              </div>
+          </TabsContent>
+
+          <TabsContent value="exams">
+              <div className="space-y-4">
+                  {classData.exams && classData.exams.length > 0 ? (
+                  classData.exams.map((exam) => (
+                      <div key={exam.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
+                      <div>
+                          <h4 className="font-semibold">{exam.title}</h4>
+                          <p className="text-sm text-muted-foreground">{exam.description}</p>
+                          <p className="text-sm text-muted-foreground">Bắt đầu: {new Date(exam.start_time).toLocaleString('vi-VN')}</p>
+                          <p className="text-sm text-muted-foreground">Kết thúc: {new Date(exam.end_time).toLocaleString('vi-VN')}</p>
+                          <p className="text-sm text-muted-foreground">Thời gian: {exam.duration} phút</p>
+                      </div>
+                      <Button 
+                          onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
+                          disabled={new Date(exam.start_time) > new Date() || new Date(exam.end_time) < new Date()}
+                      >
+                          Vào thi
+                      </Button>
+                      </div>
+                  ))
+                  ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                      Chưa có bài kiểm tra nào.
+                  </div>
+                  )}
+              </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      <Tabs defaultValue="lectures">
-        <TabsList>
-          <TabsTrigger value="info">Thông tin</TabsTrigger>
-          <TabsTrigger value="lectures">Bài giảng</TabsTrigger>
-          <TabsTrigger value="assignments">Bài tập</TabsTrigger>
-          <TabsTrigger value="exams">Bài kiểm tra</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info" className="space-y-6">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-                <h3 className="text-lg font-semibold mb-4">Thông tin chi tiết</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <p className="text-sm text-muted-foreground">Học kỳ</p>
-                        <p className="font-medium">{classData.semester}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Năm học</p>
-                        <p className="font-medium">{classData.academic_year}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Sĩ số</p>
-                        <p className="font-medium">{(classData.enrollments as any)[0]?.count || 0} sinh viên</p>
-                    </div>
-                </div>
-            </div>
-        </TabsContent>
-
-        <TabsContent value="lectures" className="space-y-4">
-            {classData.lectures.length > 0 ? (
-                classData.lectures.map((lecture) => {
-                    const videoUrl = getYouTubeEmbedUrl(lecture.video_url || '');
-                    return (
-                        <div key={lecture.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
-                            <h4 className="font-semibold text-base sm:text-lg">{lecture.title}</h4>
-                            {lecture.description && (
-                                <p className="text-sm text-muted-foreground mt-1 mb-4 line-clamp-3">{lecture.description}</p>
-                            )}
-
-                            {videoUrl && (
-                                <div className="aspect-video mt-4">
-                                    <iframe
-                                        width="100%"
-                                        height="100%"
-                                        src={videoUrl}
-                                        title="YouTube video player"
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                        className="rounded-lg"
-                                    ></iframe>
-                                </div>
-                            )}
-
-                            {(lecture.lecture_files && lecture.lecture_files.length > 0) &&
-                                <div className="space-y-2 mt-3 pt-3 border-t">
-                                    {lecture.lecture_files.map(file => (
-                                        <div key={file.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                                            <div className="flex items-center gap-3">
-                                                <FileIcon className="h-5 w-5 text-primary" />
-                                                <div>
-                                                    <p className="text-sm font-medium">{file.original_filename}</p>
-                                                    <p className="text-xs text-muted-foreground">{getFileTypeLabel(file.file_type)}</p>
-                                                </div>
-                                            </div>
-                                            <Button variant="secondary" size="sm" onClick={() => handleDownload(file)}>
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Tải về
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            }
-
-                            {!videoUrl && (!lecture.lecture_files || lecture.lecture_files.length === 0) &&
-                                <div className="space-y-2 mt-3 pt-3 border-t">
-                                    <p className="text-sm text-muted-foreground text-center py-2">Không có tài liệu nào.</p>
-                                </div>
-                            }
-                            
-                            <div className="text-xs text-muted-foreground pt-3 mt-3 border-t">
-                                Ngày đăng: {new Date(lecture.created_at).toLocaleDateString('vi-VN')}
-                            </div>
-                        </div>
-                    )
-                })
-            ) : (
-                <div className="col-span-full text-center py-8 sm:py-12">
-                    <div className="text-sm sm:text-base text-muted-foreground">Chưa có bài giảng nào.</div>
-                </div>
+      <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+        <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-0 gap-0">
+          <div className="p-4 border-b shrink-0">
+            <DialogTitle>{viewingFile?.name}</DialogTitle>
+          </div>
+          <div className="flex-1 w-full h-full">
+            {viewingFile?.url && (
+              <iframe
+                src={viewingFile.url}
+                title={viewingFile.name}
+                width="100%"
+                height="100%"
+                frameBorder="0"
+              />
             )}
-        </TabsContent>
-
-        <TabsContent value="assignments">
-            <div className="space-y-4">
-                {classData.assignments && classData.assignments.length > 0 ? (
-                classData.assignments.map((assignment) => (
-                    <div key={assignment.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
-                    <div>
-                        <h4 className="font-semibold">{assignment.title}</h4>
-                        <p className="text-sm text-muted-foreground">{assignment.description}</p>
-                        <p className="text-sm text-muted-foreground">Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}</p>
-                    </div>
-                    <Button onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}>Làm bài</Button>
-                    </div>
-                ))
-                ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                    Chưa có bài tập nào.
-                </div>
-                )}
-            </div>
-        </TabsContent>
-
-        <TabsContent value="exams">
-            <div className="space-y-4">
-                {classData.exams && classData.exams.length > 0 ? (
-                classData.exams.map((exam) => (
-                    <div key={exam.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
-                    <div>
-                        <h4 className="font-semibold">{exam.title}</h4>
-                        <p className="text-sm text-muted-foreground">{exam.description}</p>
-                        <p className="text-sm text-muted-foreground">Bắt đầu: {new Date(exam.start_time).toLocaleString('vi-VN')}</p>
-                        <p className="text-sm text-muted-foreground">Kết thúc: {new Date(exam.end_time).toLocaleString('vi-VN')}</p>
-                        <p className="text-sm text-muted-foreground">Thời gian: {exam.duration} phút</p>
-                    </div>
-                    <Button 
-                        onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
-                        disabled={new Date(exam.start_time) > new Date() || new Date(exam.end_time) < new Date()}
-                    >
-                        Vào thi
-                    </Button>
-                    </div>
-                ))
-                ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                    Chưa có bài kiểm tra nào.
-                </div>
-                )}
-            </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
