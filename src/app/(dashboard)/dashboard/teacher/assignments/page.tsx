@@ -363,7 +363,8 @@ export default function TeacherAssignmentsPage() {
             content: q.content,
             options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options,
             correct_answer: q.correct_answer,
-            points: q.points
+            points: q.points,
+            type: formData.type
           }))
 
           const { error: questionsError } = await supabase
@@ -396,7 +397,8 @@ export default function TeacherAssignmentsPage() {
             content: q.content,
             options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options,
             correct_answer: q.correct_answer,
-            points: q.points
+            points: q.points,
+            type: formData.type
           }))
 
           const { error: questionsError } = await supabase
@@ -486,7 +488,7 @@ export default function TeacherAssignmentsPage() {
         'Phương án B': 'Đáp án B',
         'Phương án C': 'Đáp án C',
         'Phương án D': 'Đáp án D',
-        'Đáp án đúng': 'A',
+        'Đáp án đúng': 'Đáp án A',
         'Điểm': 10
       },
       {
@@ -495,7 +497,7 @@ export default function TeacherAssignmentsPage() {
         'Phương án B': 'Đáp án B',
         'Phương án C': 'Đáp án C',
         'Phương án D': 'Đáp án D',
-        'Đáp án đúng': 'B',
+        'Đáp án đúng': 'Đáp án B',
         'Điểm': 10
       }
     ]

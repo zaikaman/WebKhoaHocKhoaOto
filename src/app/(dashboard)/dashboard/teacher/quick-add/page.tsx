@@ -205,7 +205,7 @@ export default function QuickAddPage() {
         'Phương án B': 'Đáp án B',
         'Phương án C': 'Đáp án C',
         'Phương án D': 'Đáp án D',
-        'Đáp án đúng': 'A',
+        'Đáp án đúng': 'Đáp án A',
         'Điểm': 10
       },
       {
@@ -214,7 +214,7 @@ export default function QuickAddPage() {
         'Phương án B': 'Đáp án B',
         'Phương án C': 'Đáp án C',
         'Phương án D': 'Đáp án D',
-        'Đáp án đúng': 'B',
+        'Đáp án đúng': 'Đáp án B',
         'Điểm': 10
       }
     ]
