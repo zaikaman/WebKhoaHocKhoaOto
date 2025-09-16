@@ -146,7 +146,23 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         </TabsList>
 
         <TabsContent value="info" className="space-y-6">
-            {/* Info Tab Content Here */}
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+                <h3 className="text-lg font-semibold mb-4">Thông tin chi tiết</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <p className="text-sm text-muted-foreground">Học kỳ</p>
+                        <p className="font-medium">{classData.semester}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Năm học</p>
+                        <p className="font-medium">{classData.academic_year}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Sĩ số</p>
+                        <p className="font-medium">{(classData.enrollments as any)[0]?.count || 0} sinh viên</p>
+                    </div>
+                </div>
+            </div>
         </TabsContent>
 
         <TabsContent value="lectures" className="space-y-4">
@@ -215,11 +231,52 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         </TabsContent>
 
         <TabsContent value="assignments">
-            {/* Assignments Tab Content Here */}
+            <div className="space-y-4">
+                {classData.assignments && classData.assignments.length > 0 ? (
+                classData.assignments.map((assignment) => (
+                    <div key={assignment.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
+                    <div>
+                        <h4 className="font-semibold">{assignment.title}</h4>
+                        <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                        <p className="text-sm text-muted-foreground">Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}</p>
+                    </div>
+                    <Button onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}>Làm bài</Button>
+                    </div>
+                ))
+                ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                    Chưa có bài tập nào.
+                </div>
+                )}
+            </div>
         </TabsContent>
 
         <TabsContent value="exams">
-            {/* Exams Tab Content Here */}
+            <div className="space-y-4">
+                {classData.exams && classData.exams.length > 0 ? (
+                classData.exams.map((exam) => (
+                    <div key={exam.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
+                    <div>
+                        <h4 className="font-semibold">{exam.title}</h4>
+                        <p className="text-sm text-muted-foreground">{exam.description}</p>
+                        <p className="text-sm text-muted-foreground">Bắt đầu: {new Date(exam.start_time).toLocaleString('vi-VN')}</p>
+                        <p className="text-sm text-muted-foreground">Kết thúc: {new Date(exam.end_time).toLocaleString('vi-VN')}</p>
+                        <p className="text-sm text-muted-foreground">Thời gian: {exam.duration} phút</p>
+                    </div>
+                    <Button 
+                        onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
+                        disabled={new Date(exam.start_time) > new Date() || new Date(exam.end_time) < new Date()}
+                    >
+                        Vào thi
+                    </Button>
+                    </div>
+                ))
+                ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                    Chưa có bài kiểm tra nào.
+                </div>
+                )}
+            </div>
         </TabsContent>
       </Tabs>
     </div>
