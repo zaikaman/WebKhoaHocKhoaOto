@@ -107,26 +107,58 @@ export default function QuickAddPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setQuestions([]); // Reset questions on new file selection
     setSelectedFile(file)
 
     try {
       const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data)
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const workbook = XLSX.read(data, { type: 'buffer' });
+
+      if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error("File Excel không hợp lệ hoặc không có trang tính (sheet) nào.");
+      }
+
+      const worksheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[worksheetName];
+
+      if (!worksheet) {
+          throw new Error(`Không thể tìm thấy trang tính có tên "${worksheetName}".`);
+      }
+
       const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
+      if (jsonData.length === 0) {
+        setQuestions([]);
+        toast({
+            variant: "default",
+            title: "File trống",
+            description: "File Excel không có dữ liệu hoặc các cột không được đặt tên đúng."
+        });
+        return;
+      }
+
       const newQuestions = jsonData.map((row: any) => ({
-        content: row['Câu hỏi'] || row['Question'] || '',
+        content: String(row['Câu hỏi'] || row['Question'] || ''),
         options: [
-          row['Phương án A'] || row['Option A'] || '',
-          row['Phương án B'] || row['Option B'] || '',
-          row['Phương án C'] || row['Option C'] || '',
-          row['Phương án D'] || row['Option D'] || ''
-        ].filter(option => option.trim() !== ''),
-        correct_answer: row['Đáp án đúng'] || row['Correct Answer'] || '',
+          row['Phương án A'] || row['Option A'],
+          row['Phương án B'] || row['Option B'],
+          row['Phương án C'] || row['Option C'],
+          row['Phương án D'] || row['Option D']
+        ].map(option => String(option || '')).filter(option => option.trim() !== ''),
+        correct_answer: String(row['Đáp án đúng'] || row['Correct Answer'] || ''),
         points: Number(row['Điểm'] || row['Points'] || 10),
         type: 'multiple_choice' as 'multiple_choice' | 'essay'
       })).filter(q => q.content && q.correct_answer)
+
+      if (newQuestions.length === 0) {
+        setQuestions([]);
+        toast({
+            variant: "default",
+            title: "Không tìm thấy câu hỏi",
+            description: "Không tìm thấy câu hỏi hợp lệ nào. Vui lòng kiểm tra lại tên các cột trong file Excel."
+        });
+        return;
+      }
 
       setQuestions(newQuestions)
       
@@ -134,12 +166,12 @@ export default function QuickAddPage() {
         title: "Thành công",
         description: `Đã tải ${newQuestions.length} câu hỏi từ file Excel`
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi đọc file Excel:', error)
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể đọc file Excel. Vui lòng kiểm tra định dạng file."
+        description: error.message || "Không thể đọc file Excel. Vui lòng kiểm tra định dạng file."
       })
     }
   }

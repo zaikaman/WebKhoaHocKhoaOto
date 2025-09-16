@@ -14,7 +14,7 @@ import {
   supabase
 } from "@/lib/supabase"
 import type { Lecture as SupabaseLecture, LectureFile } from "@/lib/supabase"
-import { Book, Users, BookOpen, ClipboardList, Download } from "lucide-react"
+import { Book, Users, BookOpen, ClipboardList, Download, FileCheck, BookCheck } from "lucide-react"
 import { DashboardSkeleton } from "./components/DashboardSkeleton";
 
 // Types
@@ -23,6 +23,8 @@ type Stats = {
   totalStudents: number | null
   totalLectures: number | null
   totalExams: number | null
+  totalAssignmentSubmissions: number | null
+  totalExamSubmissions: number | null
 }
 
 type UpcomingEvent = {
@@ -50,7 +52,14 @@ export default function TeacherDashboardPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [teacherName, setTeacherName] = useState('')
-  const [stats, setStats] = useState<Stats>({ totalClasses: null, totalStudents: null, totalLectures: null, totalExams: null })
+  const [stats, setStats] = useState<Stats>({ 
+    totalClasses: null, 
+    totalStudents: null, 
+    totalLectures: null, 
+    totalExams: null,
+    totalAssignmentSubmissions: null,
+    totalExamSubmissions: null
+  })
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([])
   const [recentLectures, setRecentLectures] = useState<RecentLecture[]>([])
   const [recentExams, setRecentExams] = useState<Exam[]>([])
@@ -98,13 +107,6 @@ export default function TeacherDashboardPage() {
         getTeacherClasses(currentUser.profile.id)
       ]);
 
-      setStats({
-        totalClasses: teacherStats.totalClasses,
-        totalStudents: teacherStats.totalStudents,
-        totalLectures: teacherStats.totalLectures,
-        totalExams: teacherStats.totalExams,
-      });
-
       const assignmentPromises = classes.map(c => getClassAssignments(c.id));
       const examPromises = classes.map(c => getClassExams(c.id));
       const lecturePromises = classes.map(c => getClassLectures(c.id).then(lectures => lectures.map(l => ({...l, subject: c.subject.name}))));
@@ -114,6 +116,33 @@ export default function TeacherDashboardPage() {
           Promise.all(examPromises).then(res => res.flat()),
           Promise.all(lecturePromises).then(res => res.flat()),
       ]);
+
+      let totalAssignmentSubmissions = 0;
+      if (allAssignments.length > 0) {
+        const { count } = await supabase
+          .from('assignment_submissions')
+          .select('id', { count: 'exact', head: true })
+          .in('assignment_id', allAssignments.map(a => a.id));
+        totalAssignmentSubmissions = count ?? 0;
+      }
+
+      let totalExamSubmissions = 0;
+      if (allExams.length > 0) {
+        const { count } = await supabase
+          .from('exam_submissions')
+          .select('id', { count: 'exact', head: true })
+          .in('exam_id', allExams.map(e => e.id));
+        totalExamSubmissions = count ?? 0;
+      }
+
+      setStats({
+        totalClasses: teacherStats.totalClasses,
+        totalStudents: teacherStats.totalStudents,
+        totalLectures: teacherStats.totalLectures,
+        totalExams: teacherStats.totalExams,
+        totalAssignmentSubmissions,
+        totalExamSubmissions,
+      });
 
       const now = new Date();
       const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -163,11 +192,13 @@ export default function TeacherDashboardPage() {
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Xin chào, {teacherName}</h2>
       </div>
 
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <StatCard title="Lớp học" value={stats.totalClasses} icon={Book} color="blue" />
         <StatCard title="Sinh viên" value={stats.totalStudents} icon={Users} color="yellow" />
         <StatCard title="Bài giảng" value={stats.totalLectures} icon={BookOpen} color="green" />
         <StatCard title="Bài kiểm tra" value={stats.totalExams} icon={ClipboardList} color="red" />
+        <StatCard title="Bài tập đã nộp" value={stats.totalAssignmentSubmissions} icon={BookCheck} color="purple" />
+        <StatCard title="Bài thi đã nộp" value={stats.totalExamSubmissions} icon={FileCheck} color="indigo" />
       </div>
 
       <div>
@@ -207,6 +238,8 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: n
         yellow: 'bg-yellow-100 text-yellow-600',
         green: 'bg-green-100 text-green-600',
         red: 'bg-red-100 text-red-600',
+        purple: 'bg-purple-100 text-purple-600',
+        indigo: 'bg-indigo-100 text-indigo-600',
     };
     const iconBgClass = colorClasses[color] || 'bg-muted';
     const iconColorClass = color ? colorClasses[color].split(' ')[1] : 'text-muted-foreground';
