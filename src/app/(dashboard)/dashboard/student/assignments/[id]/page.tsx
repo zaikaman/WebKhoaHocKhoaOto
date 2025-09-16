@@ -10,6 +10,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, supabase } from "@/lib/supabase"
 
+// Helper function to shuffle an array in-place using Fisher-Yates algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  let currentIndex = array.length,  randomIndex;
+  // While there remain elements to shuffle.
+  while (currentIndex != 0) {
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
 interface Assignment {
   id: string
   title: string
@@ -30,7 +45,7 @@ interface AssignmentQuestion {
   content: string
   type: 'multiple_choice' | 'essay'
   points: number
-  options: string[] | null
+  options: string[] | string | null // Can be array or JSON string
   correct_answer: string | null
 }
 
@@ -120,13 +135,32 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
         .from('assignment_questions')
         .select('*')
         .eq('assignment_id', params.id)
-        .order('created_at', { ascending: true })
 
       if (questionsError) {
         throw questionsError
       }
 
-      setQuestions(questionsData || [])
+      if (questionsData) {
+        const shuffledQuestions = shuffleArray(questionsData).map(question => {
+          if (question.type === 'multiple_choice' && question.options) {
+            try {
+                let options = typeof question.options === 'string' 
+                    ? JSON.parse(question.options) 
+                    : question.options;
+                
+                if (Array.isArray(options)) {
+                    question.options = shuffleArray(options);
+                }
+            } catch (e) {
+                console.error("Failed to parse and shuffle options for question:", question.id, e);
+            }
+          }
+          return question;
+        });
+        setQuestions(shuffledQuestions);
+      } else {
+        setQuestions([]);
+      }
 
     } catch (error) {
       console.error('Lỗi khi tải bài tập:', error)
@@ -310,9 +344,9 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
                   <div className="space-y-3 w-full">
                     {(() => {
                       try {
-                        const options: string[] = typeof question.options === 'string' 
-                          ? JSON.parse(question.options) 
-                          : question.options || [];
+                        const options: string[] = Array.isArray(question.options) 
+                          ? question.options 
+                          : (typeof question.options === 'string' ? JSON.parse(question.options) : []);
                         return options.map((option: string, optionIndex: number) => (
                           <div key={optionIndex} className="flex items-center space-x-3">
                             <input
