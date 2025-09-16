@@ -1525,6 +1525,21 @@ export async function getStudentUpcomingAssignments(studentId: string) {
 }
 
 export async function getStudentUpcomingExams(studentId: string) {
+  // First, get the classes the student is enrolled in
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', studentId)
+    .eq('status', 'enrolled');
+
+  if (enrollmentError) throw enrollmentError;
+  if (!enrollments || enrollments.length === 0) {
+    return []; // Student is not enrolled in any classes
+  }
+
+  const classIds = enrollments.map(e => e.class_id);
+
+  // Then, get the upcoming exams for those classes
   const { data, error } = await supabase
     .from('exams')
     .select(`
@@ -1536,6 +1551,7 @@ export async function getStudentUpcomingExams(studentId: string) {
         )
       )
     `)
+    .in('class_id', classIds) // Filter by the student's classes
     .eq('status', 'upcoming')
     .gte('start_time', new Date().toISOString())
     .order('start_time', { ascending: true })
