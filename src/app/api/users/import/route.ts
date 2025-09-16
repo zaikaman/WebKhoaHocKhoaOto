@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
       if (existingProfile) {
         // User with this student_id exists. We can consider it "processed"
-        processedUsers.push(user);
+        errors.push({ user: user.student_id, error: 'Tài khoản đã tồn tại.' });
 
       } else {
         // New user based on student_id. Create them.

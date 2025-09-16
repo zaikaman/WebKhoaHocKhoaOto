@@ -177,12 +177,24 @@ export default function QuickAddPage() {
   };
 
   const handleDownloadStudentTemplate = () => {
-    const link = document.createElement('a');
-    link.href = '/mau_danh_sach_sinh_vien.csv';
-    link.setAttribute('download', 'mau_danh_sach_sinh_vien.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const templateData = [
+      {
+        student_code: '20240001',
+        full_name: 'Nguyễn Văn A',
+        email: 'a.nv@example.com',
+        date_of_birth: '2002-01-15'
+      },
+      {
+        student_code: '20240002',
+        full_name: 'Trần Thị B',
+        email: 'b.tt@example.com',
+        date_of_birth: '2002-03-20'
+      }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sinh viên');
+    XLSX.writeFile(workbook, 'mau_danh_sach_sinh_vien.xlsx');
   };
 
   const handleDownloadTemplate = () => {
@@ -891,7 +903,7 @@ export default function QuickAddPage() {
                     <p className="text-sm text-muted-foreground mt-4">
                       File phải có các cột: <code>student_code</code>, <code>full_name</code>, <code>email</code>, và (tùy chọn) <code>date_of_birth</code>.{' '}
                       <Button variant="link" className="h-auto p-0 text-blue-600 underline" onClick={handleDownloadStudentTemplate} type="button">
-                        Tải file mẫu (.csv)
+                        Tải file mẫu (.xlsx)
                       </Button>
                     </p>
                   </div>

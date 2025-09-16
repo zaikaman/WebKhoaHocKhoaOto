@@ -19,7 +19,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import Papa from "papaparse"
+import * as XLSX from 'xlsx'
+
 
 // Types
 type Role = "student" | "teacher"
@@ -318,70 +319,75 @@ export default function AdminDashboardPage() {
     }
 
     setIsLoading(true)
-    Papa.parse(selectedFile, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const users = results.data.map((row: any) => ({
-            student_id: row.student_id?.trim(),
-            last_name: row.last_name?.trim(),
-            first_name: row.first_name?.trim(),
-            role: row.role?.trim(),
-            class_code: row.class_code?.trim(),
-            password: row.password?.trim(),
-          })).filter(u => u.student_id && u.last_name && u.first_name && u.role)
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const data = e.target?.result
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const json = XLSX.utils.sheet_to_json(worksheet)
 
-          if (users.length === 0) {
-            throw new Error("File không có dữ liệu hợp lệ.")
-          }
+        const users = json.map((row: any) => ({
+          student_id: row.student_id?.toString().trim(),
+          last_name: row.last_name?.toString().trim(),
+          first_name: row.first_name?.toString().trim(),
+          role: row.role?.toString().trim(),
+          class_code: row.class_code?.toString().trim(),
+          password: row.password?.toString().trim(),
+        })).filter(u => u.student_id && u.last_name && u.first_name && u.role)
 
-          const response = await fetch('/api/users/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ users }),
-          })
-
-          const data = await response.json()
-
-          if (!response.ok) {
-            let errorMessage = data.message || "Nhập tài khoản thất bại."
-            if (data.errors) {
-                const errorDetails = data.errors.map((e: any) => `${e.user}: ${e.error}`).join("\n")
-                errorMessage += `\nChi tiết:\n${errorDetails}`
-            }
-            throw new Error(errorMessage)
-          }
-          
-          toast({
-            title: "Thành công",
-            description: data.message,
-          })
-
-          await loadAccounts()
-          setIsDialogOpen(false)
-          setSelectedFile(null)
-          if(fileInputRef.current) fileInputRef.current.value = ""
-
-        } catch (error: any) {
-          toast({
-            variant: "destructive",
-            title: "Lỗi nhập file",
-            description: error.message,
-          })
-        } finally {
-          setIsLoading(false)
+        if (users.length === 0) {
+          throw new Error("File không có dữ liệu hợp lệ.")
         }
-      },
-      error: (error: any) => {
+
+        const response = await fetch('/api/users/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users }),
+        })
+
+        const responseData = await response.json()
+
+        if (!response.ok) {
+          let errorMessage = responseData.message || "Nhập tài khoản thất bại."
+          if (responseData.errors) {
+              const errorDetails = responseData.errors.map((e: any) => `${e.user}: ${e.error}`).join("\n")
+              errorMessage += `\nChi tiết:\n${errorDetails}`
+          }
+          throw new Error(errorMessage)
+        }
+        
+        toast({
+          title: "Thành công",
+          description: responseData.message,
+        })
+
+        await loadAccounts()
+        setIsDialogOpen(false)
+        setSelectedFile(null)
+        if(fileInputRef.current) fileInputRef.current.value = ""
+
+      } catch (error: any) {
         toast({
           variant: "destructive",
-          title: "Lỗi xử lý file",
+          title: "Lỗi nhập file",
           description: error.message,
         })
+      } finally {
         setIsLoading(false)
-      },
-    })
+      }
+    }
+    reader.onerror = (error) => {
+      console.error("File reader error:", error);
+      toast({
+        variant: "destructive",
+        title: "Lỗi xử lý file",
+        description: "Có lỗi xảy ra khi đọc file.",
+      })
+      setIsLoading(false)
+    }
+    reader.readAsArrayBuffer(selectedFile)
   }
 
   return (
@@ -496,7 +502,7 @@ export default function AdminDashboardPage() {
         </table>
       </div>
 
-      {/* Phân trang */} 
+      {/* Phân trang */}
       <div className="mt-4 flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2">
         <Button
           variant="outline"
@@ -519,7 +525,7 @@ export default function AdminDashboardPage() {
         </Button>
       </div>
 
-      {/* Dialog thêm/sửa tài khoản */} 
+      {/* Dialog thêm/sửa tài khoản */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-xs sm:max-w-lg w-full">
           <DialogHeader>
@@ -569,9 +575,9 @@ export default function AdminDashboardPage() {
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Tải file mẫu</label>
                         <p className="text-sm text-muted-foreground">
-                            Tải file CSV mẫu để điền thông tin tài khoản.
+                            Tải file XLSX mẫu để điền thông tin tài khoản.
                         </p>
-                        <a href="/mau_danh_sach_tai_khoan.csv" download>
+                        <a href="/mau_danh_sach_tai_khoan.xlsx" download>
                             <Button variant="outline" className="w-full">Tải mẫu</Button>
                         </a>
                     </div>
@@ -580,7 +586,7 @@ export default function AdminDashboardPage() {
                         <input 
                             id="file-upload" 
                             type="file" 
-                            accept=".csv" 
+                            accept=".xlsx" 
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
@@ -641,3 +647,5 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
+
+    

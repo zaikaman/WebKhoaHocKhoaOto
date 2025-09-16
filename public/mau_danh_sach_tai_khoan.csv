@@ -1,3 +1,0 @@
-student_id,last_name,first_name,role,class_code,password
-SV001,"Nguyen Van","A",student,SE101,password123
-GV001,"Tran Thi","B",teacher,,password456
