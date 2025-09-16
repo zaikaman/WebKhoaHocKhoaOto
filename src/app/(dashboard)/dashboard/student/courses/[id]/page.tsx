@@ -82,6 +82,10 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   };
 
   const handleViewFile = (file: LectureFile) => {
+    if (!file.file_path || !file.original_filename) {
+        toast({ variant: "destructive", title: "Lỗi", description: "File không hợp lệ hoặc không có tên." });
+        return;
+    }
     const publicUrl = getPublicUrl(file.file_path);
     const fileExtension = file.original_filename.split('.').pop()?.toLowerCase();
     let viewUrl = publicUrl;
@@ -222,7 +226,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                               {(lecture.lecture_files && lecture.lecture_files.length > 0) &&
                                   <div className="space-y-2 mt-3 pt-3 border-t">
                                       {lecture.lecture_files.map(file => {
-                                        const fileExtension = file.original_filename.split('.').pop()?.toLowerCase();
+                                        const fileExtension = file.original_filename ? file.original_filename.split('.').pop()?.toLowerCase() : "";
                                         const canView = supportedViewExtensions.includes(fileExtension || '');
                                         return (
                                           <div key={file.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
