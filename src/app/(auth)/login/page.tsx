@@ -71,14 +71,13 @@ export default function LoginPage() {
             <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
             <path d="M5 17h-2v-6l2 -5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6 -6h15m-6 0v-5" />
           </svg>
-          Khoa Cơ khí động lực
         </div>
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg">
               &quot;Đào tạo kỹ sư cơ khí động lực chất lượng cao, đáp ứng nhu cầu của ngành công nghiệp ô tô hiện đại.&quot;
             </p>
-            <footer className="text-sm">Khoa Cơ khí động lực</footer>
+            {/* <footer className="text-sm">Khoa Cơ khí động lực</footer> */}
           </blockquote>
         </div>
       </div>

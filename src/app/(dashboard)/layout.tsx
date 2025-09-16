@@ -173,7 +173,7 @@ export default function DashboardLayout({
               >
                 <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
               </svg>
-              <span className="text-base sm:text-lg font-bold">AutoEdu</span>
+              <span className="text-base sm:text-lg font-bold"></span>
             </Link>
 
             {/* Desktop Navigation Menu */}
@@ -201,11 +201,11 @@ export default function DashboardLayout({
                 </SheetContent>
               </Sheet>
 
-              {/* Download Button */}
+              {/* Download Button
               <Button variant="ghost" size="sm" className="gap-2 px-2 sm:px-3" onClick={handleDownload}>
                 <Download className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="hidden sm:inline text-sm">Tải mô phỏng</span>
-              </Button>
+              </Button> */}
 
               {/* User Dropdown */}
               <DropdownMenu modal={false}>

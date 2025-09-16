@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AutoEdu - Hệ thống quản lý học tập trực tuyến",
-  description: "AutoEdu - Hệ thống quản lý học tập trực tuyến cho sinh viên và giảng viên",
+  title: "Hệ thống quản lý học tập trực tuyến",
+  description: "Hệ thống quản lý học tập trực tuyến cho sinh viên và giảng viên",
 };
 
 export default function RootLayout({
