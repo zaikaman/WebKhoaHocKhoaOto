@@ -30,11 +30,14 @@ interface Exam {
   total_points: number
   start_time: string
   end_time: string
-  status: 'upcoming' | 'in-progress' | 'completed'
+  class_id: string
   class: {
     name: string
-    subject: { name: string }
+    subject: {
+      name: string
+    }
   }
+  max_attempts?: number
 }
 
 interface ExamQuestion {
@@ -57,6 +60,44 @@ interface ExamSubmission {
   feedback: string | null
 }
 
+function ExamSubmissionHistory({ submissions, totalPoints, maxAttempts }: { submissions: ExamSubmission[], totalPoints: number, maxAttempts: number }) {
+  const completedSubmissions = submissions.filter(s => s.status === 'completed');
+  if (completedSubmissions.length === 0) {
+    return null;
+  }
+
+  const highestScore = Math.max(...completedSubmissions.map(s => s.score || 0));
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>Lịch sử nộp bài kiểm tra</CardTitle>
+        <CardDescription>
+          Điểm cao nhất của bạn là: {highestScore}/{totalPoints} ({completedSubmissions.length}/{maxAttempts} lần làm)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-4">
+          {completedSubmissions.map((submission, index) => (
+            <li key={submission.id} className="flex justify-between items-center p-4 rounded-md border">
+              <div>
+                <p className="font-semibold">Lần {completedSubmissions.length - index}</p>
+                <p className="text-sm text-muted-foreground">
+                  Nộp lúc: {new Date(submission.submitted_at).toLocaleString('vi-VN')}
+                </p>
+              </div>
+              <p className={`font-bold text-lg ${submission.score === highestScore ? 'text-primary' : ''}`}>
+                {submission.score ?? 'Chưa chấm'}/{totalPoints}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -65,7 +106,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [exam, setExam] = useState<Exam | null>(null)
   const [questions, setQuestions] = useState<ExamQuestion[]>([])
-  const [submission, setSubmission] = useState<ExamSubmission | null>(null)
+  const [submissions, setSubmissions] = useState<ExamSubmission[]>([])
+  const [completedSubmissions, setCompletedSubmissions] = useState<ExamSubmission[]>([]);
+  const [currentAttempt, setCurrentAttempt] = useState<ExamSubmission | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
 
@@ -117,45 +160,31 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         router.push('/dashboard/student/exams'); return;
       }
 
-      const { data: existingSubmission, error: submissionError } = await supabase
+      const { data: allSubmissions, error: submissionsError } = await supabase
         .from('exam_submissions')
         .select('*')
         .eq('exam_id', params.id)
         .eq('student_id', currentUser.profile.id)
-        .single()
+        .order('submitted_at', { ascending: false });
 
-      if (submissionError && submissionError.code !== 'PGRST116') throw submissionError
+      if (submissionsError) throw submissionsError;
+      setSubmissions(allSubmissions || []);
 
-      let currentSubmission = existingSubmission;
+      const completed = allSubmissions?.filter(s => s.status === 'completed') || [];
+      setCompletedSubmissions(completed);
+      const inProgressSubmission = allSubmissions?.find(s => s.status === 'in-progress');
 
-      if (currentSubmission) {
-        if (currentSubmission.status === 'completed') {
-          toast({ title: "Thông báo", description: "Bạn đã hoàn thành bài thi này." });
-          router.push('/dashboard/student/exams'); return;
-        }
-        // It's an in-progress submission
-        setSubmission(currentSubmission);
-        setAnswers(currentSubmission.answers || {});
-        const timeElapsed = (new Date().getTime() - new Date(currentSubmission.started_at).getTime()) / 1000;
+      if (inProgressSubmission) {
+        setCurrentAttempt(inProgressSubmission);
+        setAnswers(inProgressSubmission.answers || {});
+        const timeElapsed = (new Date().getTime() - new Date(inProgressSubmission.started_at).getTime()) / 1000;
         const remaining = (examData.duration * 60) - timeElapsed;
         setTimeLeft(remaining > 0 ? remaining : 0);
+      } else if (completed.length >= (examData.max_attempts || 1)) {
+        toast({ title: "Thông báo", description: `Bạn đã đạt số lần làm bài tối đa (${examData.max_attempts || 1}).` });
+        setCurrentAttempt(null);
       } else {
-        // No submission exists, create a new one
-        const { data: newSubmission, error: newSubmissionError } = await supabase
-          .from('exam_submissions')
-          .insert({
-            exam_id: params.id,
-            student_id: currentUser.profile.id,
-            status: 'in-progress',
-            started_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-        
-        if (newSubmissionError) throw newSubmissionError;
-        currentSubmission = newSubmission;
-        setSubmission(currentSubmission);
-        setTimeLeft(examData.duration * 60);
+        setCurrentAttempt(null);
       }
 
       const { data: questionsData, error: questionsError } = await supabase
@@ -191,8 +220,47 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function startNewAttempt() {
+    try {
+      setIsLoading(true);
+      const currentUser = await getCurrentUser();
+      if (!currentUser) { router.push('/login'); return; }
+
+      if (!exam) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Không tìm thấy thông tin bài kiểm tra." });
+        return;
+      }
+
+      if (completedSubmissions.length >= (exam.max_attempts || 1)) {
+        toast({ title: "Thông báo", description: "Bạn đã hết lượt làm bài." });
+        return;
+      }
+
+      const { data: newSubmission, error: newSubmissionError } = await supabase
+        .from('exam_submissions')
+        .insert({
+          exam_id: params.id,
+          student_id: currentUser.profile.id,
+          status: 'in-progress',
+          started_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      
+      if (newSubmissionError) throw newSubmissionError;
+      
+      await loadExam();
+
+    } catch (error) {
+      console.error('Lỗi khi bắt đầu lượt làm bài mới:', error);
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể bắt đầu lượt làm bài mới." });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleSubmit(isAutoSubmit = false) {
-    if (!submission) return;
+    if (!currentAttempt) return;
 
     if (!isAutoSubmit) {
         const unansweredQuestions = questions.filter(q => !answers[q.id]);
@@ -219,7 +287,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         }, 0)
       }
 
-      const { data: submissionData, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('exam_submissions')
         .update({
           answers,
@@ -228,15 +296,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           status: 'completed',
           graded_at: !hasEssayQuestion ? new Date().toISOString() : null
         })
-        .eq('id', submission.id)
-        .eq('student_id', currentUser.profile.id) // Explicitly match student_id
-        .select()
-        .single()
+        .eq('id', currentAttempt.id)
+        .eq('student_id', currentUser.profile.id)
 
       if (updateError) throw updateError
 
-      toast({ title: "Thành công", description: `Đã nộp bài. ${!hasEssayQuestion ? `Điểm của bạn: ${score}/${exam?.total_points}` : ''}` })
-      router.push('/dashboard/student/exams')
+      toast({ title: "Thành công", description: `Đã nộp bài. ${!hasEssayQuestion && score !== null ? `Điểm của bạn: ${score}/${exam?.total_points}` : ''}` })
+      
+      setCurrentAttempt(null);
+      setTimeLeft(null);
+      setAnswers({});
+      await loadExam();
 
     } catch (error: any) {
       console.error('Lỗi khi nộp bài:', error)
@@ -258,12 +328,39 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
 
-  if (isLoading) {
+  if (isLoading && !exam) {
     return <div className="flex items-center justify-center min-h-[200px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
   }
 
   if (!exam) {
     return <div className="flex items-center justify-center min-h-screen"><div className="text-center"><h2 className="text-xl font-semibold">Không tìm thấy bài kiểm tra</h2><Button className="mt-4" onClick={() => router.push('/dashboard/student/exams')}>Quay lại</Button></div></div>
+  }
+
+  if (!currentAttempt) {
+    return (
+      <div className="space-y-8">
+        <div className="sticky top-0 z-50 bg-background border-b">
+          <div className="container max-w-screen-2xl py-2 sm:py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+              <div className="w-full sm:w-auto">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Bài kiểm tra : {exam.title}</h2>
+                <p className="text-muted-foreground">{exam.class.subject.name} - {exam.class.name}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="container max-w-screen-2xl pb-8 px-2 sm:px-0">
+          <ExamSubmissionHistory submissions={submissions} totalPoints={exam.total_points} maxAttempts={exam.max_attempts || 1} />
+          {completedSubmissions.length < (exam.max_attempts || 1) && (
+            <div className="text-center mt-8">
+              <Button onClick={startNewAttempt} disabled={isLoading}>
+                {isLoading ? 'Đang tải...' : `Bắt đầu lần làm bài thứ ${completedSubmissions.length + 1}`}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (!questions.length) {
@@ -323,7 +420,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Xác nhận nộp bài</DialogTitle><DialogDescription>Bạn có chắc chắn muốn nộp bài? Sau khi nộp bài, bạn sẽ không thể chỉnh sửa.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Xác nhận nộp bài</DialogTitle><DialogDescription>Bạn có chắc chắn muốn nộp bài? Bạn sẽ không thể chỉnh sửa bài làm này sau khi nộp.</DialogDescription></DialogHeader>
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isSubmitting} className="w-full sm:w-auto">Hủy</Button>
             <Button onClick={() => handleSubmit(false)} disabled={isSubmitting} className="w-full sm:w-auto">{isSubmitting ? 'Đang xử lý...' : 'Nộp bài'}</Button>

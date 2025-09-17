@@ -62,7 +62,8 @@ export default function CreateExamPage() {
         end_time: formData.get('end_time') as string,
         status: 'upcoming' as "completed" | "upcoming" | "in-progress",
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        max_attempts: Number(formData.get('max_attempts')) || 1
       }
 
       // Call the createExam function to save the exam data
@@ -160,6 +161,30 @@ export default function CreateExamPage() {
             placeholder="Thời gian làm bài (phút)"
           />
           <label className="form-label">Thời gian làm bài (phút)</label>
+        </div>
+        <div className="form-field">
+          <input
+            type="number"
+            name="total_points"
+            className="form-input peer"
+            defaultValue={100}
+            min={1}
+            required
+            placeholder="Tổng điểm"
+          />
+          <label className="form-label">Tổng điểm</label>
+        </div>
+        <div className="form-field">
+          <input
+            type="number"
+            name="max_attempts"
+            className="form-input peer"
+            defaultValue={1}
+            min={1}
+            required
+            placeholder="Số lần làm bài"
+          />
+          <label className="form-label">Số lần làm bài</label>
         </div>
         <div className="form-field">
           <label className="absolute -top-3 left-3 text-sm text-blue-500">Loại bài kiểm tra</label>

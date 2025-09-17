@@ -97,6 +97,7 @@ export type Exam = {
   status: 'upcoming' | 'in-progress' | 'completed'
   created_at: string
   updated_at: string
+  max_attempts?: number
 }
 
 export type ExamQuestion = {

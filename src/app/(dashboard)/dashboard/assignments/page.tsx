@@ -8,6 +8,15 @@ import { getCurrentUser, getStudentClasses, supabase } from "@/lib/supabase"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import { RefreshCw } from "lucide-react"
 
+interface AssignmentSubmission {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  score: number | null;
+  submitted_at: string | null;
+  graded_at: string | null;
+}
+
 interface Assignment {
   id: string
   title: string
@@ -21,12 +30,7 @@ interface Assignment {
       name: string
     }
   }
-  submission?: {
-    id: string
-    score: number | null
-    submitted_at: string | null
-    graded_at: string | null
-  }
+  submissions: AssignmentSubmission[]
 }
 
 export default function AssignmentsPage() {
@@ -38,50 +42,18 @@ export default function AssignmentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<Record<string, any>>({})
 
-  // Tạo filter options từ dữ liệu assignments
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjects = [...new Set(assignments.map(a => a.class.subject.name))]
     const classes = [...new Set(assignments.map(a => a.class.name))]
     
     return [
-      {
-        key: 'subject',
-        label: 'Môn học',
-        type: 'select',
-        options: subjects.map(subject => ({ value: subject, label: subject }))
-      },
-      {
-        key: 'class',
-        label: 'Lớp học',
-        type: 'select',
-        options: classes.map(className => ({ value: className, label: className }))
-      },
-      {
-        key: 'status',
-        label: 'Trạng thái',
-        type: 'select',
-        options: [
+      { key: 'subject', label: 'Môn học', type: 'select', options: subjects.map(s => ({ value: s, label: s })) },
+      { key: 'class', label: 'Lớp học', type: 'select', options: classes.map(c => ({ value: c, label: c })) },
+      { key: 'status', label: 'Trạng thái', type: 'select', options: [
+          { value: 'can_submit', label: 'Có thể nộp' },
           { value: 'submitted', label: 'Đã nộp' },
-          { value: 'graded', label: 'Đã chấm' },
-          { value: 'pending', label: 'Chưa nộp' },
           { value: 'overdue', label: 'Quá hạn' }
-        ]
-      },
-      {
-        key: 'dueDate',
-        label: 'Hạn nộp',
-        type: 'daterange'
-      },
-      {
-        key: 'points',
-        label: 'Điểm tối đa',
-        type: 'select',
-        options: [
-          { value: '0-5', label: '0-5 điểm' },
-          { value: '5-10', label: '5-10 điểm' },
-          { value: '10+', label: 'Trên 10 điểm' }
-        ]
-      }
+      ]},
     ]
   }, [assignments])
 
@@ -89,24 +61,21 @@ export default function AssignmentsPage() {
     loadAssignments()
   }, [])
 
-  // Lọc assignments dựa trên search query và filters
   useEffect(() => {
     let filtered = assignments
 
-    // Tìm kiếm theo text
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(assignment => 
         assignment.title.toLowerCase().includes(query) ||
-        assignment.description?.toLowerCase().includes(query) ||
+        (assignment.description && assignment.description.toLowerCase().includes(query)) ||
         assignment.class.name.toLowerCase().includes(query) ||
         assignment.class.subject.name.toLowerCase().includes(query)
       )
     }
 
-    // Áp dụng filters
     Object.entries(filters).forEach(([key, value]) => {
-      if (!value || value === "" || (Array.isArray(value) && value.length === 0)) return
+      if (!value || value === "") return
 
       switch (key) {
         case 'subject':
@@ -117,53 +86,8 @@ export default function AssignmentsPage() {
           break
         case 'status':
           filtered = filtered.filter(a => {
-            const status = getSubmissionStatus(a)
-            switch (value) {
-              case 'submitted':
-                return a.submission?.submitted_at && !a.submission?.graded_at
-              case 'graded':
-                return a.submission?.graded_at
-              case 'pending':
-                return !a.submission?.submitted_at && new Date() <= new Date(a.due_date)
-              case 'overdue':
-                return !a.submission?.submitted_at && new Date() > new Date(a.due_date)
-              default:
-                return true
-            }
-          })
-          break
-        case 'dueDate':
-          if (Array.isArray(value) && (value[0] || value[1])) {
-            const [startDate, endDate] = value
-            filtered = filtered.filter(a => {
-              const dueDate = new Date(a.due_date)
-              const start = startDate ? new Date(startDate) : null
-              const end = endDate ? new Date(endDate) : null
-              
-              if (start && end) {
-                return dueDate >= start && dueDate <= end
-              } else if (start) {
-                return dueDate >= start
-              } else if (end) {
-                return dueDate <= end
-              }
-              return true
-            })
-          }
-          break
-        case 'points':
-          filtered = filtered.filter(a => {
-            const points = a.total_points
-            switch (value) {
-              case '0-5':
-                return points >= 0 && points <= 5
-              case '5-10':
-                return points > 5 && points <= 10
-              case '10+':
-                return points > 10
-              default:
-                return true
-            }
+            const status = getSubmissionStatus(a).key
+            return status === value
           })
           break
       }
@@ -182,56 +106,42 @@ export default function AssignmentsPage() {
       setIsLoading(true)
       const currentUser = await getCurrentUser()
       
-      if (!currentUser) {
+      if (!currentUser || currentUser.profile.role !== 'student') {
         router.push('/login')
         return
       }
 
-      if (currentUser.profile.role !== 'student') {
-        router.push('/dashboard')
-        return
-      }
-
-      // Lấy danh sách lớp học của sinh viên
       const classes = await getStudentClasses(currentUser.profile.id)
+      if (classes.length === 0) {
+        setAssignments([]);
+        setFilteredAssignments([]);
+        setIsLoading(false);
+        return;
+      }
       
-      // Lấy danh sách bài tập từ các lớp học và submissions
       const { data: assignmentsData, error } = await supabase
         .from('assignments')
-        .select(`
-          *,
-          class:classes(
-            name,
-            subject:subjects(name)
-          )
-        `)
+        .select(`*, class:classes(name, subject:subjects(name))`)
         .in('class_id', classes.map(c => c.id))
         .order('due_date', { ascending: false })
 
       if (error) throw error
 
-      // Lấy submissions của sinh viên
       const { data: submissionsData, error: submissionsError } = await supabase
         .from('assignment_submissions')
-        .select('*')
+        .select('id, assignment_id, student_id, score, submitted_at, graded_at')
         .eq('student_id', currentUser.profile.id)
         .in('assignment_id', assignmentsData.map(a => a.id))
 
       if (submissionsError) throw submissionsError
 
-      // Kết hợp thông tin bài tập và submission
       const assignmentsWithSubmissions = assignmentsData.map(assignment => ({
         ...assignment,
-        submission: submissionsData?.find(s => s.assignment_id === assignment.id) || null
+        submissions: submissionsData?.filter(s => s.assignment_id === assignment.id) || []
       }))
 
       setAssignments(assignmentsWithSubmissions)
       setFilteredAssignments(assignmentsWithSubmissions)
-      toast({
-        title: "Đã làm mới",
-        description: "Dữ liệu bài tập đã được cập nhật.",
-      })
-
     } catch (error) {
       console.error('Lỗi khi tải danh sách bài tập:', error)
       toast({
@@ -245,124 +155,49 @@ export default function AssignmentsPage() {
   }
 
   function getSubmissionStatus(assignment: Assignment) {
-    const now = new Date()
-    const dueDate = new Date(assignment.due_date)
+    const now = new Date();
+    const dueDate = new Date(new Date(assignment.due_date).getTime() - 7 * 60 * 60 * 1000);
 
-    // Nếu đã có bài nộp
-    if (assignment.submission?.submitted_at) {
-      if (assignment.submission.graded_at) {
-        return {
-          label: `Đã chấm: ${assignment.submission.score}/${assignment.total_points}`,
-          color: 'bg-green-100 text-green-800',
-          canSubmit: false,
-          canViewResult: true
-        }
-      }
-      return {
-        label: 'Chờ chấm',
-        color: 'bg-blue-100 text-blue-800',
-        canSubmit: false,
-        canViewResult: true
-      }
-    }
+    const highestScore = assignment.submissions.length > 0
+        ? Math.max(...assignment.submissions.map(s => s.score || 0))
+        : null;
 
-    // Nếu chưa có bài nộp
     if (now > dueDate) {
       return {
-        label: 'Quá hạn',
+        key: 'overdue',
+        label: highestScore !== null ? `Quá hạn - Điểm: ${highestScore}/${assignment.total_points}` : 'Quá hạn',
         color: 'bg-red-100 text-red-800',
-        canSubmit: false,
-        canViewResult: false
-      }
+        action: 'view'
+      };
     }
 
+    if (assignment.submissions.length > 0) {
+      const gradedCount = assignment.submissions.filter(s => s.graded_at).length;
+      const allGraded = gradedCount === assignment.submissions.length;
+      return {
+        key: 'submitted',
+        label: allGraded ? `Đã nộp - Điểm cao nhất: ${highestScore}/${assignment.total_points}` : `Chờ chấm (${assignment.submissions.length} lần)`,
+        color: 'bg-green-100 text-green-800',
+        action: 'retake'
+      };
+    }
+    
     return {
+      key: 'can_submit',
       label: 'Chưa nộp',
       color: 'bg-yellow-100 text-yellow-800',
-      canSubmit: true,
-      canViewResult: false
-    }
+      action: 'take'
+    };
   }
 
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="h-8 w-32 bg-muted rounded animate-pulse" />
-          <div className="h-4 w-48 bg-muted rounded animate-pulse" />
-        </div>
-
-        {/* Search and Filter Skeleton */}
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <div className="h-10 w-full bg-muted rounded animate-pulse" />
-            </div>
-            <div className="h-10 w-24 bg-muted rounded animate-pulse" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="h-6 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
-            <div className="h-6 w-28 bg-muted rounded animate-pulse" />
-          </div>
-        </div>
-
-        {/* Table Skeleton */}
-        <div className="rounded-lg border">
-          <div className="p-4">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">
-                    <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <div className="h-4 w-28 bg-muted rounded animate-pulse" />
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...Array(5)].map((_, index) => (
-                  <tr key={index} className="border-b last:border-0">
-                    <td className="py-3 px-4">
-                      <div className="space-y-2">
-                        <div className="h-5 w-48 bg-muted rounded animate-pulse" />
-                        <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="h-4 w-36 bg-muted rounded animate-pulse" />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="h-4 w-40 bg-muted rounded animate-pulse" />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="h-6 w-24 bg-muted rounded-full animate-pulse" />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="h-8 w-20 bg-muted rounded animate-pulse" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <div className="flex items-center justify-between"><div className="h-8 w-32 bg-muted rounded animate-pulse" /></div>
+        <div className="rounded-lg border"><div className="p-4"><table className="w-full">
+          <thead><tr className="border-b"><th className="text-left py-3 px-4"><div className="h-4 w-32 bg-muted rounded animate-pulse" /></th><th className="text-left py-3 px-4"><div className="h-4 w-24 bg-muted rounded animate-pulse" /></th><th className="text-left py-3 px-4"><div className="h-4 w-28 bg-muted rounded animate-pulse" /></th><th className="text-left py-3 px-4"><div className="h-4 w-20 bg-muted rounded animate-pulse" /></th><th className="text-left py-3 px-4"><div className="h-4 w-24 bg-muted rounded animate-pulse" /></th><th className="text-left py-3 px-4"><div className="h-4 w-20 bg-muted rounded animate-pulse" /></th></tr></thead>
+          <tbody>{[...Array(5)].map((_, index) => (<tr key={index} className="border-b last:border-0"><td className="py-3 px-4"><div className="space-y-2"><div className="h-5 w-48 bg-muted rounded animate-pulse" /><div className="h-4 w-32 bg-muted rounded animate-pulse" /></div></td><td className="py-3 px-4"><div className="h-4 w-36 bg-muted rounded animate-pulse" /></td><td className="py-3 px-4"><div className="h-4 w-40 bg-muted rounded animate-pulse" /></td><td className="py-3 px-4"><div className="h-4 w-16 bg-muted rounded animate-pulse" /></td><td className="py-3 px-4"><div className="h-6 w-24 bg-muted rounded-full animate-pulse" /></td><td className="py-3 px-4"><div className="h-8 w-20 bg-muted rounded animate-pulse" /></td></tr>))}</tbody>
+        </table></div></div>
       </div>
     )
   }
@@ -375,14 +210,13 @@ export default function AssignmentsPage() {
             <div className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
               Hiển thị {filteredAssignments.length} / {assignments.length} bài tập
             </div>
-            <Button variant="outline" onClick={loadAssignments}>
-                <RefreshCw className="w-4 h-4 mr-2" />
+            <Button variant="outline" onClick={loadAssignments} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Làm mới
             </Button>
         </div>
       </div>
 
-      {/* Search and Filter */}
       <SearchFilter
         searchPlaceholder="Tìm kiếm bài tập..."
         filterOptions={filterOptions}
@@ -419,12 +253,9 @@ export default function AssignmentsPage() {
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.class.subject.name}</td>
                     <td className="py-2 px-2 sm:py-3 sm:px-4">
-                      {new Date(assignment.due_date).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(assignment.due_date).toLocaleString('vi-VN', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
                       })}
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.total_points}</td>
@@ -434,31 +265,14 @@ export default function AssignmentsPage() {
                       </span>
                     </td>
                     <td className="py-2 px-2 sm:py-3 sm:px-4">
-                      {status.canViewResult ? (
-                        <Button
-                          variant="outline"
+                       <Button
                           size="sm"
-                          onClick={() => router.push(`/dashboard/assignments/${assignment.id}/result`)}
+                          variant={status.action === 'view' ? 'outline' : 'default'}
+                          onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}
+                          disabled={status.action === 'view' && now > new Date(assignment.due_date)}
                         >
-                          Xem kết quả
+                          {status.action === 'take' ? 'Làm bài' : (status.action === 'retake' ? 'Làm lại' : 'Xem chi tiết')}
                         </Button>
-                      ) : status.canSubmit ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => router.push(`/dashboard/assignments/${assignment.id}`)}
-                        >
-                          Nộp bài
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/dashboard/assignments/${assignment.id}`)}
-                        >
-                          Xem chi tiết
-                        </Button>
-                      )}
                     </td>
                   </tr>
                 )
@@ -469,4 +283,4 @@ export default function AssignmentsPage() {
       </div>
     </div>
   )
-} 
+}

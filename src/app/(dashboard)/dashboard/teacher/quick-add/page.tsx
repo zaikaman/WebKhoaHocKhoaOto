@@ -348,7 +348,7 @@ export default function QuickAddPage() {
           }
           toast({ title: 'Thành công', description: 'Đã tạo bài tập cho các lớp đã chọn.' })
         } else if (addType === 'exam') {
-          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, }
+          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, }
           const newExams = await createExamForClasses(examData, selectedClasses)
           if (newExams) {
             for (const exam of newExams) {
@@ -693,6 +693,10 @@ export default function QuickAddPage() {
                   <div className="form-field">
                     <Input id='total_points' name='total_points' type='number' required className="form-input peer" placeholder="Tổng điểm" />
                     <Label htmlFor='total_points' className="form-label">Tổng điểm</Label>
+                  </div>
+                  <div className="form-field">
+                    <Input id='max_attempts' name='max_attempts' type='number' defaultValue={1} required className="form-input peer" placeholder="Số lần làm bài" />
+                    <Label htmlFor='max_attempts' className="form-label">Số lần làm bài</Label>
                   </div>
                   <div className="form-field">
                     <Input id='start_time' name='start_time' type='datetime-local' required className="form-input peer" placeholder="Thời gian bắt đầu" />

@@ -10,17 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, supabase } from "@/lib/supabase"
 
-// Helper function to shuffle an array in-place using Fisher-Yates algorithm
 function shuffleArray<T>(array: T[]): T[] {
   let currentIndex = array.length,  randomIndex;
-  // While there remain elements to shuffle.
   while (currentIndex != 0) {
-    // Pick a remaining element.
     randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex--;
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
   }
   return array;
 }
@@ -32,12 +27,7 @@ interface Assignment {
   due_date: string
   total_points: number
   class_id: string
-  class: {
-    name: string
-    subject: {
-      name: string
-    }
-  }
+  class: { name: string; subject: { name: string } }
 }
 
 interface AssignmentQuestion {
@@ -45,7 +35,7 @@ interface AssignmentQuestion {
   content: string
   type: 'multiple_choice' | 'essay'
   points: number
-  options: string[] | string | null // Can be array or JSON string
+  options: string[] | string | null
   correct_answer: string | null
 }
 
@@ -54,8 +44,40 @@ interface AssignmentSubmission {
   answers: Record<string, string>
   score: number | null
   submitted_at: string | null
-  graded_at: string | null
-  feedback: string | null
+  status: 'in-progress' | 'completed'
+}
+
+function SubmissionHistory({ submissions, totalPoints }: { submissions: AssignmentSubmission[], totalPoints: number }) {
+  const completedSubmissions = submissions.filter(s => s.status === 'completed');
+  if (completedSubmissions.length === 0) return null;
+
+  const highestScore = Math.max(...completedSubmissions.map(s => s.score || 0));
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>Lịch sử nộp bài</CardTitle>
+        <CardDescription>Điểm cao nhất của bạn là: {highestScore}/{totalPoints}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-4">
+          {completedSubmissions.map((submission, index) => (
+            <li key={submission.id} className="flex justify-between items-center p-4 rounded-md border">
+              <div>
+                <p className="font-semibold">Lần {completedSubmissions.length - index}</p>
+                <p className="text-sm text-muted-foreground">
+                  Nộp lúc: {new Date(submission.submitted_at).toLocaleString('vi-VN')}
+                </p>
+              </div>
+              <p className={`font-bold text-lg ${submission.score === highestScore ? 'text-primary' : ''}`}>
+                {submission.score ?? 'Chưa chấm'}/{totalPoints}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AssignmentTakingPage({ params }: { params: { id: string } }) {
@@ -66,96 +88,54 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [questions, setQuestions] = useState<AssignmentQuestion[]>([])
-  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null)
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
+  const [currentAttempt, setCurrentAttempt] = useState<AssignmentSubmission | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    loadAssignment()
+    loadAssignmentData()
   }, [])
 
-  async function loadAssignment() {
+  async function loadAssignmentData() {
     try {
       setIsLoading(true)
       const currentUser = await getCurrentUser()
-      
-      if (!currentUser) {
-        router.push('/login')
-        return
-      }
-
-      if (currentUser.profile.role !== 'student') {
-        router.push('/dashboard')
-        return
+      if (!currentUser || currentUser.profile.role !== 'student') {
+        router.push('/login'); return;
       }
 
       const { data: assignmentData, error: assignmentError } = await supabase
-        .from('assignments')
-        .select(`
-          *,
-          class:classes(
-            name,
-            subject:subjects(name)
-          )
-        `)
-        .eq('id', params.id)
-        .single()
+        .from('assignments').select(`*, class:classes(name, subject:subjects(name))`).eq('id', params.id).single()
 
       if (assignmentError) throw assignmentError
       setAssignment(assignmentData)
 
-      const now = new Date()
-      const dueDate = new Date(new Date(assignmentData.due_date).getTime() - 7 * 60 * 60 * 1000)
+      const { data: allSubmissions, error: submissionError } = await supabase
+        .from('assignment_submissions').select('*').eq('assignment_id', params.id).eq('student_id', currentUser.profile.id).order('submitted_at', { ascending: false });
 
-      if (now > dueDate) {
-        toast({
-          variant: "destructive",
-          title: "Đã quá hạn",
-          description: "Bài tập này đã hết hạn nộp bài."
-        })
+      if (submissionError) throw submissionError
+      setSubmissions(allSubmissions || []);
+
+      const inProgressSubmission = allSubmissions?.find(s => s.status === 'in-progress');
+      if (inProgressSubmission) {
+        setCurrentAttempt(inProgressSubmission);
+        setAnswers(inProgressSubmission.answers || {});
+      } else {
+        setCurrentAttempt(null);
       }
 
-      const { data: submissionData, error: submissionError } = await supabase
-        .from('assignment_submissions')
-        .select('*')
-        .eq('assignment_id', params.id)
-        .eq('student_id', currentUser.profile.id)
-        .single()
-
-      if (submissionError && submissionError.code !== 'PGRST116') {
-        throw submissionError
-      }
-
-      if (submissionData) {
-        toast({ title: "Thông báo", description: "Bạn đã nộp bài tập này." });
-        router.push(`/dashboard/student/courses/${assignmentData.class_id}`)
-        return
-      }
-
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('assignment_questions')
-        .select('*')
-        .eq('assignment_id', params.id)
-
-      if (questionsError) {
-        throw questionsError
-      }
+      const { data: questionsData, error: questionsError } = await supabase.from('assignment_questions').select('*').eq('assignment_id', params.id)
+      if (questionsError) throw questionsError
 
       if (questionsData) {
-        const shuffledQuestions = shuffleArray(questionsData).map(question => {
-          if (question.type === 'multiple_choice' && question.options) {
+        const shuffledQuestions = shuffleArray(questionsData).map(q => {
+          if (q.type === 'multiple_choice' && q.options) {
             try {
-                let options = typeof question.options === 'string' 
-                    ? JSON.parse(question.options) 
-                    : question.options;
-                
-                if (Array.isArray(options)) {
-                    question.options = shuffleArray(options);
-                }
-            } catch (e) {
-                console.error("Failed to parse and shuffle options for question:", question.id, e);
-            }
+              let options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+              if (Array.isArray(options)) q.options = shuffleArray(options);
+            } catch (e) { console.error("Failed to parse/shuffle options:", q.id, e); }
           }
-          return question;
+          return q;
         });
         setQuestions(shuffledQuestions);
       } else {
@@ -164,260 +144,167 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
 
     } catch (error) {
       console.error('Lỗi khi tải bài tập:', error)
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Không thể tải thông tin bài tập"
-      })
-      router.push('/dashboard/student/courses')
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể tải thông tin bài tập" })
+      router.push('/dashboard/student/assignments')
     } finally {
       setIsLoading(false)
     }
   }
 
+  async function startNewAttempt() {
+    try {
+      setIsLoading(true);
+      const currentUser = await getCurrentUser();
+      if (!currentUser) { router.push('/login'); return; }
+
+      const { data: newSubmission, error } = await supabase
+        .from('assignment_submissions')
+        .insert({ 
+          assignment_id: params.id, 
+          student_id: currentUser.profile.id, 
+          status: 'in-progress' 
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      await loadAssignmentData();
+    } catch (error) {
+      console.error('Lỗi khi bắt đầu lượt làm bài mới:', error);
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể bắt đầu lượt làm bài mới." });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleSubmit() {
+    if (!currentAttempt) return;
+
     try {
       setIsSubmitting(true)
       const currentUser = await getCurrentUser()
-      
-      if (!currentUser) {
-        router.push('/login')
-        return
-      }
+      if (!currentUser) { router.push('/login'); return; }
 
       const unansweredQuestions = questions.filter(q => !answers[q.id])
       if (unansweredQuestions.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "Chưa hoàn thành",
-          description: `Bạn chưa trả lời ${unansweredQuestions.length} câu hỏi`
-        })
-        setShowConfirmDialog(false)
-        return
-      }
-
-      if (Object.keys(answers).length === 0) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Bạn chưa trả lời câu hỏi nào"
-        })
-        return
+        toast({ variant: "destructive", title: "Chưa hoàn thành", description: `Bạn chưa trả lời ${unansweredQuestions.length} câu hỏi` })
+        setShowConfirmDialog(false);
+        return;
       }
 
       const hasEssayQuestion = questions.some(q => q.type === 'essay')
-      
       let score = null
       if (!hasEssayQuestion) {
-        score = questions.reduce((total, question) => {
-          const isCorrect = answers[question.id] === question.correct_answer
-          return total + (isCorrect ? question.points : 0)
-        }, 0)
+        score = questions.reduce((total, q) => total + (answers[q.id] === q.correct_answer ? q.points : 0), 0)
       }
 
-      const { data: submissionData, error: createError } = await supabase
+      const { error } = await supabase
         .from('assignment_submissions')
-        .insert([{
-          assignment_id: params.id,
-          student_id: currentUser.profile.id,
+        .update({
           answers,
           score,
           submitted_at: new Date().toISOString(),
+          status: 'completed',
           graded_at: !hasEssayQuestion ? new Date().toISOString() : null
-        }])
-        .select()
-        .single()
+        })
+        .eq('id', currentAttempt.id)
 
-      if (createError) {
-        throw createError
-      }
+      if (error) throw error
 
-      toast({
-        title: "Thành công",
-        description: !hasEssayQuestion 
-          ? `Đã nộp và chấm bài. Điểm của bạn: ${score}/${assignment?.total_points}`
-          : "Đã nộp bài tập thành công."
-      })
-
-      router.push(`/dashboard/student/courses/${assignment?.class_id}`)
+      toast({ title: "Thành công", description: `Đã nộp bài. ${!hasEssayQuestion && score !== null ? `Điểm của bạn: ${score}/${assignment?.total_points}` : ''}` })
+      
+      setAnswers({});
+      await loadAssignmentData();
 
     } catch (error) {
       console.error('Lỗi khi nộp bài:', error)
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Không thể nộp bài tập"
-      })
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể nộp bài tập" })
     } finally {
       setIsSubmitting(false)
       setShowConfirmDialog(false)
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
+  if (isLoading && !assignment) {
+    return <div className="flex items-center justify-center min-h-[200px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
   }
 
   if (!assignment) {
+    return <div className="text-center"><h2 className="text-xl font-semibold">Không tìm thấy bài tập</h2><Button className="mt-4" onClick={() => router.push('/dashboard/student/assignments')}>Quay lại</Button></div>
+  }
+
+  const isOverdue = new Date() > new Date(new Date(assignment.due_date).getTime() - 7 * 60 * 60 * 1000);
+
+  if (!currentAttempt) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">Không tìm thấy bài tập</h2>
-          <Button 
-            className="mt-4" 
-            onClick={() => router.push('/dashboard/student/courses')}
-          >
-            Quay lại
-          </Button>
+      <div className="space-y-8">
+         <div className="sticky top-0 z-50 bg-background border-b"><div className="container max-w-screen-2xl py-4"><h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2><p className="text-muted-foreground">{assignment.class.subject.name} - {assignment.class.name}</p></div></div>
+        <div className="container max-w-screen-2xl pb-8">
+          <SubmissionHistory submissions={submissions} totalPoints={assignment.total_points} />
+          {!isOverdue ? (
+            <div className="text-center mt-8">
+              <Button onClick={startNewAttempt} disabled={isLoading}>
+                {isLoading ? 'Đang tải...' : (submissions.length > 0 ? 'Làm lại' : 'Bắt đầu làm bài')}
+              </Button>
+            </div>
+          ) : (
+             <div className="text-center mt-8"><p className="text-red-500">Bài tập đã quá hạn nộp.</p></div>
+          )}
         </div>
       </div>
-    )
+    );
   }
 
   if (!questions.length) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">Bài tập chưa có câu hỏi</h2>
-          <p className="mt-2 text-muted-foreground">Vui lòng liên hệ giảng viên để biết thêm chi tiết.</p>
-          <Button 
-            className="mt-4" 
-            onClick={() => router.push(`/dashboard/student/courses/${assignment.class_id}`)}
-          >
-            Quay lại
-          </Button>
-        </div>
-      </div>
-    )
+    return <div className="text-center"><h2 className="text-xl font-semibold">Bài tập chưa có câu hỏi</h2><p className="mt-2">Vui lòng liên hệ giảng viên.</p><Button className="mt-4" onClick={() => router.push(`/dashboard/student/courses/${assignment.class_id}`)}>Quay lại</Button></div>
   }
 
   return (
     <div className="space-y-8">
       <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container max-w-screen-2xl py-2 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-            <div className="w-full sm:w-auto">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Bài tập: {assignment.title}</h2>
-              <p className="text-muted-foreground">
-                {assignment.class.subject.name} - {assignment.class.name}
-              </p>
+        <div className="container max-w-screen-2xl py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2>
+              <p className="text-muted-foreground">{assignment.class.subject.name} - {assignment.class.name}</p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                <div className="text-base sm:text-lg font-semibold">
-                    Hạn nộp: {new Date(new Date(assignment.due_date).getTime() - 7 * 60 * 60 * 1000).toLocaleString('vi-VN')}
-                </div>
-              <Button
-                className="w-full sm:w-auto"
-                disabled={isSubmitting}
-                onClick={() => setShowConfirmDialog(true)}
-              >
-                Nộp bài
-              </Button>
-            </div>
+            <Button disabled={isSubmitting || isOverdue} onClick={() => setShowConfirmDialog(true)}>{isOverdue ? "Đã quá hạn" : "Nộp bài"}</Button>
           </div>
         </div>
       </div>
 
-      <div className="container max-w-screen-2xl pb-8 px-2 sm:px-0">
-        <div className="grid gap-4 sm:gap-6">
+      <div className="container max-w-screen-2xl pb-8">
+        <div className="grid gap-6">
           {questions.map((question, index) => (
-            <Card key={question.id} className="w-full">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>Câu {index + 1}</CardTitle>
-                    <CardDescription>Điểm: {question.points}</CardDescription>
-                  </div>
+            <Card key={question.id}><CardHeader><CardTitle>Câu {index + 1}</CardTitle><CardDescription>Điểm: {question.points}</CardDescription></CardHeader><CardContent className="space-y-4">
+              <div className="text-sm">{question.content}</div>
+              {question.type === 'multiple_choice' ? (
+                <div className="space-y-3">
+                  {(() => {
+                    try {
+                      const options = Array.isArray(question.options) ? question.options : JSON.parse(question.options as string || '[]');
+                      return options.map((option: string, i: number) => (
+                        <div key={i} className="flex items-center space-x-3">
+                          <input type="radio" id={`${question.id}-${i}`} name={`question-${question.id}`} value={option} checked={answers[question.id] === option} onChange={e => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))} className="h-4 w-4" />
+                          <label htmlFor={`${question.id}-${i}`} className="text-sm font-medium">{option}</label>
+                        </div>
+                      ));
+                    } catch (e) { return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>; }
+                  })()}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`question-${question.id}`}>Câu hỏi</Label>
-                  <div className="text-sm">{question.content}</div>
-                </div>
-
-                {question.type === 'multiple_choice' ? (
-                  <div className="space-y-3 w-full">
-                    {(() => {
-                      try {
-                        const options: string[] = Array.isArray(question.options) 
-                          ? question.options 
-                          : (typeof question.options === 'string' ? JSON.parse(question.options) : []);
-                        return options.map((option: string, optionIndex: number) => (
-                          <div key={optionIndex} className="flex items-center space-x-3">
-                            <input
-                              type="radio"
-                              id={`${question.id}-${optionIndex}`}
-                              name={`question-${question.id}`}
-                              value={option}
-                              checked={answers[question.id] === option}
-                              onChange={(e) => setAnswers(prev => ({
-                                ...prev,
-                                [question.id]: e.target.value
-                              }))}
-                              className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
-                            />
-                            <label 
-                              htmlFor={`${question.id}-${optionIndex}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {option}
-                            </label>
-                          </div>
-                        ));
-                      } catch (error) {
-                        console.error('Lỗi khi parse options:', error);
-                        return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>;
-                      }
-                    })()}
-                  </div>
-                ) : (
-                  <div className="space-y-4 w-full">
-                    <Textarea
-                      value={answers[question.id] || ''}
-                      onChange={(e) => setAnswers(prev => ({
-                        ...prev,
-                        [question.id]: e.target.value
-                      }))}
-                      placeholder="Nhập câu trả lời của bạn vào đây..."
-                      className="min-h-[200px] text-base w-full"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              ) : (
+                <Textarea value={answers[question.id] || ''} onChange={e => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))} placeholder="Nhập câu trả lời..." className="min-h-[150px]" />
+              )}
+            </CardContent></Card>
           ))}
         </div>
       </div>
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xác nhận nộp bài</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn nộp bài? Sau khi nộp bài, bạn sẽ không thể chỉnh sửa.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowConfirmDialog(false)}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto"
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto"
-            >
-              {isSubmitting ? 'Đang xử lý...' : 'Nộp bài'}
-            </Button>
+        <DialogContent><DialogHeader><DialogTitle>Xác nhận nộp bài</DialogTitle><DialogDescription>Bạn có chắc chắn muốn nộp bài?</DialogDescription></DialogHeader>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isSubmitting}>Hủy</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Đang xử lý...' : 'Nộp bài'}</Button>
           </div>
         </DialogContent>
       </Dialog>
