@@ -326,7 +326,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       </div>
 
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-0 gap-0">
+        <DialogContent className="max-w-6xl w-full h-[95vh] flex flex-col p-0 gap-0">
           <div className="p-4 border-b shrink-0">
             <DialogTitle>{viewingFile?.name}</DialogTitle>
           </div>
