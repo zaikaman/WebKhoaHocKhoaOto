@@ -83,7 +83,7 @@ function ExamSubmissionHistory({ submissions, totalPoints, maxAttempts }: { subm
               <div>
                 <p className="font-semibold">Lần {completedSubmissions.length - index}</p>
                 <p className="text-sm text-muted-foreground">
-                  Nộp lúc: {new Date(submission.submitted_at).toLocaleString('vi-VN')}
+                  Nộp lúc: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString('vi-VN') : 'Chưa có'}
                 </p>
               </div>
               <p className={`font-bold text-lg ${submission.score === highestScore ? 'text-primary' : ''}`}>
