@@ -139,7 +139,7 @@ export default function EditLecturePage({ params }: { params: { id: string } }) 
           </div>
 
           <div className="relative pt-5">
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="form-textarea peer min-h-[120px]" placeholder="Mô tả" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="form-textarea peer min-h-[120px]" placeholder="Mô tả" />
             <label className="form-textarea-label">Mô tả</label>
           </div>
 

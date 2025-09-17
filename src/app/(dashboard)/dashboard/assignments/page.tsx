@@ -269,7 +269,6 @@ export default function AssignmentsPage() {
                           size="sm"
                           variant={status.action === 'view' ? 'outline' : 'default'}
                           onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}
-                          disabled={status.action === 'view' && now > new Date(assignment.due_date)}
                         >
                           {status.action === 'take' ? 'Làm bài' : (status.action === 'retake' ? 'Làm lại' : 'Xem chi tiết')}
                         </Button>

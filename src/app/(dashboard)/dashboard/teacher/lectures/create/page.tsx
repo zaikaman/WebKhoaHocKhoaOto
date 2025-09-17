@@ -185,7 +185,7 @@ export default function CreateLecturePage() {
           </div>
 
           <div className="relative pt-5">
-            <Textarea name="description" required className="form-textarea peer min-h-[120px]" placeholder="Mô tả" />
+            <Textarea name="description" className="form-textarea peer min-h-[120px]" placeholder="Mô tả" />
             <label className="form-textarea-label">Mô tả</label>
           </div>
 
