@@ -9,7 +9,7 @@ import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam } from "@/
 import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
-import { Plus, RefreshCw, Check, Loader, Clock, MoreHorizontal, Users } from "lucide-react"
+import { Plus, RefreshCw, Check, Loader, Clock, MoreHorizontal, Users, FileIcon } from "lucide-react"
 
 type Exam = {
   id: string
