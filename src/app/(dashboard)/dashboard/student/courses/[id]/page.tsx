@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, getClassDetailsById, supabase } from "@/lib/supabase"
 import { FileIcon, Download, Eye } from "lucide-react"
 import type { ClassDetails as SupabaseClassDetails, Lecture as SupabaseLecture, LectureFile } from "@/lib/supabase"
+import { Viewer, Worker } from '@react-pdf-viewer/core';
+import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
+import '@react-pdf-viewer/core/lib/styles/index.css';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 // Use the types from supabase lib and extend if necessary
 interface Lecture extends SupabaseLecture {}
@@ -21,8 +24,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [classData, setClassData] = useState<ClassDetails | null>(null)
-  const [isViewerOpen, setIsViewerOpen] = useState(false)
   const [viewingFile, setViewingFile] = useState<{ url: string; type: string; name: string; } | null>(null)
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   useEffect(() => {
     loadClassDetails()
@@ -98,7 +101,6 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     }
 
     setViewingFile({ url: viewUrl, type: fileExtension, name: file.original_filename });
-    setIsViewerOpen(true);
   };
 
   const getFileTypeLabel = (type: string) => {
@@ -198,7 +200,38 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           </TabsContent>
 
           <TabsContent value="lectures" className="space-y-4">
-              {classData.lectures.length > 0 ? (
+            {viewingFile ? (
+              <div className="space-y-4">
+                <Button variant="outline" onClick={() => setViewingFile(null)}>
+                  Quay lại danh sách bài giảng
+                </Button>
+                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                  <div className="p-4 border-b">
+                    <h3 className="text-lg font-semibold">{viewingFile.name}</h3>
+                  </div>
+                  <div className="w-full h-[80vh] p-4">
+                    {viewingFile.type === 'pdf' ? (
+                      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                        <Viewer
+                          fileUrl={viewingFile.url}
+                          plugins={[defaultLayoutPluginInstance]}
+                        />
+                      </Worker>
+                    ) : (
+                      <iframe
+                        src={viewingFile.url}
+                        title={viewingFile.name}
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        className="rounded-md"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              classData.lectures.length > 0 ? (
                   classData.lectures.map((lecture) => {
                       const videoUrl = getYouTubeEmbedUrl(lecture.video_url || '');
                       return (
@@ -244,10 +277,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                                                       Xem
                                                   </Button>
                                                 )}
-                                                <Button variant="secondary" size="sm" onClick={() => handleDownload(file)}>
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    Tải về
-                                                </Button>
+
                                               </div>
                                           </div>
                                         )
@@ -271,7 +301,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                   <div className="col-span-full text-center py-8 sm:py-12">
                       <div className="text-sm sm:text-base text-muted-foreground">Chưa có bài giảng nào.</div>
                   </div>
-              )}
+              )
+            )}
           </TabsContent>
 
           <TabsContent value="assignments">
@@ -324,25 +355,6 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           </TabsContent>
         </Tabs>
       </div>
-
-      <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-6xl w-full h-[95vh] flex flex-col p-0 gap-0">
-          <div className="p-4 border-b shrink-0">
-            <DialogTitle>{viewingFile?.name}</DialogTitle>
-          </div>
-          <div className="flex-1 w-full h-full">
-            {viewingFile?.url && (
-              <iframe
-                src={viewingFile.url}
-                title={viewingFile.name}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
