@@ -1891,4 +1891,3 @@ export async function simpleDownloadFile(fileUrl: string, filename?: string, lec
     }
   }
 }
-}
