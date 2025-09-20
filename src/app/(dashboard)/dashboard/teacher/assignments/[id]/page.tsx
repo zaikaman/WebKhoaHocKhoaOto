@@ -323,7 +323,7 @@ export default function AssignmentDetailPage() {
                     </div>
                   </div>
                   <div className="form-field">
-                    <Input id="new-q-correct" value={newQuestion.correct_answer} onChange={(e) => setNewQuestion({...newQuestion, correct_answer: e.target.value})} className="form-input peer" placeholder="Đáp án đúng" />
+                    <Input id="new-q-correct" value={newQuestion.correct_answer || ''} onChange={(e) => setNewQuestion({...newQuestion, correct_answer: e.target.value})} className="form-input peer" placeholder="Đáp án đúng" />
                     <Label htmlFor="new-q-correct" className="form-label">Đáp án đúng</Label>
                   </div>
                 </div>
