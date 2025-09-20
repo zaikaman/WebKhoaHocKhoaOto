@@ -136,6 +136,13 @@ export type Assignment = {
   created_at: string
   updated_at: string
   max_attempts: number
+  class?: {
+    name: string
+    subject: {
+      name: string
+    }
+  }
+  type?: string
 }
 
 export type AssignmentQuestion = {
