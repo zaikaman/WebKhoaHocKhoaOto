@@ -855,7 +855,13 @@ export async function updateAssignmentSubmission(submissionId: string, submissio
 export async function getAssignmentById(assignmentId: string): Promise<Assignment | null> {
   const { data, error } = await supabase
     .from('assignments')
-    .select('*')
+    .select(`
+      *,
+      class:classes(
+        name,
+        subject:subjects(name)
+      )
+    `)
     .eq('id', assignmentId)
     .single()
 
@@ -1884,4 +1890,5 @@ export async function simpleDownloadFile(fileUrl: string, filename?: string, lec
       error: error instanceof Error ? error.message : 'Không thể tải file' 
     }
   }
+}
 }
