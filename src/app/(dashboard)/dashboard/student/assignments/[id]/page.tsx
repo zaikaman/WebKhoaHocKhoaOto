@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, supabase } from "@/lib/supabase"
+import { Bookmark } from "lucide-react"
 
 function shuffleArray<T>(array: T[]): T[] {
   let currentIndex = array.length,  randomIndex;
@@ -91,6 +92,8 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
   const [currentAttempt, setCurrentAttempt] = useState<AssignmentSubmission | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [markedQuestions, setMarkedQuestions] = useState<string[]>([]);
+  const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     loadAssignmentData()
@@ -225,8 +228,57 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
     }
   }
 
+  const toggleMarkQuestion = (questionId: string) => {
+    setMarkedQuestions(prev =>
+        prev.includes(questionId)
+            ? prev.filter(id => id !== questionId)
+            : [...prev, questionId]
+    );
+  };
+
+  const scrollToQuestion = (index: number) => {
+      questionRefs.current[index]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+      });
+  };
+
   if (isLoading && !assignment) {
-    return <div className="flex items-center justify-center min-h-[200px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+    return (
+      <div className="flex h-screen">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+          <div className="h-8 w-1/2 bg-muted rounded animate-pulse mb-4" />
+          <div className="space-y-6">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="rounded-lg border bg-card text-card-foreground shadow-sm w-full">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="h-6 w-24 bg-muted rounded animate-pulse mb-2" />
+                      <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                    </div>
+                    <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                  </div>
+                  <div className="h-24 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="w-64 border-l bg-gray-50 p-4 flex flex-col h-screen sticky top-0">
+          <div className="h-6 w-3/4 bg-muted rounded animate-pulse mb-4" />
+          <div className="flex-1 overflow-y-auto grid grid-cols-4 gap-2">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="h-10 w-full bg-muted rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!assignment) {
@@ -260,44 +312,66 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
   }
 
   return (
-    <div className="space-y-8">
-      <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container max-w-screen-2xl py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2>
-              <p className="text-muted-foreground">{assignment.class.subject.name} - {assignment.class.name}</p>
-            </div>
-            <Button disabled={isSubmitting || isOverdue} onClick={() => setShowConfirmDialog(true)}>{isOverdue ? "Đã quá hạn" : "Nộp bài"}</Button>
-          </div>
+    <div className="flex h-screen">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">{assignment.title}</h2>
+        <div className="space-y-6">
+          {questions.map((question, index) => (
+            <Card key={question.id} ref={el => { questionRefs.current[index] = el }} className="w-full">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>Câu {index + 1}</CardTitle>
+                    <CardDescription>Điểm: {question.points}</CardDescription>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => toggleMarkQuestion(question.id)} className={markedQuestions.includes(question.id) ? 'bg-yellow-200' : ''}>
+                    <Bookmark className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-sm">{question.content}</div>
+                {question.type === 'multiple_choice' ? (
+                  <div className="space-y-3">
+                    {(() => {
+                      try {
+                        const options = Array.isArray(question.options) ? question.options : JSON.parse(question.options as string || '[]');
+                        return options.map((option: string, i: number) => (
+                          <div key={i} className="flex items-center space-x-3">
+                            <input type="radio" id={`${question.id}-${i}`} name={`question-${question.id}`} value={option} checked={answers[question.id] === option} onChange={e => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))} className="h-4 w-4" />
+                            <label htmlFor={`${question.id}-${i}`} className="text-sm font-medium">{option}</label>
+                          </div>
+                        ));
+                      } catch (e) { return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>; }
+                    })()}
+                  </div>
+                ) : (
+                  <Textarea value={answers[question.id] || ''} onChange={e => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))} placeholder="Nhập câu trả lời..." className="min-h-[150px]" />
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 
-      <div className="container max-w-screen-2xl pb-8">
-        <div className="grid gap-6">
-          {questions.map((question, index) => (
-            <Card key={question.id}><CardHeader><CardTitle>Câu {index + 1}</CardTitle><CardDescription>Điểm: {question.points}</CardDescription></CardHeader><CardContent className="space-y-4">
-              <div className="text-sm">{question.content}</div>
-              {question.type === 'multiple_choice' ? (
-                <div className="space-y-3">
-                  {(() => {
-                    try {
-                      const options = Array.isArray(question.options) ? question.options : JSON.parse(question.options as string || '[]');
-                      return options.map((option: string, i: number) => (
-                        <div key={i} className="flex items-center space-x-3">
-                          <input type="radio" id={`${question.id}-${i}`} name={`question-${question.id}`} value={option} checked={answers[question.id] === option} onChange={e => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))} className="h-4 w-4" />
-                          <label htmlFor={`${question.id}-${i}`} className="text-sm font-medium">{option}</label>
-                        </div>
-                      ));
-                    } catch (e) { return <div className="text-red-500">Lỗi hiển thị câu hỏi</div>; }
-                  })()}
-                </div>
-              ) : (
-                <Textarea value={answers[question.id] || ''} onChange={e => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))} placeholder="Nhập câu trả lời..." className="min-h-[150px]" />
-              )}
-            </CardContent></Card>
+      <div className="w-64 border-l bg-gray-50 p-4 flex flex-col h-screen sticky top-0">
+        <h3 className="text-lg font-semibold mb-4">Danh sách câu hỏi</h3>
+        <div className="flex-1 overflow-y-auto grid grid-cols-4 gap-2">
+          {questions.map((q, i) => (
+            <Button
+              key={q.id}
+              variant={answers[q.id] ? "default" : "outline"}
+              size="sm"
+              onClick={() => scrollToQuestion(i)}
+              className={`w-full h-10 ${markedQuestions.includes(q.id) ? 'ring-2 ring-yellow-400' : ''}`}>
+              {i + 1}
+            </Button>
           ))}
         </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex items-center justify-end">
+        <Button disabled={isSubmitting || isOverdue} onClick={() => setShowConfirmDialog(true)}>{isOverdue ? "Đã quá hạn" : "Nộp bài"}</Button>
       </div>
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

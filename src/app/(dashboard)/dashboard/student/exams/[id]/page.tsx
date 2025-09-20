@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser, supabase } from "@/lib/supabase"
+import { Bookmark } from "lucide-react"
 
 // Helper function to shuffle an array in-place using Fisher-Yates algorithm
 function shuffleArray<T>(array: T[]): T[] {
@@ -111,6 +112,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [currentAttempt, setCurrentAttempt] = useState<ExamSubmission | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [markedQuestions, setMarkedQuestions] = useState<string[]>([]);
+  const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     loadExam()
@@ -328,8 +331,57 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
 
+  const toggleMarkQuestion = (questionId: string) => {
+    setMarkedQuestions(prev =>
+        prev.includes(questionId)
+            ? prev.filter(id => id !== questionId)
+            : [...prev, questionId]
+    );
+  };
+
+  const scrollToQuestion = (index: number) => {
+      questionRefs.current[index]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+      });
+  };
+
   if (isLoading && !exam) {
-    return <div className="flex items-center justify-center min-h-[200px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+    return (
+      <div className="flex h-screen">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+          <div className="h-8 w-1/2 bg-muted rounded animate-pulse mb-4" />
+          <div className="space-y-6">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="rounded-lg border bg-card text-card-foreground shadow-sm w-full">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="h-6 w-24 bg-muted rounded animate-pulse mb-2" />
+                      <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                    </div>
+                    <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                  </div>
+                  <div className="h-24 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="w-64 border-l bg-gray-50 p-4 flex flex-col h-screen sticky top-0">
+          <div className="h-6 w-3/4 bg-muted rounded animate-pulse mb-4" />
+          <div className="flex-1 overflow-y-auto grid grid-cols-4 gap-2">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="h-10 w-full bg-muted rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!exam) {
@@ -368,27 +420,23 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container max-w-screen-2xl py-2 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-            <div className="w-full sm:w-auto">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Bài kiểm tra : {exam.title}</h2>
-              <p className="text-muted-foreground">{exam.class.subject.name} - {exam.class.name}</p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              {timeLeft !== null && <div className="text-base sm:text-lg font-semibold">Thời gian còn lại: {formatTime(timeLeft)}</div>}
-              <Button className="w-full sm:w-auto" disabled={isSubmitting} onClick={() => setShowConfirmDialog(true)}>Nộp bài</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container max-w-screen-2xl pb-8 px-2 sm:px-0">
-        <div className="grid gap-4 sm:gap-6">
+    <div className="flex h-screen">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">{exam.title}</h2>
+        <div className="space-y-6">
           {questions.map((question, index) => (
-            <Card key={question.id} className="w-full">
-              <CardHeader><div className="flex items-start justify-between"><div><CardTitle>Câu {index + 1}</CardTitle><CardDescription>Điểm: {question.points}</CardDescription></div></div></CardHeader>
+            <Card key={question.id} ref={el => { questionRefs.current[index] = el }} className="w-full">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>Câu {index + 1}</CardTitle>
+                    <CardDescription>Điểm: {question.points}</CardDescription>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => toggleMarkQuestion(question.id)} className={markedQuestions.includes(question.id) ? 'bg-yellow-200' : ''}>
+                    <Bookmark className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2"><Label htmlFor={`question-${question.id}`}>Câu hỏi</Label><div className="text-sm">{question.content}</div></div>
                 {question.type === 'multiple_choice' ? (
@@ -416,6 +464,27 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </Card>
           ))}
         </div>
+      </div>
+
+      <div className="w-64 border-l bg-gray-50 p-4 flex flex-col h-screen sticky top-0">
+        <h3 className="text-lg font-semibold mb-4">Danh sách câu hỏi</h3>
+        <div className="flex-1 overflow-y-auto grid grid-cols-4 gap-2">
+          {questions.map((q, i) => (
+            <Button
+              key={q.id}
+              variant={answers[q.id] ? "default" : "outline"}
+              size="sm"
+              onClick={() => scrollToQuestion(i)}
+              className={`w-full h-10 ${markedQuestions.includes(q.id) ? 'ring-2 ring-yellow-400' : ''}`}>
+              {i + 1}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex items-center justify-between">
+        {timeLeft !== null && <div className="text-lg font-semibold">Thời gian còn lại: {formatTime(timeLeft)}</div>}
+        <Button disabled={isSubmitting} onClick={() => setShowConfirmDialog(true)}>Nộp bài</Button>
       </div>
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

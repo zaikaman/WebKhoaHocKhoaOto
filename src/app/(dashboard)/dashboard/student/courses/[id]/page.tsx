@@ -137,8 +137,34 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-6 sm:space-y-8 px-2 sm:px-4 md:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <div>
+            <div className="h-8 w-48 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="h-9 w-24 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="space-y-4">
+          <div className="flex space-x-4 border-b">
+            <div className="h-10 w-24 bg-muted rounded-t-md animate-pulse" />
+            <div className="h-10 w-24 bg-muted rounded-t-md animate-pulse" />
+            <div className="h-10 w-24 bg-muted rounded-t-md animate-pulse" />
+            <div className="h-10 w-24 bg-muted rounded-t-md animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
+              <div className="h-6 w-1/2 bg-muted rounded animate-pulse mb-4" />
+              <div className="h-4 w-full bg-muted rounded animate-pulse mb-2" />
+              <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
+              <div className="h-6 w-1/2 bg-muted rounded animate-pulse mb-4" />
+              <div className="h-4 w-full bg-muted rounded animate-pulse mb-2" />
+              <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

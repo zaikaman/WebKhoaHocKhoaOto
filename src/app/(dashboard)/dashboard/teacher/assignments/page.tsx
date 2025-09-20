@@ -375,7 +375,218 @@ export default function TeacherAssignmentsPage() {
       <SearchFilter searchPlaceholder="Tìm kiếm bài tập..." filterOptions={filterOptions} onSearch={handleSearch} />
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        {/* Create Dialog Content Remains the Same */}
+        <DialogContent className="sm:max-w-[600px]">
+          <form onSubmit={handleCreateAssignment}>
+            <DialogHeader>
+              <DialogTitle>{editingAssignmentId ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}</DialogTitle>
+              <DialogDescription>
+                Chọn loại bài tập bạn muốn tạo
+              </DialogDescription>
+            </DialogHeader>
+            <Tabs defaultValue="multiple_choice" onValueChange={(value) => setFormData({...formData, type: value as 'multiple_choice' | 'essay'})}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="multiple_choice">Trắc nghiệm</TabsTrigger>
+                <TabsTrigger value="essay">Tự luận</TabsTrigger>
+              </TabsList>
+              <TabsContent value="multiple_choice" className="space-y-4">
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    {selectedFile ? (
+                      <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors flex flex-col items-center justify-center space-y-4">
+                        <Upload className="h-12 w-12 text-blue-400" />
+                        <div className="text-center">
+                          <p className="text-base font-medium text-blue-600">Đã chọn file:</p>
+                          <p className="text-sm font-medium mt-1">{selectedFile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedFile(null)}
+                        >
+                          Xóa file
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors text-center flex flex-col items-center justify-center space-y-4">
+                        <Upload className="h-12 w-12 text-blue-500" />
+                        <div className="text-center">
+                          <p className="text-base font-medium text-blue-600">Chọn file Excel để tải lên</p>
+                          <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Định dạng hỗ trợ: XLSX, XLS
+                          </p>
+                        </div>
+                        <input
+                          id="file-upload"
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleFileUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 text-blue-600 underline"
+                      onClick={() => setShowTemplateDialog(true)}
+                      type="button"
+                    >
+                      Tải mẫu
+                    </Button>
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  <div className="form-field">
+                    <Input 
+                      id="title-mc"
+                      placeholder="Nhập tiêu đề bài tập"
+                      value={formData.title}
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
+                      required
+                      className="form-input peer"
+                    />
+                    <Label htmlFor="title-mc" className="form-label">Tiêu đề</Label>
+                  </div>
+                  <div className="relative pt-5">
+                    <Textarea 
+                      id="description-mc"
+                      placeholder="Nhập mô tả bài tập"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      required
+                      className="form-textarea peer"
+                    />
+                    <Label htmlFor="description-mc" className="form-textarea-label">Mô tả</Label>
+                  </div>
+                  <div className="form-field">
+                    <Label htmlFor="class-mc" className="absolute -top-3 left-3 text-sm text-blue-500">Lớp học</Label>
+                    <select
+                      id="class-mc"
+                      name="class_id"
+                      className="w-full px-3 py-2 border rounded-md"
+                      value={formData.classId}
+                      onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                      required
+                    >
+                      <option value="">Chọn lớp học</option>
+                      {classes.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-field">
+                    <Input
+                      type="datetime-local"
+                      id="dueDate-mc"
+                      value={formData.dueDate}
+                      onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                      required
+                      className="form-input peer"
+                      placeholder="Hạn nộp"
+                    />
+                    <Label htmlFor="dueDate-mc" className="form-label">Hạn nộp</Label>
+                  </div>
+                  <div className="form-field">
+                    <Input
+                      type="number"
+                      id="maxPoints-mc"
+                      min="0"
+                      max="100"
+                      value={formData.maxPoints}
+                      onChange={(e) => setFormData({...formData, maxPoints: e.target.value})}
+                      required
+                      className="form-input peer"
+                      placeholder="Điểm tối đa"
+                    />
+                    <Label htmlFor="maxPoints-mc" className="form-label">Điểm tối đa</Label>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="essay" className="space-y-4">
+                <div className="space-y-4 pt-4">
+                  <div className="grid gap-4">
+                    <div className="form-field">
+                      <Input 
+                        id="title-essay"
+                        placeholder="Nhập tiêu đề bài tập"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        required
+                        className="form-input peer"
+                      />
+                      <Label htmlFor="title-essay" className="form-label">Tiêu đề</Label>
+                    </div>
+                    <div className="relative pt-5">
+                      <Textarea 
+                        id="description-essay"
+                        placeholder="Nhập mô tả và yêu cầu của bài tập"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        required
+                        className="form-textarea peer"
+                      />
+                      <Label htmlFor="description-essay" className="form-textarea-label">Mô tả</Label>
+                    </div>
+                    <div className="form-field">
+                      <Label htmlFor="class-essay" className="absolute -top-3 left-3 text-sm text-blue-500">Lớp học</Label>
+                      <select
+                        id="class-essay"
+                        name="class_id"
+                        className="w-full px-3 py-2 border rounded-md"
+                        value={formData.classId}
+                        onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                        required
+                      >
+                        <option value="">Chọn lớp học</option>
+                        {classes.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <Input
+                        type="number"
+                        id="maxPoints-essay"
+                        min="0"
+                        max="100"
+                        value={formData.maxPoints}
+                        onChange={(e) => setFormData({...formData, maxPoints: e.target.value})}
+                        required
+                        className="form-input peer"
+                        placeholder="Điểm tối đa"
+                      />
+                      <Label htmlFor="maxPoints-essay" className="form-label">Điểm tối đa</Label>
+                    </div>
+                    <div className="form-field">
+                      <Input
+                        type="datetime-local"
+                        id="dueDate-essay"
+                        value={formData.dueDate}
+                        onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                        required
+                        className="form-input peer"
+                        placeholder="Hạn nộp"
+                      />
+                      <Label htmlFor="dueDate-essay" className="form-label">Hạn nộp</Label>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                Hủy
+              </Button>
+                              <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (editingAssignmentId ? "Đang cập nhật..." : "Đang tạo...") : (editingAssignmentId ? "Cập nhật bài tập" : "Tạo bài tập")}
+                </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
