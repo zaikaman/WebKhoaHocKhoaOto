@@ -337,7 +337,7 @@ export default function QuickAddPage() {
       } else {
         const formData = new FormData(event.currentTarget)
         if (addType === 'assignment') {
-          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null }
+          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1 }
           const newAssignments = await createAssignmentForClasses(assignmentData, selectedClasses)
           if (newAssignments) {
             for (const assignment of newAssignments) {
@@ -510,6 +510,10 @@ export default function QuickAddPage() {
                   <div className="form-field">
                     <Input id='total_points' name='total_points' type='number' required className="form-input peer" placeholder="Tổng điểm" />
                     <Label htmlFor='total_points' className="form-label">Tổng điểm</Label>
+                  </div>
+                  <div className="form-field">
+                    <Input id='max_attempts' name='max_attempts' type='number' defaultValue={1} required className="form-input peer" placeholder="Số lần làm bài" />
+                    <Label htmlFor='max_attempts' className="form-label">Số lần làm bài</Label>
                   </div>
                 </div>
                 <div className="relative pt-5">

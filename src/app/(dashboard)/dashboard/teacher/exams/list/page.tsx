@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import { Plus, RefreshCw, Check, Loader, Clock, MoreHorizontal, Users, FileIcon } from "lucide-react"
+import { AssignmentListSkeleton } from "../../components/AssignmentListSkeleton";
 
 type Exam = {
   id: string
@@ -232,7 +233,7 @@ export default function TeacherExamsListPage() {
   }
 
   if (isLoading) {
-    return <div>Loading...</div> // Replace with a proper skeleton loader
+    return <div className="p-8"><AssignmentListSkeleton /></div>
   }
 
   return (

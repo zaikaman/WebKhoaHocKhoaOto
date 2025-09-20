@@ -22,6 +22,7 @@ import { Loader2, Plus, RefreshCw, Upload, File as FileIcon, Users, CheckCircle,
 import * as XLSX from 'xlsx'
 import { supabase, createAssignment, Assignment as DBAssignment } from '@/lib/supabase'
 import { sanitizeDescription } from '@/lib/utils'
+import { AssignmentListSkeleton } from "../components/AssignmentListSkeleton";
 
 type Assignment = {
   id: string
@@ -48,7 +49,8 @@ type GroupedAssignment = {
 }
 
 type CreateAssignmentData = Omit<DBAssignment, 'id' | 'created_at' | 'updated_at'> & {
-  type: 'multiple_choice' | 'essay'
+  type: 'multiple_choice' | 'essay',
+  max_attempts?: number
 }
 
 export default function TeacherAssignmentsPage() {
@@ -74,7 +76,8 @@ export default function TeacherAssignmentsPage() {
     classId: '',
     dueDate: '',
     maxPoints: '100',
-    type: 'multiple_choice' as 'multiple_choice' | 'essay'
+    type: 'multiple_choice' as 'multiple_choice' | 'essay',
+    maxAttempts: '1'
   })
 
   const filterOptions: FilterOption[] = useMemo(() => {
@@ -257,7 +260,7 @@ export default function TeacherAssignmentsPage() {
       }
 
       if (editingAssignmentId) {
-        const { error: updateError } = await supabase.from('assignments').update({ title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), type: formData.type, updated_at: new Date().toISOString() }).eq('id', editingAssignmentId)
+        const { error: updateError } = await supabase.from('assignments').update({ title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), type: formData.type, max_attempts: Number(formData.maxAttempts), updated_at: new Date().toISOString() }).eq('id', editingAssignmentId)
         if (updateError) throw updateError
 
         if (formData.type === 'multiple_choice' && questions.length > 0) {
@@ -268,7 +271,7 @@ export default function TeacherAssignmentsPage() {
         }
         toast({ title: "Thành công", description: "Đã cập nhật bài tập" })
       } else {
-        const assignmentData: CreateAssignmentData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), file_url: null, type: formData.type }
+        const assignmentData: CreateAssignmentData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), file_url: null, type: formData.type, max_attempts: Number(formData.maxAttempts) }
         const assignment = await createAssignment(assignmentData)
 
         if (formData.type === 'multiple_choice' && questions.length > 0) {
@@ -279,7 +282,7 @@ export default function TeacherAssignmentsPage() {
         toast({ title: "Thành công", description: "Đã tạo bài tập mới" })
       }
 
-      setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice' })
+      setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1' })
       setQuestions([])
       setSelectedFile(null)
       setEditingAssignmentId(null)
@@ -355,7 +358,7 @@ export default function TeacherAssignmentsPage() {
   }
 
   if (isLoading) {
-    return <div>Loading...</div> // Replace with a proper skeleton loader
+    return <div className="p-8"><AssignmentListSkeleton /></div>
   }
 
   return (
@@ -368,7 +371,7 @@ export default function TeacherAssignmentsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={loadData}><RefreshCw className="w-4 h-4 mr-2" />Làm mới</Button>
-          <Button className="w-full sm:w-auto" onClick={() => { setEditingAssignmentId(null); setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice' }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài tập</Button>
+          <Button className="w-full sm:w-auto" onClick={() => { setEditingAssignmentId(null); setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1' }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài tập</Button>
         </div>
       </div>
 
@@ -504,6 +507,19 @@ export default function TeacherAssignmentsPage() {
                     />
                     <Label htmlFor="maxPoints-mc" className="form-label">Điểm tối đa</Label>
                   </div>
+                  <div className="form-field">
+                    <Input
+                      type="number"
+                      id="max_attempts-mc"
+                      min="1"
+                      value={formData.maxAttempts}
+                      onChange={(e) => setFormData({...formData, maxAttempts: e.target.value})}
+                      required
+                      className="form-input peer"
+                      placeholder="Số lần làm bài"
+                    />
+                    <Label htmlFor="max_attempts-mc" className="form-label">Số lần làm bài</Label>
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="essay" className="space-y-4">
@@ -560,6 +576,19 @@ export default function TeacherAssignmentsPage() {
                         placeholder="Điểm tối đa"
                       />
                       <Label htmlFor="maxPoints-essay" className="form-label">Điểm tối đa</Label>
+                    </div>
+                    <div className="form-field">
+                      <Input
+                        type="number"
+                        id="max_attempts-essay"
+                        min="1"
+                        value={formData.maxAttempts}
+                        onChange={(e) => setFormData({...formData, maxAttempts: e.target.value})}
+                        required
+                        className="form-input peer"
+                        placeholder="Số lần làm bài"
+                      />
+                      <Label htmlFor="max_attempts-essay" className="form-label">Số lần làm bài</Label>
                     </div>
                     <div className="form-field">
                       <Input

@@ -50,6 +50,7 @@ CREATE TABLE public.assignments (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   type text NOT NULL DEFAULT 'multiple_choice'::text,
+  max_attempts integer NOT NULL DEFAULT 1,
   CONSTRAINT assignments_pkey PRIMARY KEY (id),
   CONSTRAINT assignments_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
 );

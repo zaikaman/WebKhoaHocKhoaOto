@@ -29,6 +29,7 @@ interface Assignment {
   total_points: number
   class_id: string
   class: { name: string; subject: { name: string } }
+  max_attempts?: number
 }
 
 interface AssignmentQuestion {
@@ -48,7 +49,7 @@ interface AssignmentSubmission {
   status: 'in-progress' | 'completed'
 }
 
-function SubmissionHistory({ submissions, totalPoints }: { submissions: AssignmentSubmission[], totalPoints: number }) {
+function SubmissionHistory({ submissions, totalPoints, maxAttempts }: { submissions: AssignmentSubmission[], totalPoints: number, maxAttempts: number }) {
   const completedSubmissions = submissions.filter(s => s.status === 'completed');
   if (completedSubmissions.length === 0) return null;
 
@@ -58,7 +59,9 @@ function SubmissionHistory({ submissions, totalPoints }: { submissions: Assignme
     <Card className="mb-6">
       <CardHeader>
         <CardTitle>Lịch sử nộp bài</CardTitle>
-        <CardDescription>Điểm cao nhất của bạn là: {highestScore}/{totalPoints}</CardDescription>
+        <CardDescription>
+          Điểm cao nhất của bạn là: {highestScore.toFixed(1)}/{totalPoints} ({completedSubmissions.length}/{maxAttempts} lần làm)
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="space-y-4">
@@ -71,7 +74,7 @@ function SubmissionHistory({ submissions, totalPoints }: { submissions: Assignme
                 </p>
               </div>
               <p className={`font-bold text-lg ${submission.score === highestScore ? 'text-primary' : ''}`}>
-                {submission.score ?? 'Chưa chấm'}/{totalPoints}
+                {submission.score?.toFixed(1) ?? 'Chưa chấm'}/{totalPoints}
               </p>
             </li>
           ))}
@@ -90,6 +93,7 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
   const [assignment, setAssignment] = useState<Assignment | null>(null)
   const [questions, setQuestions] = useState<AssignmentQuestion[]>([])
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
+  const [completedSubmissions, setCompletedSubmissions] = useState<AssignmentSubmission[]>([]);
   const [currentAttempt, setCurrentAttempt] = useState<AssignmentSubmission | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [markedQuestions, setMarkedQuestions] = useState<string[]>([]);
@@ -107,22 +111,26 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
         router.push('/login'); return;
       }
 
-      const { data: assignmentData, error: assignmentError } = await supabase
-        .from('assignments').select(`*, class:classes(name, subject:subjects(name))`).eq('id', params.id).single()
+      const { data: assignmentData, error: assignmentError } = await supabase.from('assignments').select(`*, class:classes(name, subject:subjects(name))`).eq('id', params.id).single()
 
       if (assignmentError) throw assignmentError
       setAssignment(assignmentData)
 
-      const { data: allSubmissions, error: submissionError } = await supabase
-        .from('assignment_submissions').select('*').eq('assignment_id', params.id).eq('student_id', currentUser.profile.id).order('submitted_at', { ascending: false });
+      const { data: allSubmissions, error: submissionError } = await supabase.from('assignment_submissions').select('*').eq('assignment_id', params.id).eq('student_id', currentUser.profile.id).order('submitted_at', { ascending: false });
 
       if (submissionError) throw submissionError
       setSubmissions(allSubmissions || []);
-
+      
+      const completed = allSubmissions?.filter(s => s.status === 'completed') || [];
+      setCompletedSubmissions(completed);
       const inProgressSubmission = allSubmissions?.find(s => s.status === 'in-progress');
+
       if (inProgressSubmission) {
         setCurrentAttempt(inProgressSubmission);
         setAnswers(inProgressSubmission.answers || {});
+      } else if (completed.length >= (assignmentData.max_attempts || 1)) {
+        toast({ title: "Thông báo", description: `Bạn đã đạt số lần làm bài tối đa (${assignmentData.max_attempts || 1}).` });
+        setCurrentAttempt(null);
       } else {
         setCurrentAttempt(null);
       }
@@ -159,6 +167,16 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
       setIsLoading(true);
       const currentUser = await getCurrentUser();
       if (!currentUser) { router.push('/login'); return; }
+
+      if (!assignment) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Không tìm thấy thông tin bài tập." });
+        return;
+      }
+
+      if (completedSubmissions.length >= (assignment.max_attempts || 1)) {
+        toast({ title: "Thông báo", description: "Bạn đã hết lượt làm bài." });
+        return;
+      }
 
       const { data: newSubmission, error } = await supabase
         .from('assignment_submissions')
@@ -214,9 +232,10 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
 
       if (error) throw error
 
-      toast({ title: "Thành công", description: `Đã nộp bài. ${!hasEssayQuestion && score !== null ? `Điểm của bạn: ${score}/${assignment?.total_points}` : ''}` })
+      toast({ title: "Thành công", description: `Đã nộp bài. ${!hasEssayQuestion && score !== null ? `Điểm của bạn: ${score.toFixed(1)}/${assignment?.total_points}` : ''}` })
       
       setAnswers({});
+      setCurrentAttempt(null);
       await loadAssignmentData();
 
     } catch (error) {
@@ -244,63 +263,29 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
   };
 
   if (isLoading && !assignment) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
-          <div className="h-8 w-1/2 bg-muted rounded animate-pulse mb-4" />
-          <div className="space-y-6">
-            {[...Array(3)].map((_, index) => (
-              <div key={index} className="rounded-lg border bg-card text-card-foreground shadow-sm w-full">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="h-6 w-24 bg-muted rounded animate-pulse mb-2" />
-                      <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-                    </div>
-                    <div className="h-8 w-8 bg-muted rounded animate-pulse" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-4 w-full bg-muted rounded animate-pulse" />
-                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
-                  </div>
-                  <div className="h-24 bg-muted rounded animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="w-64 border-l bg-gray-50 p-4 flex flex-col h-screen sticky top-0">
-          <div className="h-6 w-3/4 bg-muted rounded animate-pulse mb-4" />
-          <div className="flex-1 overflow-y-auto grid grid-cols-4 gap-2">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="h-10 w-full bg-muted rounded animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
-    )
+    return <div>Đang tải...</div>
   }
 
   if (!assignment) {
     return <div className="text-center"><h2 className="text-xl font-semibold">Không tìm thấy bài tập</h2><Button className="mt-4" onClick={() => router.push('/dashboard/student/assignments')}>Quay lại</Button></div>
   }
 
-  const isOverdue = new Date() > new Date(new Date(assignment.due_date).getTime() - 7 * 60 * 60 * 1000);
+  const isOverdue = new Date() > new Date(new Date(assignment.due_date).getTime());
 
   if (!currentAttempt) {
     return (
       <div className="space-y-8">
          <div className="sticky top-0 z-50 bg-background border-b"><div className="container max-w-screen-2xl py-4"><h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2><p className="text-muted-foreground">{assignment.class.subject.name} - {assignment.class.name}</p></div></div>
         <div className="container max-w-screen-2xl pb-8">
-          <SubmissionHistory submissions={submissions} totalPoints={assignment.total_points} />
-          {!isOverdue ? (
+          <SubmissionHistory submissions={submissions} totalPoints={assignment.total_points} maxAttempts={assignment.max_attempts || 1} />
+          {!isOverdue && completedSubmissions.length < (assignment.max_attempts || 1) ? (
             <div className="text-center mt-8">
               <Button onClick={startNewAttempt} disabled={isLoading}>
-                {isLoading ? 'Đang tải...' : (submissions.length > 0 ? 'Làm lại' : 'Bắt đầu làm bài')}
+                {isLoading ? 'Đang tải...' : `Bắt đầu lần làm bài thứ ${completedSubmissions.length + 1}`}
               </Button>
             </div>
           ) : (
-             <div className="text-center mt-8"><p className="text-red-500">Bài tập đã quá hạn nộp.</p></div>
+             <div className="text-center mt-8"><p className="text-red-500">{isOverdue ? "Bài tập đã quá hạn nộp." : "Bạn đã hết số lần làm bài."}</p></div>
           )}
         </div>
       </div>

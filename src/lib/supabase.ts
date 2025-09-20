@@ -135,6 +135,7 @@ export type Assignment = {
   file_url: string | null
   created_at: string
   updated_at: string
+  max_attempts: number
 }
 
 export type AssignmentQuestion = {
@@ -734,6 +735,17 @@ export async function createAssignmentQuestions(questions: Omit<AssignmentQuesti
   return data
 }
 
+export async function getAssignmentQuestions(assignmentId: string): Promise<AssignmentQuestion[]> {
+  const { data, error } = await supabase
+    .from('assignment_questions')
+    .select('*')
+    .eq('assignment_id', assignmentId)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
 export async function getAssignmentSubmissions(assignmentId: string) {
   const { data, error } = await supabase
     .from('assignment_submissions')
@@ -748,17 +760,35 @@ export async function getAssignmentSubmissions(assignmentId: string) {
   return data
 }
 
-export async function gradeAssignmentSubmission(
-  submissionId: string,
-  score: number,
-  feedback: string
-) {
+export async function getStudentAssignmentSubmissions(assignmentId: string, studentId: string): Promise<AssignmentSubmission[]> {
+  const { data, error } = await supabase
+    .from('assignment_submissions')
+    .select('*')
+    .eq('assignment_id', assignmentId)
+    .eq('student_id', studentId)
+    .order('submitted_at', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function createAssignmentSubmission(submission: Omit<AssignmentSubmission, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await supabase
+    .from('assignment_submissions')
+    .insert([submission])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateAssignmentSubmission(submissionId: string, submission: Partial<Omit<AssignmentSubmission, 'id' | 'created_at' | 'updated_at'>>) {
   const { data, error } = await supabase
     .from('assignment_submissions')
     .update({
-      score,
-      feedback,
-      graded_at: new Date().toISOString()
+      ...submission,
+      updated_at: new Date().toISOString()
     })
     .eq('id', submissionId)
     .select()
@@ -767,6 +797,22 @@ export async function gradeAssignmentSubmission(
   if (error) throw error
   return data
 }
+
+
+export async function getAssignmentById(assignmentId: string): Promise<Assignment | null> {
+  const { data, error } = await supabase
+    .from('assignments')
+    .select('*')
+    .eq('id', assignmentId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching assignment:', error)
+    throw error
+  }
+  return data
+}
+
 
 export async function deleteAssignment(assignmentId: string) {
   // First, delete all submissions for the assignment
