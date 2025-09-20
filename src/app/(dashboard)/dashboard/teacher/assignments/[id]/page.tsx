@@ -356,7 +356,7 @@ export default function AssignmentDetailPage() {
                       ))}
                     </div>
                     <div className="form-field">
-                      <Input value={q.correct_answer} onChange={(e) => handleQuestionChange(q.id!, 'correct_answer', e.target.value)} className="form-input peer" placeholder="Đáp án đúng" />
+                      <Input value={q.correct_answer || ''} onChange={(e) => handleQuestionChange(q.id!, 'correct_answer', e.target.value)} className="form-input peer" placeholder="Đáp án đúng" />
                       <Label className="form-label">Đáp án đúng</Label>
                     </div>
                     <div className="flex justify-end gap-2">
