@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { getCurrentUser, getStudentClasses, getStudentStats, getStudentUpcomingAssignments, getStudentUpcomingExams } from "@/lib/supabase"
+import { getCurrentUser, getStudentClasses, getStudentStats, getStudentUpcomingAssignments, getStudentUpcomingExams, getStudentPendingExams } from "@/lib/supabase"
 
 interface Course {
   id: string
@@ -39,7 +39,8 @@ interface Assignment {
 interface Exam {
   id: string
   title: string
-  start_time: string
+  start_time: string,
+  end_time: string,
   duration: number
   class: {
     name: string
@@ -63,10 +64,12 @@ export default function DashboardPage() {
   const [isCoursesLoading, setIsCoursesLoading] = useState(true)
   const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(true)
   const [isExamsLoading, setIsExamsLoading] = useState(true)
+  const [isPendingExamsLoading, setIsPendingExamsLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [upcomingAssignments, setUpcomingAssignments] = useState<Assignment[]>([])
   const [upcomingExams, setUpcomingExams] = useState<Exam[]>([])
+  const [pendingExams, setPendingExams] = useState<Exam[]>([])
 
   useEffect(() => {
     checkAuth()
@@ -112,6 +115,11 @@ export default function DashboardPage() {
       const examsData = await getStudentUpcomingExams(currentUser.profile.id)
       setUpcomingExams(examsData)
       setIsExamsLoading(false)
+
+      // Lấy bài kiểm tra chưa làm
+      const pendingExamsData = await getStudentPendingExams(currentUser.profile.id)
+      setPendingExams(pendingExamsData)
+      setIsPendingExamsLoading(false)
       
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu:', error)
@@ -369,6 +377,78 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Pending exams */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <h3 className="text-lg font-medium w-full sm:w-auto sm:text-left">Bài kiểm tra chưa làm</h3>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push('/dashboard/student/exams')}>
+            Xem tất cả
+          </Button>
+        </div>
+        <div className="rounded-lg border overflow-x-auto">
+          <div className="p-4 min-w-[600px]">
+            <table className="min-w-[600px] w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Tên bài kiểm tra</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Môn học</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Thời gian bắt đầu</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Thời gian kết thúc</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4">Thời lượng</th>
+                  <th className="text-left py-2 px-2 sm:py-3 sm:px-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {isPendingExamsLoading ? (
+                  <>
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                    <TableRowSkeleton />
+                  </>
+                ) : pendingExams.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      Không có bài kiểm tra nào chưa làm
+                    </td>
+                  </tr>
+                ) : (
+                  pendingExams.map((exam) => (
+                    <tr key={exam.id} className="border-b last:border-0">
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{exam.title}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{exam.class.subject.name}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{new Date(exam.start_time).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{new Date(exam.end_time).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">{exam.duration} phút</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4">
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/student/exams/${exam.id}`)}
+                        >
+                          Làm bài
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       {/* Upcoming exams */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
@@ -424,4 +504,4 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-} 
+}

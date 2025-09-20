@@ -710,6 +710,59 @@ export async function createAssignment(assignment: Omit<Assignment, 'id' | 'crea
   return data
 }
 
+export async function updateAssignment(assignmentId: string, assignment: Partial<Omit<Assignment, 'id' | 'created_at' | 'updated_at'>>) {
+  const { data, error } = await supabase
+    .from('assignments')
+    .update({
+      ...assignment,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', assignmentId)
+    .select('*, class:classes(*, subject:subjects(*))')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateAssignmentQuestion(questionId: string, question: Partial<Omit<AssignmentQuestion, 'id' | 'created_at' | 'updated_at'>>) {
+  const { data, error } = await supabase
+    .from('assignment_questions')
+    .update({
+      ...question,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', questionId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteAssignmentQuestion(questionId: string) {
+  const { data, error } = await supabase
+    .from('assignment_questions')
+    .delete()
+    .eq('id', questionId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function createAssignmentQuestion(question: Omit<AssignmentQuestion, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await supabase
+    .from('assignment_questions')
+    .insert([question])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function createAssignmentForClasses(assignment: Omit<Assignment, 'id' | 'created_at' | 'updated_at' | 'class_id'>, classIds: string[]) {
   const assignments = classIds.map(class_id => ({ ...assignment, class_id }))
   const { data, error } = await supabase
@@ -1606,6 +1659,60 @@ export async function getStudentUpcomingExams(studentId: string) {
 
   if (error) throw error
   return data
+}
+
+export async function getStudentPendingExams(studentId: string) {
+  // First, get the classes the student is enrolled in
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', studentId)
+    .eq('status', 'enrolled');
+
+  if (enrollmentError) throw enrollmentError;
+  if (!enrollments || enrollments.length === 0) {
+    return []; // Student is not enrolled in any classes
+  }
+
+  const classIds = enrollments.map(e => e.class_id);
+
+  // Get all exams for those classes that have not ended yet
+  const { data: allExams, error: examsError } = await supabase
+    .from('exams')
+    .select(`
+      *,
+      class:classes(
+        name,
+        subject:subjects(
+          name
+        )
+      )
+    `)
+    .in('class_id', classIds)
+    .gte('end_time', new Date().toISOString()) // Exams that haven't ended
+    .order('start_time', { ascending: true });
+
+  if (examsError) throw examsError;
+  if (!allExams || allExams.length === 0) {
+    return [];
+  }
+
+  // Get all submissions by the student for the fetched exams
+  const examIds = allExams.map(e => e.id);
+  const { data: submissions, error: submissionsError } = await supabase
+    .from('exam_submissions')
+    .select('exam_id')
+    .eq('student_id', studentId)
+    .in('exam_id', examIds);
+
+  if (submissionsError) throw submissionsError;
+
+  const submittedExamIds = new Set(submissions?.map(s => s.exam_id));
+
+  // Filter out exams that have been submitted
+  const pendingExams = allExams.filter(exam => !submittedExamIds.has(exam.id));
+
+  return pendingExams.slice(0, 5);
 }
 
 // Hàm cập nhật mật khẩu
