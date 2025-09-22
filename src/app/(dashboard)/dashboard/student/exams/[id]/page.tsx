@@ -468,14 +468,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       <div className="w-64 border-l bg-gray-50 p-4 flex flex-col h-screen sticky top-0">
         <h3 className="text-lg font-semibold mb-4">Danh sách câu hỏi</h3>
-        <div className="flex-1 overflow-y-auto grid grid-cols-4 gap-2">
+        <div className="flex-1 overflow-y-auto flex flex-wrap content-start gap-2">
           {questions.map((q, i) => (
             <Button
               key={q.id}
               variant={answers[q.id] ? "default" : "outline"}
               size="sm"
               onClick={() => scrollToQuestion(i)}
-              className={`w-full h-10 ${markedQuestions.includes(q.id) ? 'ring-2 ring-yellow-400' : ''}`}>
+              className={`w-10 h-10 ${markedQuestions.includes(q.id) ? 'ring-2 ring-yellow-400' : ''}`}>
               {i + 1}
             </Button>
           ))}
