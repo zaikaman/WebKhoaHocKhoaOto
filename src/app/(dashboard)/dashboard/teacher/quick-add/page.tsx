@@ -22,7 +22,6 @@ import { QuickAddSkeleton } from "../components/QuickAddSkeleton";
 interface Student {
   student_code: string;
   full_name: string;
-  email: string;
   date_of_birth?: string;
 }
 
@@ -213,13 +212,11 @@ export default function QuickAddPage() {
       {
         student_code: '20240001',
         full_name: 'Nguyễn Văn A',
-        email: 'a.nv@example.com',
         date_of_birth: '2002-01-15'
       },
       {
         student_code: '20240002',
         full_name: 'Trần Thị B',
-        email: 'b.tt@example.com',
         date_of_birth: '2002-03-20'
       }
     ];
@@ -941,7 +938,7 @@ export default function QuickAddPage() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-4">
-                      File phải có các cột: <code>student_code</code>, <code>full_name</code>, <code>email</code>, và (tùy chọn) <code>date_of_birth</code>.{' '}
+                      File phải có các cột: <code>student_code</code>, <code>full_name</code>, và (tùy chọn) <code>date_of_birth</code>.{' '}
                       <Button variant="link" className="h-auto p-0 text-blue-600 underline" onClick={handleDownloadStudentTemplate} type="button">
                         Tải file mẫu (.xlsx)
                       </Button>
