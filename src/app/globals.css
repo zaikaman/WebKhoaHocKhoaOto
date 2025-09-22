@@ -193,3 +193,8 @@
 .slide-out-to-right {
   --tw-exit-translate-x: 100%;
 }
+
+[data-testid="get-file__download-button"],
+[data-testid="print__button"] {
+  display: none !important;
+}

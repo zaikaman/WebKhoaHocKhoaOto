@@ -25,7 +25,18 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const [isLoading, setIsLoading] = useState(true)
   const [classData, setClassData] = useState<ClassDetails | null>(null)
   const [viewingFile, setViewingFile] = useState<{ url: string; type: string; name: string; } | null>(null)
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin({
+    toolbarPlugin: {
+      transform: (slot) => ({
+        ...slot,
+        Download: () => <></>,
+        DownloadMenuItem: () => <></>,
+        Print: () => <></>,
+        PrintMenuItem: () => <></>,
+      }),
+    },
+  });
+
 
   useEffect(() => {
     loadClassDetails()
