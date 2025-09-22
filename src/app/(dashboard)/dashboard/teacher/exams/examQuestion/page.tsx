@@ -108,21 +108,21 @@ export default function ExamQuestionPage() {
     const formData = new FormData(event.currentTarget)
 
     const options = examType === 'multiple_choice' ? [
-      formData.get('option1') as string,
-      formData.get('option2') as string,
-      formData.get('option3') as string,
-      formData.get('option4') as string
+      (formData.get('option1') as string).trim(),
+      (formData.get('option2') as string).trim(),
+      (formData.get('option3') as string).trim(),
+      (formData.get('option4') as string).trim()
     ] : null;
 
     const newQuestion: Omit<ExamQuestion, 'id'> = {
       exam_id: examId || '',
       type: examType,
-      content: formData.get('content') as string,
+      content: (formData.get('content') as string).trim(),
       points: Number(formData.get('points')),
       options: options ? JSON.stringify(options) : null,
       correct_answer: examType === 'multiple_choice' ? 
-        (formData.get(`option${Number(formData.get('correctOption'))}`) as string) :
-        (formData.get('correctAnswer') as string),
+        (formData.get(`option${Number(formData.get('correctOption'))}`) as string).trim() :
+        (formData.get('correctAnswer') as string).trim(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }

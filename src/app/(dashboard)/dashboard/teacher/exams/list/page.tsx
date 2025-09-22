@@ -32,6 +32,7 @@ type GroupedExam = {
   classes: Exam[];
   totalSubmissions: number;
   totalStudents: number;
+  duration: number;
 }
 
 export default function TeacherExamsListPage() {
@@ -146,7 +147,7 @@ export default function TeacherExamsListPage() {
       const grouped = allExams.reduce((acc, exam) => {
         const { title } = exam;
         if (!acc[title]) {
-          acc[title] = { title, mostRecentStartTime: '1970-01-01T00:00:00Z', classes: [], totalSubmissions: 0, totalStudents: 0 };
+          acc[title] = { title, mostRecentStartTime: '1970-01-01T00:00:00Z', classes: [], totalSubmissions: 0, totalStudents: 0, duration: exam.duration };
         }
         acc[title].classes.push(exam);
         acc[title].totalSubmissions += exam.submittedCount;
@@ -261,8 +262,9 @@ export default function TeacherExamsListPage() {
                 <div className="flex-1">
                   <h4 className="font-medium">{group.title}</h4>
                   <p className="text-sm text-muted-foreground mt-1">Áp dụng cho {group.classes.length} lớp học</p>
-                  <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                  <div className="grid grid-cols-4 gap-4 mt-2 text-sm">
                     <div><p className="text-muted-foreground">Bắt đầu gần nhất</p><p className="font-medium">{new Date(group.mostRecentStartTime).toLocaleString('vi-VN')}</p></div>
+                    <div><p className="text-muted-foreground">Thời gian làm bài</p><p className="font-medium">{group.duration} phút</p></div>
                     <div><p className="text-muted-foreground">Tổng số SV</p><p className="font-medium">{group.totalStudents}</p></div>
                     <div><p className="text-muted-foreground">Tổng bài nộp</p><p className="font-medium">{group.totalSubmissions}</p></div>
                   </div>

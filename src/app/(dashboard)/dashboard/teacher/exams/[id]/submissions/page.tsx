@@ -374,7 +374,7 @@ export default function ExamSubmissionsPage({ params }: { params: { id: string }
                     <div>
                       <Label htmlFor={`answer-${question.id}`}>Câu trả lời của sinh viên:</Label>
                       <div className="mt-1 text-sm whitespace-pre-wrap break-words">
-                        {selectedSubmission?.answers[question.id] || 'Không có câu trả lời'}
+                        {selectedSubmission?.answers?.[question.id] || 'Không có câu trả lời'}
                       </div>
                     </div>
                     {question.type === 'multiple_choice' && (
