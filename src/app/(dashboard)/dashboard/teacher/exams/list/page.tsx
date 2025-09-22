@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam } from "@/lib/supabase"
 import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
 import { Plus, RefreshCw, Check, Loader, Clock, MoreHorizontal, Users, FileIcon } from "lucide-react"
 import { AssignmentListSkeleton } from "../../components/AssignmentListSkeleton";
@@ -332,7 +333,24 @@ export default function TeacherExamsListPage() {
         <DialogContent className="w-full max-w-md">
           <DialogHeader><DialogTitle>Chỉnh sửa thông tin bài kiểm tra</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-            {/* Edit form fields */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">Tiêu đề</Label>
+                <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="edit-start-time">Thời gian bắt đầu</Label>
+                <Input id="edit-start-time" type="datetime-local" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="edit-end-time">Thời gian kết thúc</Label>
+                <Input id="edit-end-time" type="datetime-local" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="edit-duration">Thời gian làm bài (phút)</Label>
+                <Input id="edit-duration" type="number" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} />
+              </div>
+            </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2 pt-4">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsEditTitleDialogOpen(false)}>Hủy</Button>

@@ -183,7 +183,8 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
         .insert({ 
           assignment_id: params.id, 
           student_id: currentUser.profile.id, 
-          status: 'in-progress' 
+          status: 'in-progress', 
+          started_at: new Date().toISOString()
         })
         .select()
         .single();

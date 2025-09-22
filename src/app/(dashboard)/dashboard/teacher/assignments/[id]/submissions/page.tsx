@@ -26,6 +26,7 @@ interface AssignmentSubmission {
   submitted_at: string
   graded_at: string | null
   feedback: string | null
+  started_at: string
 }
 
 interface Question {
@@ -49,6 +50,16 @@ interface Assignment {
       name: string
     }
   }
+}
+
+function calculateDuration(start: string, end: string): string {
+  if (!start || !end) {
+    return 'N/A';
+  }
+  const diff = new Date(end).getTime() - new Date(start).getTime();
+  const minutes = Math.floor(diff / 60000);
+  const seconds = Math.round((diff % 60000) / 1000);
+  return `${minutes} phút ${seconds} giây`;
 }
 
 export default function AssignmentSubmissionsPage({ params }: { params: { id: string } }) {
@@ -259,6 +270,7 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
               <tr className="border-b">
                 <th className="text-left py-3 px-4 whitespace-nowrap">Sinh viên</th>
                 <th className="text-left py-3 px-4 whitespace-nowrap">Thời gian nộp</th>
+                <th className="text-left py-3 px-4 whitespace-nowrap">Thời gian làm bài</th>
                 <th className="text-left py-3 px-4 whitespace-nowrap">Trạng thái</th>
                 <th className="text-left py-3 px-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -300,6 +312,9 @@ export default function AssignmentSubmissionsPage({ params }: { params: { id: st
                   </td>
                   <td className="py-3 px-4 whitespace-nowrap">
                     {new Date(submission.submitted_at).toLocaleString('vi-VN')}
+                  </td>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    {calculateDuration(submission.started_at, submission.submitted_at)}
                   </td>
                   <td className="py-3 px-4">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${

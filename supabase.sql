@@ -35,6 +35,8 @@ CREATE TABLE public.assignment_submissions (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   answers jsonb DEFAULT '{}'::jsonb,
+  started_at timestamp with time zone,
+  status text DEFAULT 'completed'::text,
   CONSTRAINT assignment_submissions_pkey PRIMARY KEY (id),
   CONSTRAINT assignment_submissions_assignment_id_fkey FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
   CONSTRAINT assignment_submissions_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(id)
