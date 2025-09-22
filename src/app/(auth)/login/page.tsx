@@ -74,9 +74,9 @@ export default function LoginPage() {
         </div>
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
-            <p className="text-lg">
+            {/* <p className="text-lg">
               &quot;Đào tạo kỹ sư cơ khí động lực chất lượng cao, đáp ứng nhu cầu của ngành công nghiệp ô tô hiện đại.&quot;
-            </p>
+            </p> */}
             {/* <footer className="text-sm">Khoa Cơ khí động lực</footer> */}
           </blockquote>
         </div>
