@@ -322,7 +322,7 @@ export default function DashboardPage() {
       {/* Upcoming assignments */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-          <h3 className="text-lg font-medium w-full sm:w-auto sm:text-left">Bài tập sắp đến hạn</h3>
+          <h3 className="text-lg font-medium w-full sm:w-auto sm:text-left">Bài tập chưa làm</h3>
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push('/dashboard/assignments')}>
             Xem tất cả
           </Button>
@@ -348,28 +348,36 @@ export default function DashboardPage() {
                 ) : upcomingAssignments.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      Không có bài tập nào sắp đến hạn
+                      Không có bài tập nào chưa làm
                     </td>
                   </tr>
                 ) : (
-                  upcomingAssignments.map((assignment) => (
-                    <tr key={assignment.id} className="border-b last:border-0">
-                      <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.title}</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.class.subject.name}</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</td>
-                      <td className="py-2 px-2 sm:py-3 sm:px-4">
-                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Chưa nộp
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  upcomingAssignments.map((assignment) => {
+                    const dueDate = new Date(assignment.due_date);
+                    const now = new Date();
+                    const diffTime = dueDate.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const isDueSoon = diffDays <= 3 && diffDays >= 0;
+
+                    return (
+                      <tr key={assignment.id} className={`border-b last:border-0 ${isDueSoon ? 'bg-yellow-100' : ''}`}>
+                        <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.title}</td>
+                        <td className="py-2 px-2 sm:py-3 sm:px-4">{assignment.class.subject.name}</td>
+                        <td className="py-2 px-2 sm:py-3 sm:px-4">{new Date(assignment.due_date).toLocaleDateString('vi-VN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</td>
+                        <td className="py-2 px-2 sm:py-3 sm:px-4">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${isDueSoon ? 'bg-red-200 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            Chưa nộp
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>

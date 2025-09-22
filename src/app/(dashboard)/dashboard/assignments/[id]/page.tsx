@@ -295,7 +295,7 @@ export default function AssignmentDetailPage({ params }: { params: { id: string 
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              <div className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
+              <div className={`text-sm w-full sm:w-auto sm:text-right ${new Date(assignment.due_date).getTime() - new Date().getTime() < 3 * 24 * 60 * 60 * 1000 ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
                 Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}
               </div>
               <Button

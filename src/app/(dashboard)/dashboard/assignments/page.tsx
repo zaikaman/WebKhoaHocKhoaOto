@@ -50,7 +50,8 @@ export default function AssignmentsPage() {
       { key: 'subject', label: 'Môn học', type: 'select', options: subjects.map(s => ({ value: s, label: s })) },
       { key: 'class', label: 'Lớp học', type: 'select', options: classes.map(c => ({ value: c, label: c })) },
       { key: 'status', label: 'Trạng thái', type: 'select', options: [
-          { value: 'can_submit', label: 'Có thể nộp' },
+          { value: 'can_submit', label: 'Chưa làm' },
+          { value: 'due_soon', label: 'Sắp hết hạn' },
           { value: 'submitted', label: 'Đã nộp' },
           { value: 'overdue', label: 'Quá hạn' }
       ]},
@@ -157,6 +158,9 @@ export default function AssignmentsPage() {
   function getSubmissionStatus(assignment: Assignment) {
     const now = new Date();
     const dueDate = new Date(new Date(assignment.due_date).getTime() - 7 * 60 * 60 * 1000);
+    const diffTime = dueDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const isDueSoon = diffDays <= 3 && diffDays >= 0;
 
     const highestScore = assignment.submissions.length > 0
         ? Math.max(...assignment.submissions.map(s => s.score || 0))
@@ -182,10 +186,19 @@ export default function AssignmentsPage() {
       };
     }
     
+    if (isDueSoon) {
+      return {
+        key: 'due_soon',
+        label: `Sắp hết hạn (${diffDays} ngày)`,
+        color: 'bg-yellow-100 text-yellow-800',
+        action: 'take'
+      };
+    }
+
     return {
       key: 'can_submit',
       label: 'Chưa nộp',
-      color: 'bg-yellow-100 text-yellow-800',
+      color: 'bg-blue-100 text-blue-800',
       action: 'take'
     };
   }
@@ -245,8 +258,10 @@ export default function AssignmentsPage() {
             ) : (
               filteredAssignments.map((assignment) => {
                 const status = getSubmissionStatus(assignment)
+                const isDueSoon = status.key === 'due_soon';
+
                 return (
-                  <tr key={assignment.id} className="border-b last:border-0">
+                  <tr key={assignment.id} className={`border-b last:border-0 ${isDueSoon ? 'bg-yellow-50' : ''}`}>
                     <td className="py-2 px-2 sm:py-3 sm:px-4">
                       <div className="font-medium">{assignment.title}</div>
                       <div className="text-sm text-muted-foreground">{assignment.class.name}</div>

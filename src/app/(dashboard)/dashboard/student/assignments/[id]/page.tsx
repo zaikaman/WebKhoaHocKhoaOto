@@ -275,7 +275,17 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
   if (!currentAttempt) {
     return (
       <div className="space-y-8">
-         <div className="sticky top-0 z-50 bg-background border-b"><div className="container max-w-screen-2xl py-4"><h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2><p className="text-muted-foreground">{assignment.class.subject.name} - {assignment.class.name}</p></div></div>
+         <div className="sticky top-0 z-50 bg-background border-b">
+           <div className="container max-w-screen-2xl py-4 flex justify-between items-center">
+             <div>
+                <h2 className="text-2xl font-bold tracking-tight">{assignment.title}</h2>
+                <p className="text-muted-foreground">{assignment.class.subject.name} - {assignment.class.name}</p>
+             </div>
+             <div className={`text-sm ${new Date(assignment.due_date).getTime() - new Date().getTime() < 3 * 24 * 60 * 60 * 1000 ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
+                Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}
+              </div>
+            </div>
+          </div>
         <div className="container max-w-screen-2xl pb-8">
           <SubmissionHistory submissions={submissions} totalPoints={assignment.total_points} maxAttempts={assignment.max_attempts || 1} />
           {!isOverdue && completedSubmissions.length < (assignment.max_attempts || 1) ? (

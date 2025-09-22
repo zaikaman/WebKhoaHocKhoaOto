@@ -334,16 +334,24 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           <TabsContent value="assignments">
               <div className="space-y-4">
                   {classData.assignments && classData.assignments.length > 0 ? (
-                  classData.assignments.map((assignment) => (
-                      <div key={assignment.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between">
-                      <div>
-                          <h4 className="font-semibold">{assignment.title}</h4>
-                          <p className="text-sm text-muted-foreground">{assignment.description}</p>
-                          <p className="text-sm text-muted-foreground">Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}</p>
+                  classData.assignments.map((assignment) => {
+                    const dueDate = new Date(assignment.due_date);
+                    const now = new Date();
+                    const diffTime = dueDate.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const isDueSoon = diffDays <= 3 && diffDays >= 0;
+
+                    return (
+                      <div key={assignment.id} className={`rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex items-center justify-between ${isDueSoon ? 'bg-yellow-50' : ''}`}>
+                        <div>
+                            <h4 className="font-semibold">{assignment.title}</h4>
+                            <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                            <p className={`text-sm ${isDueSoon ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}</p>
+                        </div>
+                        <Button onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}>Làm bài</Button>
                       </div>
-                      <Button onClick={() => router.push(`/dashboard/student/assignments/${assignment.id}`)}>Làm bài</Button>
-                      </div>
-                  ))
+                    )
+                  })
                   ) : (
                   <div className="text-center py-8 text-muted-foreground">
                       Chưa có bài tập nào.
