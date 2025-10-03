@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import { PlusCircle, Trash2, Edit, Save, X, AlertTriangle } from "lucide-react"
 import { sanitizeDescription } from "@/lib/utils"
 
@@ -63,6 +64,7 @@ export default function AssignmentDetailPage() {
         total_points: assignmentData.total_points,
         max_attempts: (assignmentData as any).max_attempts || 1,
         questions_to_show: (assignmentData as any).questions_to_show ?? questionsData.length,
+        show_answers: (assignmentData as any).show_answers || false,
       })
       setQuestions(questionsData.map(q => ({ ...q, isEditing: false })))
     } catch (error: any) {
@@ -83,6 +85,7 @@ export default function AssignmentDetailPage() {
         total_points: assignment?.total_points,
         max_attempts: (assignment as any)?.max_attempts || 1,
         questions_to_show: (assignment as any)?.questions_to_show ?? questions.length,
+        show_answers: (assignment as any)?.show_answers || false,
       })
     }
     setIsEditingInfo(!isEditingInfo)
@@ -286,6 +289,14 @@ export default function AssignmentDetailPage() {
                   <Label htmlFor="questions_to_show" className="form-label">Số câu hỏi hiển thị</Label>
                 </div>
               </div>
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox 
+                  id="show_answers"
+                  checked={(editedInfo as any).show_answers}
+                  onCheckedChange={(checked) => setEditedInfo({...editedInfo, show_answers: !!checked})}
+                />
+                <Label htmlFor="show_answers">Cho phép sinh viên xem đáp án sau khi nộp bài</Label>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={handleInfoEditToggle}>Hủy</Button>
                 <Button onClick={handleInfoSave}><Save className="mr-2 h-4 w-4" /> Lưu</Button>
@@ -303,10 +314,16 @@ export default function AssignmentDetailPage() {
                 <div><p className="font-medium">Số lần làm bài:</p> {(assignment as any).max_attempts || 1}</div>
                 <div><p className="font-medium">Loại:</p> <span className="capitalize">{assignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}</span></div>
                 {assignment.type === 'multiple_choice' && (
-                  <div>
-                    <p className="font-medium">Câu hỏi hiển thị:</p> 
-                    {((assignment as any).questions_to_show ?? questions.length)} / {questions.length}
-                  </div>
+                  <>
+                    <div>
+                      <p className="font-medium">Câu hỏi hiển thị:</p> 
+                      {((assignment as any).questions_to_show ?? questions.length)} / {questions.length}
+                    </div>
+                    <div>
+                      <p className="font-medium">Xem đáp án:</p> 
+                      {((assignment as any).show_answers) ? "Cho phép" : "Không"}
+                    </div>
+                  </>
                 )}
               </div>
             </>

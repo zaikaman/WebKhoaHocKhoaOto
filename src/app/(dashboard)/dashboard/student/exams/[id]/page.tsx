@@ -39,6 +39,7 @@ interface Exam {
     }
   }
   max_attempts?: number
+  show_answers?: boolean
 }
 
 interface ExamQuestion {
@@ -61,8 +62,10 @@ interface ExamSubmission {
   feedback: string | null
 }
 
-function ExamSubmissionHistory({ submissions, totalPoints, maxAttempts }: { submissions: ExamSubmission[], totalPoints: number, maxAttempts: number }) {
+function ExamSubmissionHistory({ submissions, exam, allQuestions }: { submissions: ExamSubmission[], exam: Exam, allQuestions: ExamQuestion[] }) {
+  const [submissionToReview, setSubmissionToReview] = useState<ExamSubmission | null>(null);
   const completedSubmissions = submissions.filter(s => s.status === 'completed');
+
   if (completedSubmissions.length === 0) {
     return null;
   }
@@ -70,31 +73,122 @@ function ExamSubmissionHistory({ submissions, totalPoints, maxAttempts }: { subm
   const highestScore = Math.max(...completedSubmissions.map(s => s.score || 0));
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Lịch sử nộp bài kiểm tra</CardTitle>
-        <CardDescription>
-          Điểm cao nhất của bạn là: {highestScore}/{totalPoints} ({completedSubmissions.length}/{maxAttempts} lần làm)
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-4">
-          {completedSubmissions.map((submission, index) => (
-            <li key={submission.id} className="flex justify-between items-center p-4 rounded-md border">
-              <div>
-                <p className="font-semibold">Lần {completedSubmissions.length - index}</p>
-                <p className="text-sm text-muted-foreground">
-                  Nộp lúc: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString('vi-VN') : 'Chưa có'}
-                </p>
-              </div>
-              <p className={`font-bold text-lg ${submission.score === highestScore ? 'text-primary' : ''}`}>
-                {submission.score ?? 'Chưa chấm'}/{totalPoints}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Lịch sử nộp bài kiểm tra</CardTitle>
+          <CardDescription>
+            Điểm cao nhất của bạn là: {highestScore.toFixed(1)}/{exam.total_points} ({completedSubmissions.length}/{exam.max_attempts || 1} lần làm)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-4">
+            {completedSubmissions.map((submission, index) => (
+              <li key={submission.id} className="flex justify-between items-center p-4 rounded-md border">
+                <div>
+                  <p className="font-semibold">Lần {completedSubmissions.length - index}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nộp lúc: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString('vi-VN') : 'Chưa có'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className={`font-bold text-lg ${submission.score === highestScore ? 'text-primary' : ''}`}>
+                    {submission.score?.toFixed(1) ?? 'Chưa chấm'}/{exam.total_points}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={!exam.show_answers}
+                    onClick={() => setSubmissionToReview(submission)}
+                  >
+                    Xem chi tiết
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {!exam.show_answers && (
+            <p className="text-sm text-muted-foreground mt-4">Giảng viên không cho phép xem lại đáp án chi tiết cho bài kiểm tra này.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!submissionToReview} onOpenChange={(isOpen) => !isOpen && setSubmissionToReview(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Chi tiết bài làm</DialogTitle>
+            <DialogDescription>
+              Xem lại chi tiết các câu trả lời của bạn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70vh] overflow-y-auto p-4 space-y-6">
+            {submissionToReview && allQuestions.map((question, index) => {
+              const userAnswer = submissionToReview.answers[question.id];
+              const isCorrect = userAnswer === question.correct_answer;
+
+              return (
+                <Card key={question.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>Câu {index + 1}</CardTitle>
+                        <CardDescription>Điểm: {question.points}</CardDescription>
+                      </div>
+                      {question.type === 'multiple_choice' && (
+                        <div className={`px-2 py-1 rounded text-sm ${
+                          isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {isCorrect ? 'Đúng' : 'Sai'}
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="font-medium">{question.content}</div>
+                    {question.type === 'multiple_choice' && (
+                      <div className="space-y-3">
+                        {(() => {
+                          const options = typeof question.options === 'string' 
+                            ? JSON.parse(question.options) 
+                            : (Array.isArray(question.options) ? question.options : []);
+
+                          return options.map((option: string, optionIndex: number) => (
+                            <div key={optionIndex} className="flex items-center space-x-3">
+                              <input
+                                type="radio"
+                                checked={userAnswer === option}
+                                readOnly
+                                className="h-4 w-4 border-gray-300 text-primary"
+                              />
+                              <label className={`text-sm ${
+                                option === question.correct_answer
+                                  ? 'font-bold text-green-700'
+                                  : userAnswer === option
+                                  ? 'font-bold text-red-700'
+                                  : ''
+                              }`}>
+                                {option}
+                                {option === question.correct_answer && ' (Đáp án đúng)'}
+                              </label>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                    {question.type === 'essay' && (
+                      <div>
+                        <p className="font-medium text-sm text-muted-foreground">Câu trả lời của bạn:</p>
+                        <p className="text-sm p-3 border rounded-md bg-muted min-h-[60px]">{userAnswer || 'Không có câu trả lời'}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -107,6 +201,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [exam, setExam] = useState<Exam | null>(null)
   const [questions, setQuestions] = useState<ExamQuestion[]>([])
+  const [allQuestions, setAllQuestions] = useState<ExamQuestion[]>([])
   const [submissions, setSubmissions] = useState<ExamSubmission[]>([])
   const [completedSubmissions, setCompletedSubmissions] = useState<ExamSubmission[]>([]);
   const [currentAttempt, setCurrentAttempt] = useState<ExamSubmission | null>(null)
@@ -198,6 +293,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       if (questionsError) throw questionsError
 
       if (questionsData) {
+        setAllQuestions(questionsData);
         let processedQuestions = shuffleArray(questionsData);
 
         // Check if we need to select a subset of questions
@@ -410,7 +506,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         <div className="container max-w-screen-2xl pb-8 px-2 sm:px-0">
-          <ExamSubmissionHistory submissions={submissions} totalPoints={exam.total_points} maxAttempts={exam.max_attempts || 1} />
+          <ExamSubmissionHistory 
+            submissions={submissions} 
+            exam={exam}
+            allQuestions={allQuestions}
+          />
           {completedSubmissions.length < (exam.max_attempts || 1) && (
             <div className="text-center mt-8">
               <Button onClick={startNewAttempt} disabled={isLoading}>

@@ -78,7 +78,8 @@ export default function TeacherAssignmentsPage() {
     maxPoints: '100',
     type: 'multiple_choice' as 'multiple_choice' | 'essay',
     maxAttempts: '1',
-    questions_to_show: ''
+    questions_to_show: '',
+    show_answers: false
   })
 
   const filterOptions: FilterOption[] = useMemo(() => {
@@ -272,7 +273,7 @@ export default function TeacherAssignmentsPage() {
         }
         toast({ title: "Thành công", description: "Đã cập nhật bài tập" })
       } else {
-        const assignmentData: CreateAssignmentData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), file_url: null, type: formData.type, max_attempts: Number(formData.maxAttempts), questions_to_show: Number(formData.questions_to_show) || null }
+        const assignmentData: CreateAssignmentData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), file_url: null, type: formData.type, max_attempts: Number(formData.maxAttempts), questions_to_show: Number(formData.questions_to_show) || null, show_answers: formData.show_answers }
         const assignment = await createAssignment(assignmentData)
 
         if (formData.type === 'multiple_choice' && questions.length > 0) {
@@ -283,7 +284,7 @@ export default function TeacherAssignmentsPage() {
         toast({ title: "Thành công", description: "Đã tạo bài tập mới" })
       }
 
-      setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1', questions_to_show: '' })
+      setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1', questions_to_show: '', show_answers: false })
       setQuestions([])
       setSelectedFile(null)
       setEditingAssignmentId(null)
@@ -372,7 +373,7 @@ export default function TeacherAssignmentsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={loadData}><RefreshCw className="w-4 h-4 mr-2" />Làm mới</Button>
-          <Button className="w-full sm:w-auto" onClick={() => { setEditingAssignmentId(null); setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1', questions_to_show: '' }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài tập</Button>
+          <Button className="w-full sm:w-auto" onClick={() => { setEditingAssignmentId(null); setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1', questions_to_show: '', show_answers: false }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài tập</Button>
         </div>
       </div>
 
@@ -532,6 +533,14 @@ export default function TeacherAssignmentsPage() {
                       placeholder="Để trống nếu hiện tất cả câu hỏi"
                     />
                     <Label htmlFor="questions_to_show-mc" className="form-label">Số câu hỏi hiển thị</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="show_answers-mc"
+                      checked={formData.show_answers}
+                      onCheckedChange={(checked) => setFormData({...formData, show_answers: !!checked})}
+                    />
+                    <Label htmlFor="show_answers-mc">Cho phép sinh viên xem đáp án sau khi nộp bài</Label>
                   </div>
                 </div>
               </TabsContent>

@@ -334,7 +334,7 @@ export default function QuickAddPage() {
       } else {
         const formData = new FormData(event.currentTarget)
         if (addType === 'assignment') {
-          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, questions_to_show: parseInt(formData.get('questions_to_show') as string, 10) || null }
+          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, questions_to_show: parseInt(formData.get('questions_to_show') as string, 10) || null, show_answers: formData.get('show_answers') === 'on' }
           const newAssignments = await createAssignmentForClasses(assignmentData, selectedClasses)
           if (newAssignments) {
             for (const assignment of newAssignments) {
@@ -345,7 +345,7 @@ export default function QuickAddPage() {
           }
           toast({ title: 'Thành công', description: 'Đã tạo bài tập cho các lớp đã chọn.' })
         } else if (addType === 'exam') {
-          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, questions_to_show: parseInt(formData.get('questions_to_show') as string, 10) || null, }
+          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, questions_to_show: parseInt(formData.get('questions_to_show') as string, 10) || null, show_answers: formData.get('show_answers') === 'on' }
           const newExams = await createExamForClasses(examData, selectedClasses)
           if (newExams) {
             for (const exam of newExams) {
@@ -524,6 +524,10 @@ export default function QuickAddPage() {
                 <div className="form-field">
                   <Input id='due_date' name='due_date' type='datetime-local' required className="form-input peer" placeholder="Hạn nộp" />
                   <Label htmlFor='due_date' className="form-label">Hạn nộp</Label>
+                </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox id="show_answers_assignment" name="show_answers" />
+                  <Label htmlFor="show_answers_assignment">Cho phép sinh viên xem đáp án sau khi nộp bài</Label>
                 </div>
                 <Tabs defaultValue="manual">
                   <TabsList>
@@ -715,6 +719,10 @@ export default function QuickAddPage() {
                     <Input id='end_time' name='end_time' type='datetime-local' required className="form-input peer" placeholder="Thời gian kết thúc" />
                     <Label htmlFor='end_time' className="form-label">Thời gian kết thúc</Label>
                   </div>
+                </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox id="show_answers_exam" name="show_answers" />
+                  <Label htmlFor="show_answers_exam">Cho phép sinh viên xem đáp án sau khi nộp bài</Label>
                 </div>
                 <div className="relative pt-5">
                   <Textarea id='description' name='description' className="form-textarea peer" placeholder="Mô tả" />

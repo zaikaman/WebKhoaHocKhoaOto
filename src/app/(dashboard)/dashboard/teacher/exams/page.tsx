@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getTeacherClasses, getCurrentUser, createExam } from '@/lib/supabase'
 import { sanitizeDescription } from '@/lib/utils'
@@ -64,7 +66,8 @@ export default function CreateExamPage() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         max_attempts: Number(formData.get('max_attempts')) || 1,
-        questions_to_show: Number(formData.get('questions_to_show')) || null
+        questions_to_show: Number(formData.get('questions_to_show')) || null,
+        show_answers: formData.get('show_answers') === 'on'
       }
 
       // Call the createExam function to save the exam data
@@ -208,6 +211,10 @@ export default function CreateExamPage() {
             <option value="midterm">Midterm</option>
             <option value="final">Final</option>
           </select>
+        </div>
+        <div className="flex items-center space-x-2 pt-2">
+          <Checkbox id="show_answers" name="show_answers" />
+          <Label htmlFor="show_answers">Cho phép sinh viên xem đáp án sau khi nộp bài</Label>
         </div>
         <div className="flex justify-end space-x-4">
           <Button variant="outline" onClick={() => router.back()}>

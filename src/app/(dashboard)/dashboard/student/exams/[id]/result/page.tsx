@@ -18,6 +18,7 @@ interface ExamResult {
       }
     }
     total_points: number
+    show_answers?: boolean
   }
   submission: {
     id: string
@@ -108,6 +109,7 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
         id: examData.id,
         title: examData.title,
         total_points: examData.total_points,
+        show_answers: examData.show_answers,
         class: {
           name: examData.class?.name || '',
           subject: {
@@ -218,7 +220,7 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
                     <CardTitle>Câu {index + 1}</CardTitle>
                     <CardDescription>Điểm: {question.points}</CardDescription>
                   </div>
-                  {question.type === 'multiple_choice' && (
+                  {result.exam.show_answers && question.type === 'multiple_choice' && (
                     <div className={`px-2 py-1 rounded text-sm ${
                       isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
@@ -249,15 +251,16 @@ export default function ExamResultPage({ params }: { params: { id: string } }) {
                               readOnly
                               className="h-4 w-4 border-gray-300 text-primary"
                             />
-                            <label className={`text-sm ${
-                              option === question.correct_answer
+                            <label className={`text-sm ${result.exam.show_answers ?
+                              (option === question.correct_answer
                                 ? 'font-medium text-green-700'
                                 : userAnswer === option
                                 ? 'font-medium text-red-700'
-                                : ''
+                                : '')
+                              : (userAnswer === option ? 'font-medium' : '')
                             }`}>
                               {option}
-                              {option === question.correct_answer && ' (Đáp án đúng)'}
+                              {result.exam.show_answers && option === question.correct_answer && ' (Đáp án đúng)'}
                             </label>
                           </div>
                         ))
