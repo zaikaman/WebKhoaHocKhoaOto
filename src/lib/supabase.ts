@@ -145,6 +145,7 @@ export type Assignment = {
   }
   type?: string
   questions_to_show?: number | null
+  show_answers?: boolean
 }
 
 export type AssignmentQuestion = {
