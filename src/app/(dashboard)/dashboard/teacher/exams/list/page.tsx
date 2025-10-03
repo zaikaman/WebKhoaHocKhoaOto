@@ -5,12 +5,17 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam } from "@/lib/supabase"
-import { supabase } from "@/lib/supabase"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getCurrentUser, getTeacherClasses, getClassExams, deleteExam, createExam } from "@/lib/supabase"
+import { supabase, Exam as DBExam } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import SearchFilter, { FilterOption } from "@/components/search-filter"
-import { Plus, RefreshCw, Check, Loader, Clock, MoreHorizontal, Users, FileIcon } from "lucide-react"
+import { Plus, RefreshCw, Check, Loader, Clock, MoreHorizontal, Users, FileIcon, Upload } from "lucide-react"
+import * as XLSX from 'xlsx'
+import { sanitizeDescription } from '@/lib/utils'
 import { AssignmentListSkeleton } from "../../components/AssignmentListSkeleton";
 
 type Exam = {
@@ -36,6 +41,11 @@ type GroupedExam = {
   duration: number;
 }
 
+type CreateExamData = Omit<DBExam, 'id' | 'created_at' | 'updated_at'> & {
+  type: 'quiz' | 'midterm' | 'final',
+  max_attempts?: number
+}
+
 export default function TeacherExamsListPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -49,11 +59,31 @@ export default function TeacherExamsListPage() {
   const [selectedGroup, setSelectedGroup] = useState<GroupedExam | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isEditTitleDialogOpen, setIsEditTitleDialogOpen] = useState(false)
+  const [creationMode, setCreationMode] = useState<'multiple_choice' | 'essay'>('multiple_choice')
   const [currentExamId, setCurrentExamId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editStartTime, setEditStartTime] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
   const [editDuration, setEditDuration] = useState('')
+
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingExamId, setEditingExamId] = useState<string | null>(null)
+  const [classes, setClasses] = useState<Array<{id: string, name: string}>>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [questions, setQuestions] = useState<Array<{ content: string; options?: string[]; correct_answer: string; points: number; }>>([])
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    classId: '',
+    start_time: '',
+    end_time: '',
+    duration: '60',
+    total_points: '100',
+    type: 'quiz' as 'quiz' | 'midterm' | 'final',
+    max_attempts: '1',
+    questions_to_show: '',
+    show_answers: false
+  })
 
   const filterOptions: FilterOption[] = useMemo(() => {
     const subjects = [...new Set(exams.map(e => e.subject))]
@@ -104,6 +134,115 @@ export default function TeacherExamsListPage() {
     setFilteredExams(filtered);
   }, [groupedExams, searchQuery, filters]);
 
+  const handleCreateExam = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setIsLoading(true)
+
+      if (!formData.title || !formData.description || !formData.classId || !formData.start_time || !formData.end_time) {
+        throw new Error('Vui lòng điền đầy đủ thông tin')
+      }
+
+      if (creationMode === 'multiple_choice' && questions.length === 0) {
+        throw new Error('Vui lòng thêm câu hỏi cho bài kiểm tra trắc nghiệm')
+      }
+
+      if (editingExamId) {
+        const { error: updateError } = await supabase.from('exams').update({ title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, start_time: formData.start_time, end_time: formData.end_time, duration: Number(formData.duration), total_points: Number(formData.total_points), type: formData.type, max_attempts: Number(formData.max_attempts), updated_at: new Date().toISOString() }).eq('id', editingExamId)
+        if (updateError) throw updateError
+
+        if (questions.length > 0) {
+          await supabase.from('exam_questions').delete().eq('exam_id', editingExamId)
+          const questionsData = questions.map(q => ({ exam_id: editingExamId, content: q.content, options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options, correct_answer: q.correct_answer, points: q.points, type: 'multiple_choice' }))
+          const { error: questionsError } = await supabase.from('exam_questions').insert(questionsData)
+          if (questionsError) throw questionsError
+        }
+        toast({ title: "Thành công", description: "Đã cập nhật bài kiểm tra" })
+      } else {
+        const examData: CreateExamData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, start_time: formData.start_time, end_time: formData.end_time, duration: Number(formData.duration), total_points: Number(formData.total_points), type: formData.type, max_attempts: Number(formData.max_attempts), questions_to_show: Number(formData.questions_to_show) || null, show_answers: formData.show_answers, status: 'upcoming' }
+        const exam = await createExam(examData)
+
+        if (questions.length > 0) {
+          const questionsData = questions.map(q => ({ exam_id: exam.id, content: q.content, options: Array.isArray(q.options) ? JSON.stringify(q.options) : q.options, correct_answer: q.correct_answer, points: q.points, type: 'multiple_choice' }))
+          const { error: questionsError } = await supabase.from('exam_questions').insert(questionsData)
+          if (questionsError) throw questionsError
+        }
+        toast({ title: "Thành công", description: "Đã tạo bài kiểm tra mới" })
+      }
+
+      setFormData({
+        title: '',
+        description: '',
+        classId: '',
+        start_time: '',
+        end_time: '',
+        duration: '60',
+        total_points: '100',
+        type: 'quiz' as 'quiz' | 'midterm' | 'final',
+        max_attempts: '1',
+        questions_to_show: '',
+        show_answers: false
+      })
+      setQuestions([])
+      setSelectedFile(null)
+      setEditingExamId(null)
+      setShowCreateDialog(false)
+      await loadExams()
+
+    } catch (error: any) {
+      console.error('Lỗi khi xử lý bài kiểm tra:', error)
+      toast({ variant: "destructive", title: "Lỗi", description: error.message || "Không thể xử lý bài kiểm tra" })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setQuestions([]);
+    setSelectedFile(file)
+
+    try {
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data, { type: 'buffer' });
+      if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) throw new Error("File Excel không hợp lệ hoặc không có trang tính (sheet) nào.");
+      const worksheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[worksheetName];
+      if (!worksheet) throw new Error(`Không thể tìm thấy trang tính có tên "${worksheetName}".`);
+      const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+      if (jsonData.length === 0) {
+        setQuestions([]);
+        toast({ variant: "default", title: "File trống", description: "File Excel không có dữ liệu hoặc các cột không được đặt tên đúng." });
+        return;
+      }
+
+      const newQuestions = jsonData.map((row: any) => ({ content: String(row['Câu hỏi'] || row['Question'] || ''), options: [row['Phương án A'] || row['Option A'], row['Phương án B'] || row['Option B'], row['Phương án C'] || row['Option C'], row['Phương án D'] || row['Option D']].map(option => String(option || '')).filter(option => option.trim() !== ''), correct_answer: String(row['Đáp án đúng'] || row['Correct Answer'] || ''), points: Number(row['Điểm'] || row['Points'] || 10) })).filter(q => q.content && q.correct_answer)
+
+      if (newQuestions.length === 0) {
+        setQuestions([]);
+        toast({ variant: "default", title: "Không tìm thấy câu hỏi", description: "Không tìm thấy câu hỏi hợp lệ nào. Vui lòng kiểm tra lại tên các cột trong file Excel." });
+        return;
+      }
+
+      setQuestions(newQuestions)
+      toast({ title: "Thành công", description: `Đã tải ${newQuestions.length} câu hỏi từ file Excel` })
+    } catch (error: any) {
+      console.error('Lỗi khi đọc file Excel:', error)
+      toast({ variant: "destructive", title: "Lỗi", description: error.message || "Không thể đọc file Excel. Vui lòng kiểm tra định dạng file." })
+    }
+  }
+
+  const handleDownloadTemplate = () => {
+    const templateData = [ { 'Câu hỏi': 'Câu hỏi mẫu 1?', 'Phương án A': 'Đáp án A', 'Phương án B': 'Đáp án B', 'Phương án C': 'Đáp án C', 'Phương án D': 'Đáp án D', 'Đáp án đúng': 'Đáp án A', 'Điểm': 10 }, { 'Câu hỏi': 'Câu hỏi mẫu 2?', 'Phương án A': 'Đáp án A', 'Phương án B': 'Đáp án B', 'Phương án C': 'Đáp án C', 'Phương án D': 'Đáp án D', 'Đáp án đúng': 'Đáp án B', 'Điểm': 10 } ]
+    const worksheet = XLSX.utils.json_to_sheet(templateData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template')
+    XLSX.writeFile(workbook, 'template_bai_kiem_tra.xlsx')
+  }
+
   const handleSearch = (query: string, newFilters: Record<string, any>) => {
     setSearchQuery(query)
     setFilters(newFilters)
@@ -119,10 +258,11 @@ export default function TeacherExamsListPage() {
         return
       }
 
-      const classes = await getTeacherClasses(currentUser.profile.id)
+      const teacherClasses = await getTeacherClasses(currentUser.profile.id)
+      setClasses(teacherClasses.map(c => ({ id: c.id, name: `${c.name} - ${c.subject.name}` })))
       
       const allExams: Exam[] = []
-      for (const classItem of classes) {
+      for (const classItem of teacherClasses) {
         const exams = await getClassExams(classItem.id)
         const { data: classStudents } = await supabase.from('enrollments').select('student_id').eq('class_id', classItem.id).eq('status', 'enrolled')
         const totalStudents = classStudents?.length || 0
@@ -248,11 +388,316 @@ export default function TeacherExamsListPage() {
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2">
           <Button variant="outline" onClick={loadExams} disabled={isLoading}><RefreshCw className="w-4 h-4 mr-2" />Làm mới</Button>
-          <Button className="w-full sm:w-auto" onClick={() => router.push('/dashboard/teacher/exams')}><Plus className="w-4 h-4 mr-2" />Tạo bài kiểm tra</Button>
+          <Button className="w-full sm:w-auto" onClick={() => { setEditingExamId(null); setFormData({ title: '', description: '', classId: '', start_time: '', end_time: '', duration: '60', total_points: '100', type: 'quiz', max_attempts: '1', questions_to_show: '', show_answers: false }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài kiểm tra</Button>
         </div>
       </div>
 
       <SearchFilter searchPlaceholder="Tìm kiếm bài kiểm tra..." filterOptions={filterOptions} onSearch={handleSearch} />
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <form onSubmit={handleCreateExam}>
+            <DialogHeader>
+              <DialogTitle>{editingExamId ? 'Chỉnh sửa bài kiểm tra' : 'Tạo bài kiểm tra mới'}</DialogTitle>
+              <DialogDescription>
+                Điền thông tin chi tiết cho bài kiểm tra của bạn.
+              </DialogDescription>
+            </DialogHeader>
+            <Tabs defaultValue="multiple_choice" onValueChange={(value) => setCreationMode(value as 'multiple_choice' | 'essay')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="multiple_choice">Trắc nghiệm (File Excel)</TabsTrigger>
+                <TabsTrigger value="essay">Tự luận / Nhập tay</TabsTrigger>
+              </TabsList>
+              <TabsContent value="multiple_choice" className="space-y-4 py-4">
+                <div className="space-y-2">
+                  {selectedFile ? (
+                    <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors flex flex-col items-center justify-center space-y-4">
+                      <Upload className="h-12 w-12 text-blue-400" />
+                      <div className="text-center">
+                        <p className="text-base font-medium text-blue-600">Đã chọn file:</p>
+                        <p className="text-sm font-medium mt-1">{selectedFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedFile(null)}
+                      >
+                        Xóa file
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 hover:border-blue-500 transition-colors text-center flex flex-col items-center justify-center space-y-4">
+                      <Upload className="h-12 w-12 text-blue-500" />
+                      <div className="text-center">
+                        <p className="text-base font-medium text-blue-600">Chọn file Excel để tải lên câu hỏi</p>
+                        <p className="text-sm text-muted-foreground mt-1">hoặc kéo thả file vào đây</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Định dạng hỗ trợ: XLSX, XLS
+                        </p>
+                      </div>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  File Excel của bạn phải có định dạng với các cột "Câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D" và "Đáp án đúng".{' '}
+                  <Button 
+                    variant="link" 
+                    className="h-auto p-0 text-blue-600 underline"
+                    onClick={handleDownloadTemplate}
+                    type="button"
+                  >
+                    Tải mẫu
+                  </Button>
+                </p>
+              </TabsContent>
+              <TabsContent value="essay" className="space-y-4 py-4">
+                <div className="grid gap-4">
+                <div className="form-field">
+                  <Input 
+                    id="title-exam-essay"
+                    placeholder="Nhập tiêu đề bài kiểm tra"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    required
+                    className="form-input peer"
+                  />
+                  <Label htmlFor="title-exam-essay" className="form-label">Tiêu đề</Label>
+                </div>
+                <div className="relative pt-5">
+                  <Textarea 
+                    id="description-exam-essay"
+                    placeholder="Nhập mô tả bài kiểm tra"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    required
+                    className="form-textarea peer"
+                  />
+                  <Label htmlFor="description-exam-essay" className="form-textarea-label">Mô tả</Label>
+                </div>
+                <div className="form-field">
+                  <Label htmlFor="class-exam-essay" className="absolute -top-3 left-3 text-sm text-blue-500">Lớp học</Label>
+                  <select
+                    id="class-exam-essay"
+                    name="class_id"
+                    className="w-full px-3 py-2 border rounded-md"
+                    value={formData.classId}
+                    onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                    required
+                  >
+                    <option value="">Chọn lớp học</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="datetime-local"
+                    id="start_time-exam-essay"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Thời gian bắt đầu"
+                  />
+                  <Label htmlFor="start_time-exam-essay" className="form-label">Thời gian bắt đầu</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="datetime-local"
+                    id="end_time-exam-essay"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({...formData, end_time: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Thời gian kết thúc"
+                  />
+                  <Label htmlFor="end_time-exam-essay" className="form-label">Thời gian kết thúc</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="duration-exam-essay"
+                    min="1"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Thời gian làm bài (phút)"
+                  />
+                  <Label htmlFor="duration-exam-essay" className="form-label">Thời gian làm bài (phút)</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="total_points-exam-essay"
+                    min="0"
+                    value={formData.total_points}
+                    onChange={(e) => setFormData({...formData, total_points: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Điểm tối đa"
+                  />
+                  <Label htmlFor="total_points-exam-essay" className="form-label">Điểm tối đa</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="max_attempts-exam-essay"
+                    min="1"
+                    value={formData.max_attempts}
+                    onChange={(e) => setFormData({...formData, max_attempts: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Số lần làm bài"
+                  />
+                  <Label htmlFor="max_attempts-exam-essay" className="form-label">Số lần làm bài</Label>
+                </div>
+              </div>
+              </TabsContent>
+            </Tabs>
+              <div className="grid gap-4">
+                <div className="form-field">
+                  <Input 
+                    id="title-exam"
+                    placeholder="Nhập tiêu đề bài kiểm tra"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    required
+                    className="form-input peer"
+                  />
+                  <Label htmlFor="title-exam" className="form-label">Tiêu đề</Label>
+                </div>
+                <div className="relative pt-5">
+                  <Textarea 
+                    id="description-exam"
+                    placeholder="Nhập mô tả bài kiểm tra"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    required
+                    className="form-textarea peer"
+                  />
+                  <Label htmlFor="description-exam" className="form-textarea-label">Mô tả</Label>
+                </div>
+                <div className="form-field">
+                  <Label htmlFor="class-exam" className="absolute -top-3 left-3 text-sm text-blue-500">Lớp học</Label>
+                  <select
+                    id="class-exam"
+                    name="class_id"
+                    className="w-full px-3 py-2 border rounded-md"
+                    value={formData.classId}
+                    onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                    required
+                  >
+                    <option value="">Chọn lớp học</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="datetime-local"
+                    id="start_time-exam"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Thời gian bắt đầu"
+                  />
+                  <Label htmlFor="start_time-exam" className="form-label">Thời gian bắt đầu</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="datetime-local"
+                    id="end_time-exam"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({...formData, end_time: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Thời gian kết thúc"
+                  />
+                  <Label htmlFor="end_time-exam" className="form-label">Thời gian kết thúc</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="duration-exam"
+                    min="1"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Thời gian làm bài (phút)"
+                  />
+                  <Label htmlFor="duration-exam" className="form-label">Thời gian làm bài (phút)</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="total_points-exam"
+                    min="0"
+                    value={formData.total_points}
+                    onChange={(e) => setFormData({...formData, total_points: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Điểm tối đa"
+                  />
+                  <Label htmlFor="total_points-exam" className="form-label">Điểm tối đa</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="max_attempts-exam"
+                    min="1"
+                    value={formData.max_attempts}
+                    onChange={(e) => setFormData({...formData, max_attempts: e.target.value})}
+                    required
+                    className="form-input peer"
+                    placeholder="Số lần làm bài"
+                  />
+                  <Label htmlFor="max_attempts-exam" className="form-label">Số lần làm bài</Label>
+                </div>
+                <div className="form-field">
+                  <Input
+                    type="number"
+                    id="questions_to_show-exam"
+                    min="1"
+                    value={formData.questions_to_show}
+                    onChange={(e) => setFormData({...formData, questions_to_show: e.target.value})}
+                    className="form-input peer"
+                    placeholder="Để trống nếu hiện tất cả câu hỏi"
+                  />
+                  <Label htmlFor="questions_to_show-exam" className="form-label">Số câu hỏi hiển thị</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="show_answers-exam"
+                    checked={formData.show_answers}
+                    onCheckedChange={(checked) => setFormData({...formData, show_answers: !!checked})}
+                  />
+                  <Label htmlFor="show_answers-exam">Cho phép sinh viên xem đáp án sau khi nộp bài</Label>
+                </div>
+              </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (editingExamId ? "Đang cập nhật..." : "Đang tạo...") : (editingExamId ? "Cập nhật bài kiểm tra" : "Tạo bài kiểm tra")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="rounded-xl border shadow overflow-x-auto">
         <div className="divide-y">
