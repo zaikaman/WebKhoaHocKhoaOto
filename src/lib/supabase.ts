@@ -98,6 +98,7 @@ export type Exam = {
   created_at: string
   updated_at: string
   max_attempts?: number
+  questions_to_show?: number | null
 }
 
 export type ExamQuestion = {
@@ -143,6 +144,7 @@ export type Assignment = {
     }
   }
   type?: string
+  questions_to_show?: number | null
 }
 
 export type AssignmentQuestion = {

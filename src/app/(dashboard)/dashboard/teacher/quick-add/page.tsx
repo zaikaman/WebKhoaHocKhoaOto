@@ -334,7 +334,7 @@ export default function QuickAddPage() {
       } else {
         const formData = new FormData(event.currentTarget)
         if (addType === 'assignment') {
-          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1 }
+          const assignmentData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), due_date: formData.get('due_date') as string, total_points: parseInt(formData.get('total_points') as string, 10), file_url: null, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, questions_to_show: parseInt(formData.get('questions_to_show') as string, 10) || null }
           const newAssignments = await createAssignmentForClasses(assignmentData, selectedClasses)
           if (newAssignments) {
             for (const assignment of newAssignments) {
@@ -345,7 +345,7 @@ export default function QuickAddPage() {
           }
           toast({ title: 'Thành công', description: 'Đã tạo bài tập cho các lớp đã chọn.' })
         } else if (addType === 'exam') {
-          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, }
+          const examData = { title: formData.get('title') as string, description: sanitizeDescription(formData.get('description') as string), type: formData.get('type') as 'quiz' | 'midterm' | 'final', duration: parseInt(formData.get('duration') as string, 10), total_points: parseInt(formData.get('total_points') as string, 10), start_time: formData.get('start_time') as string, end_time: formData.get('end_time') as string, status: 'upcoming' as const, max_attempts: parseInt(formData.get('max_attempts') as string, 10) || 1, questions_to_show: parseInt(formData.get('questions_to_show') as string, 10) || null, }
           const newExams = await createExamForClasses(examData, selectedClasses)
           if (newExams) {
             for (const exam of newExams) {
@@ -511,6 +511,10 @@ export default function QuickAddPage() {
                   <div className="form-field">
                     <Input id='max_attempts' name='max_attempts' type='number' defaultValue={1} required className="form-input peer" placeholder="Số lần làm bài" />
                     <Label htmlFor='max_attempts' className="form-label">Số lần làm bài</Label>
+                  </div>
+                  <div className="form-field">
+                    <Input id='questions_to_show_assignment' name='questions_to_show' type='number' min={1} className="form-input peer" placeholder="Để trống nếu hiện tất cả câu hỏi" />
+                    <Label htmlFor='questions_to_show_assignment' className="form-label">Số câu hỏi hiển thị</Label>
                   </div>
                 </div>
                 <div className="relative pt-5">
@@ -698,6 +702,10 @@ export default function QuickAddPage() {
                   <div className="form-field">
                     <Input id='max_attempts' name='max_attempts' type='number' defaultValue={1} required className="form-input peer" placeholder="Số lần làm bài" />
                     <Label htmlFor='max_attempts' className="form-label">Số lần làm bài</Label>
+                  </div>
+                  <div className="form-field">
+                    <Input id='questions_to_show_exam' name='questions_to_show' type='number' min={1} className="form-input peer" placeholder="Để trống nếu hiện tất cả câu hỏi" />
+                    <Label htmlFor='questions_to_show_exam' className="form-label">Số câu hỏi hiển thị</Label>
                   </div>
                   <div className="form-field">
                     <Input id='start_time' name='start_time' type='datetime-local' required className="form-input peer" placeholder="Thời gian bắt đầu" />
