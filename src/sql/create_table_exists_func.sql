@@ -1,15 +1,15 @@
-CREATE OR REPLACE FUNCTION table_exists(schema_name text, table_name text)
+CREATE OR REPLACE FUNCTION table_exists(p_schema_name text, p_table_name text)
 RETURNS boolean AS $$
 DECLARE
-  exists boolean;
+  v_exists boolean;
 BEGIN
   SELECT EXISTS (
     SELECT 1
     FROM information_schema.tables
     WHERE
-      tables.table_schema = schema_name
-      AND tables.table_name = table_name
-  ) INTO exists;
-  RETURN exists;
+      table_schema = p_schema_name
+      AND table_name = p_table_name
+  ) INTO v_exists;
+  RETURN v_exists;
 END;
 $$ LANGUAGE plpgsql;
