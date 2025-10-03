@@ -10,22 +10,19 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    // 1. Kiểm tra nếu bảng activity_logs đã tồn tại
-    const { data: existingTables, error: tableError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'activity_logs');
+    // 1. Kiểm tra nếu bảng activity_logs đã tồn tại bằng RPC
+    const { data: tableExists, error: rpcError } = await supabase.rpc('table_exists', {
+      schema_name: 'public',
+      table_name: 'activity_logs'
+    });
 
-    if (tableError) {
-      console.error('Error checking table existence:', tableError);
+    if (rpcError) {
+      console.error('Error checking table existence via RPC:', rpcError);
       return NextResponse.json(
-        { success: false, message: 'Failed to check if table exists', error: tableError.message },
+        { success: false, message: 'Failed to check if table exists', error: rpcError.message },
         { status: 500 }
       );
     }
-
-    const tableExists = existingTables && existingTables.length > 0;
 
     if (!tableExists) {
       return NextResponse.json({ 
