@@ -99,6 +99,7 @@ export type Exam = {
   updated_at: string
   max_attempts?: number
   questions_to_show?: number | null
+  show_answers?: boolean
 }
 
 export type ExamQuestion = {
