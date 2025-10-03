@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Plus, RefreshCw, Upload, File as FileIcon, Users, CheckCircle, XCircle } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { supabase, createAssignment, Assignment as DBAssignment } from '@/lib/supabase'
