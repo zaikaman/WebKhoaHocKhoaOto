@@ -198,7 +198,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       if (questionsError) throw questionsError
 
       if (questionsData) {
-        const shuffledQuestions = shuffleArray(questionsData).map(question => {
+        let processedQuestions = shuffleArray(questionsData);
+
+        // Check if we need to select a subset of questions
+        const questionsToShow = (examData as any).questions_to_show;
+        if (questionsToShow > 0 && questionsToShow < processedQuestions.length) {
+          processedQuestions = processedQuestions.slice(0, questionsToShow);
+        }
+
+        const finalQuestions = processedQuestions.map(question => {
           if (question.type === 'multiple_choice' && question.options) {
             try {
                 let options = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
@@ -209,7 +217,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           }
           return question;
         });
-        setQuestions(shuffledQuestions);
+        setQuestions(finalQuestions);
       } else {
         setQuestions([]);
       }

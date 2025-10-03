@@ -77,7 +77,8 @@ export default function TeacherAssignmentsPage() {
     dueDate: '',
     maxPoints: '100',
     type: 'multiple_choice' as 'multiple_choice' | 'essay',
-    maxAttempts: '1'
+    maxAttempts: '1',
+    questions_to_show: ''
   })
 
   const filterOptions: FilterOption[] = useMemo(() => {
@@ -271,7 +272,7 @@ export default function TeacherAssignmentsPage() {
         }
         toast({ title: "Thành công", description: "Đã cập nhật bài tập" })
       } else {
-        const assignmentData: CreateAssignmentData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), file_url: null, type: formData.type, max_attempts: Number(formData.maxAttempts) }
+        const assignmentData: CreateAssignmentData = { title: formData.title, description: sanitizeDescription(formData.description), class_id: formData.classId, due_date: formData.dueDate, total_points: Number(formData.maxPoints), file_url: null, type: formData.type, max_attempts: Number(formData.maxAttempts), questions_to_show: Number(formData.questions_to_show) || null }
         const assignment = await createAssignment(assignmentData)
 
         if (formData.type === 'multiple_choice' && questions.length > 0) {
@@ -282,7 +283,7 @@ export default function TeacherAssignmentsPage() {
         toast({ title: "Thành công", description: "Đã tạo bài tập mới" })
       }
 
-      setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1' })
+      setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1', questions_to_show: '' })
       setQuestions([])
       setSelectedFile(null)
       setEditingAssignmentId(null)
@@ -371,7 +372,7 @@ export default function TeacherAssignmentsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={loadData}><RefreshCw className="w-4 h-4 mr-2" />Làm mới</Button>
-          <Button className="w-full sm:w-auto" onClick={() => { setEditingAssignmentId(null); setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1' }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài tập</Button>
+          <Button className="w-full sm:w-auto" onClick={() => { setEditingAssignmentId(null); setFormData({ title: '', description: '', classId: '', dueDate: '', maxPoints: '100', type: 'multiple_choice', maxAttempts: '1', questions_to_show: '' }); setQuestions([]); setSelectedFile(null); setShowCreateDialog(true); }}><Plus className="w-4 h-4 mr-2" />Tạo bài tập</Button>
         </div>
       </div>
 
@@ -435,7 +436,7 @@ export default function TeacherAssignmentsPage() {
                     <Button 
                       variant="link" 
                       className="h-auto p-0 text-blue-600 underline"
-                      onClick={() => setShowTemplateDialog(true)}
+                      onClick={handleDownloadTemplate}
                       type="button"
                     >
                       Tải mẫu
@@ -519,6 +520,18 @@ export default function TeacherAssignmentsPage() {
                       placeholder="Số lần làm bài"
                     />
                     <Label htmlFor="max_attempts-mc" className="form-label">Số lần làm bài</Label>
+                  </div>
+                  <div className="form-field">
+                    <Input
+                      type="number"
+                      id="questions_to_show-mc"
+                      min="1"
+                      value={formData.questions_to_show}
+                      onChange={(e) => setFormData({...formData, questions_to_show: e.target.value})}
+                      className="form-input peer"
+                      placeholder="Để trống nếu hiện tất cả câu hỏi"
+                    />
+                    <Label htmlFor="questions_to_show-mc" className="form-label">Số câu hỏi hiển thị</Label>
                   </div>
                 </div>
               </TabsContent>

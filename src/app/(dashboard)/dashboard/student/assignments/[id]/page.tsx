@@ -139,7 +139,15 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
       if (questionsError) throw questionsError
 
       if (questionsData) {
-        const shuffledQuestions = shuffleArray(questionsData).map(q => {
+        let processedQuestions = shuffleArray(questionsData);
+
+        // Check if we need to select a subset of questions
+        const questionsToShow = (assignmentData as any).questions_to_show;
+        if (questionsToShow > 0 && questionsToShow < processedQuestions.length) {
+          processedQuestions = processedQuestions.slice(0, questionsToShow);
+        }
+
+        const finalQuestions = processedQuestions.map(q => {
           if (q.type === 'multiple_choice' && q.options) {
             try {
               let options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
@@ -148,7 +156,7 @@ export default function AssignmentTakingPage({ params }: { params: { id: string 
           }
           return q;
         });
-        setQuestions(shuffledQuestions);
+        setQuestions(finalQuestions);
       } else {
         setQuestions([]);
       }

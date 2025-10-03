@@ -63,7 +63,8 @@ export default function CreateExamPage() {
         status: 'upcoming' as "completed" | "upcoming" | "in-progress",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        max_attempts: Number(formData.get('max_attempts')) || 1
+        max_attempts: Number(formData.get('max_attempts')) || 1,
+        questions_to_show: Number(formData.get('questions_to_show')) || null
       }
 
       // Call the createExam function to save the exam data
@@ -185,6 +186,16 @@ export default function CreateExamPage() {
             placeholder="Số lần làm bài"
           />
           <label className="form-label">Số lần làm bài</label>
+        </div>
+        <div className="form-field">
+          <input
+            type="number"
+            name="questions_to_show"
+            className="form-input peer"
+            min={1}
+            placeholder="Để trống nếu muốn hiển thị tất cả câu hỏi"
+          />
+          <label className="form-label">Số câu hỏi hiển thị</label>
         </div>
         <div className="form-field">
           <label className="absolute -top-3 left-3 text-sm text-blue-500">Loại bài kiểm tra</label>

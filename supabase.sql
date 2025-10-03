@@ -35,8 +35,8 @@ CREATE TABLE public.assignment_submissions (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   answers jsonb DEFAULT '{}'::jsonb,
-  started_at timestamp with time zone,
   status text DEFAULT 'completed'::text,
+  started_at timestamp with time zone,
   CONSTRAINT assignment_submissions_pkey PRIMARY KEY (id),
   CONSTRAINT assignment_submissions_assignment_id_fkey FOREIGN KEY (assignment_id) REFERENCES public.assignments(id),
   CONSTRAINT assignment_submissions_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(id)
@@ -53,6 +53,7 @@ CREATE TABLE public.assignments (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   type text NOT NULL DEFAULT 'multiple_choice'::text,
   max_attempts integer NOT NULL DEFAULT 1,
+  questions_to_show integer,
   CONSTRAINT assignments_pkey PRIMARY KEY (id),
   CONSTRAINT assignments_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
 );
@@ -128,6 +129,7 @@ CREATE TABLE public.exams (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   max_attempts integer NOT NULL DEFAULT 1,
+  questions_to_show integer,
   CONSTRAINT exams_pkey PRIMARY KEY (id),
   CONSTRAINT exams_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
 );

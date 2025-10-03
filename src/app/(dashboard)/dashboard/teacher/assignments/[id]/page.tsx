@@ -62,6 +62,7 @@ export default function AssignmentDetailPage() {
         due_date: new Date(assignmentData.due_date).toISOString().slice(0, 16),
         total_points: assignmentData.total_points,
         max_attempts: (assignmentData as any).max_attempts || 1,
+        questions_to_show: (assignmentData as any).questions_to_show ?? questionsData.length,
       })
       setQuestions(questionsData.map(q => ({ ...q, isEditing: false })))
     } catch (error: any) {
@@ -81,6 +82,7 @@ export default function AssignmentDetailPage() {
         due_date: new Date(assignment!.due_date).toISOString().slice(0, 16),
         total_points: assignment?.total_points,
         max_attempts: (assignment as any)?.max_attempts || 1,
+        questions_to_show: (assignment as any)?.questions_to_show ?? questions.length,
       })
     }
     setIsEditingInfo(!isEditingInfo)
@@ -88,6 +90,17 @@ export default function AssignmentDetailPage() {
 
   const handleInfoSave = async () => {
     if (!assignment) return
+
+    const questionsToShow = (editedInfo as any).questions_to_show;
+    if (questionsToShow > questions.length) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: `Số câu hỏi hiển thị không được lớn hơn tổng số câu hỏi (${questions.length}).`
+      })
+      return
+    }
+
     try {
       const updatedData = {
         ...editedInfo,
@@ -224,7 +237,7 @@ export default function AssignmentDetailPage() {
                 />
                 <Label htmlFor="description" className="form-textarea-label">Mô tả</Label>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-field">
                   <Input
                     id="due_date"
@@ -259,6 +272,19 @@ export default function AssignmentDetailPage() {
                   />
                   <Label htmlFor="max_attempts" className="form-label">Số lần làm bài</Label>
                 </div>
+                <div className="form-field">
+                  <Input
+                    id="questions_to_show"
+                    type="number"
+                    value={(editedInfo as any).questions_to_show || ''}
+                    onChange={(e) => setEditedInfo({ ...editedInfo, questions_to_show: Number(e.target.value) })}
+                    className="form-input peer"
+                    placeholder={`Tối đa ${questions.length} câu`}
+                    min={1}
+                    max={questions.length}
+                  />
+                  <Label htmlFor="questions_to_show" className="form-label">Số câu hỏi hiển thị</Label>
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={handleInfoEditToggle}>Hủy</Button>
@@ -276,6 +302,12 @@ export default function AssignmentDetailPage() {
                 <div><p className="font-medium">Tổng điểm:</p> {assignment.total_points}</div>
                 <div><p className="font-medium">Số lần làm bài:</p> {(assignment as any).max_attempts || 1}</div>
                 <div><p className="font-medium">Loại:</p> <span className="capitalize">{assignment.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}</span></div>
+                {assignment.type === 'multiple_choice' && (
+                  <div>
+                    <p className="font-medium">Câu hỏi hiển thị:</p> 
+                    {((assignment as any).questions_to_show ?? questions.length)} / {questions.length}
+                  </div>
+                )}
               </div>
             </>
           )}
